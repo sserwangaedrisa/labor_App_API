@@ -8,7 +8,7 @@ import LaborerDashboard from "../pages/laborer/Dashboard";
 import ForemanDashboard from "../pages/foreman/Dashboard";
 import WorkersPage from "../pages/foreman/Workers";
 import AddDailyRecord from "../pages/foreman/AddDailyRecord";
-
+import OwnerDashboard from "../pages/owner/Dashboard";
 export const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -45,6 +45,9 @@ export const AppRoutes = () => {
           user?.role === "foreman" ? <AddDailyRecord /> : <Navigate to="/auth/login" />
         }
       />
+        {/* Owner routes */}
+
+        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/auth/login" />} />

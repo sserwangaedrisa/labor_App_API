@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../app/providers";
-import Input from "../../components/ui/input";
+import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 
 const LoginPage = () => {
@@ -31,12 +31,12 @@ const LoginPage = () => {
         id: "1",
         name: "John Doe",
         phone,
-        role: "foreman", // change to test foreman/owner
+        role: "owner", // change to test foreman/owner
         siteId: "site-123",
       });
 
       // Navigate to dashboard
-      navigate("/foreman/dashboard");
+      navigate("/owner/dashboard");
     } catch (err: any) {
       setError(err.message || "Login failed.");
     } finally {
