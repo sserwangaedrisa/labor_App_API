@@ -9,6 +9,10 @@ import ForemanDashboard from "../pages/foreman/Dashboard";
 import WorkersPage from "../pages/foreman/Workers";
 import AddDailyRecord from "../pages/foreman/AddDailyRecord";
 import OwnerDashboard from "../pages/owner/Dashboard";
+import SettingsPage from "../pages/owner/Settings";
+import ReportsPage from "../pages/owner/Reports";
+import OwnerPayments from "../pages/owner/Payments";
+import SitesPage from "../pages/owner/sites";
 export const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -47,7 +51,46 @@ export const AppRoutes = () => {
       />
         {/* Owner routes */}
 
-        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+        <Route 
+          path="/owner/dashboard"   
+          element = {
+            user?.role === "owner" ? <OwnerDashboard /> : <Navigate to="/auth/login" />
+          }
+        />
+
+        <Route 
+          path= "/owner/workers"
+          element = {
+            user?.role === "owner" ? <WorkersPage /> : <Navigate to="/auth/login" />
+          }
+        />
+
+        <Route 
+          path="/owner/payments"
+          element = {
+            user?.role === "owner" ? <OwnerPayments /> : <Navigate to="/auth/login" />
+          }
+        />
+        <Route 
+          path="/owner/reports"
+          element = {
+            user?.role === "owner" ? <ReportsPage /> : <Navigate to="/auth/login" />
+          }
+        />
+        <Route 
+          path="/owner/settings"
+          element = {
+            user?.role === "owner" ? <SettingsPage /> : <Navigate to="/auth/login" />
+          }
+        
+        />
+        
+        <Route
+          path= "/owner/sites"
+          element = {
+            user?.role === "owner" ? <SitesPage />: <Navigate to="/auth/login"/>
+          }
+        />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/auth/login" />} />

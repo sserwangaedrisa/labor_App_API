@@ -1,4 +1,3 @@
-// Types for authentication and user
 export type Role = "laborer" | "foreman" | "owner";
 
 export interface User {

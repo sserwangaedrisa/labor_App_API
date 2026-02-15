@@ -27,16 +27,35 @@ const LoginPage = () => {
       }
 
       // Dummy login logic
-      login({
-        id: "1",
-        name: "John Doe",
-        phone,
-        role: "owner", // change to test foreman/owner
-        siteId: "site-123",
-      });
+      if (phone === "2") {
+        login({
+          id: "2",
+          name: "Foreman ",
+          phone,
+          role: "foreman",
+          siteId: "site-123",
+        });
+        navigate("/foreman/dashboard");
+      } else if (phone === "3") {
+        login({
+          id: "3",
+          name: "owner",
+          phone: "2",
+          role: "owner",
+          siteId: "site-123",
+        });
+        navigate("/owner/dashboard");
+      } else {
+        login({
+          id: "1",
+          name: "Worker one",
+          phone,
+          role: "laborer",
+          siteId: "site-123",
+        });
+        navigate("/laborer/dashboard");
+      }
 
-      // Navigate to dashboard
-      navigate("/owner/dashboard");
     } catch (err: any) {
       setError(err.message || "Login failed.");
     } finally {

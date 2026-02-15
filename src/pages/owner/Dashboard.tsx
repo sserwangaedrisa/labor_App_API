@@ -3,6 +3,7 @@ import Header from "../../components/layout/Header";
 import Card from "../../components/ui/Card";
 import MonthlyExpenseChart from "../../components/charts/MonthlyExpenseChart";
 import WorkerPaymentChart from "../../components/charts/WorkerPaymentChart";
+import { Link } from "react-router";
 
 const OwnerDashboard = () => {
   const summary = {
@@ -23,7 +24,9 @@ const OwnerDashboard = () => {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <Card>Total Sites: {summary.totalSites}</Card>
+            <Link to="/owner/sites">
+              <Card >Total Sites: {summary.totalSites}</Card>
+            </Link>
             <Card>Total Workers: {summary.totalWorkers}</Card>
             <Card>Monthly Cost: ${summary.totalMonthlyCost}</Card>
             <Card>Pending Payments: ${summary.pendingPayments}</Card>
