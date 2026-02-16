@@ -1,17 +1,32 @@
-import Sidebar from "../../components/layout/Slidebar";
-import Header from "../../components/layout/Header";
-import Card from "../../components/ui/Card";
-import Table from "../../components/ui/Table";
+import AuthenticationHeader from "../../components/ui/AuthenticatedHeader";
 import LaborCard from "./components/LaborCard";
-import { Link } from "react-router";
+import AttendanceTable from "./components/AttendanceTable";
 import AttendanceCalendar from "./components/AttendenceCalender";
-import { useAuth } from "../../app/providers";
+import PaymentHistory from "./components/PaymentHistory";
+import RoleGuard from "../../components/ui/RoleGuard";
+import LoadingBoundary from "../../components/ui/LoadingBoundary";
+import { getUser } from "../../utils/mockAuth";
+import { useState, useEffect } from "react";
 
-const dummyLaborCard = [
-  { date: "2026-02-01", hours: 8, amount: 20, status: "Paid" },
-  { date: "2026-02-02", hours: 7, amount: 17.5, status: "Paid" },
-  { date: "2026-02-03", hours: 6, amount: 15, status: "Unpaid" },
-];
+
+const LaborerDashboard = () => {
+  const [loading, setLoading] = useState(true);
+  const currentUser = getUser();
+
+  const workerData = {
+    id: 'LAB001',
+    name: 'John Martinez',
+    role: 'Construction Laborer',
+    photo: "https://img.rocket.new/generatedImages/rocket_gen_img_1d29504f2-1763294463041.png",
+    photoAlt: 'Professional headshot of Hispanic male construction worker with short black hair wearing orange safety vest and white hard hat',
+    currentSite: 'Downtown Plaza Construction',
+    wageRate: 25.00,
+    phone: '+1 (555) 123-4567',
+    daysWorked: 18,
+    totalHours: 144,
+    totalEarnings: 3600.00,
+    paymentStatus: 'Pending' as const
+  };
 
  const attendanceRecords = [
   {
@@ -134,22 +149,6 @@ const dummyLaborCard = [
     notes: 'Regular shift - Material delivery'
   }];
 
-  const DummyWorker= {
-  
-    id: '12345',
-    name: 'John Doe',
-    role: 'Electrician',
-    photo: '/src/assets/hero.png',
-    photoAlt: 'John Doe',
-    paymentStatus: 'Pending' as const,
-    currentSite: 'Downtown Construction',
-    wageRate: 25,
-    phone: '555-1234',
-    daysWorked: 15,
-    totalHours: 120,
-    totalEarnings: 3000
-  }
-  
 
   const paymentHistory = [
   {
@@ -191,65 +190,60 @@ const dummyLaborCard = [
 
 
 
-const LaborerDashboard = () => {
-  const { user } = useAuth();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLogout = () => {
+    console.log('Logging out...');
+  };
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <Sidebar />
+    <RoleGuard
+      allowedRoles={['laborer']}
+      fallbackRoute="/login">
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <Header />
+      <div className="min-h-screen bg-background">
+        <AuthenticationHeader/>
+        
+        <LoadingBoundary loading={loading} fullScreen>
+          <main className="pt-[60px]">
+            <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 lg:py-12">
+              <div className="mb-6 md:mb-8">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold text-foreground mb-2">
+                  Welcome back, {workerData?.name?.split(' ')?.[0]}
+                </h1>
+                <p className="text-base md:text-lg text-muted-foreground">
+                  View your labor card, attendance records, and payment history
+                </p>
+              </div>
 
-        {/* Dashboard content */}
-        <main className="p-6 bg-gray-100 flex-1 overflow-auto">
-          <h1 className="text-3xl font-bold mb-6">Welcome, {user?.name}</h1>
+              <div className="space-y-6 md:space-y-8">
+                <LaborCard worker={workerData} />
 
-          {/* Labor Card */}
-          <Card className="mb-6">
-            <h2 className="text-xl font-semibold mb-4">My Labor Card</h2>
-            <Table headers={["Date", "Hours", "Amount", "Status"]}>
-              {dummyLaborCard.map((record, idx) => (
-                <tr key={idx} className="border-b">
-                  <td className="px-4 py-2">{record.date}</td>
-                  <td className="px-4 py-2">{record.hours}</td>
-                  <td className="px-4 py-2">${record.amount}</td>
-                  <td className="px-4 py-2">{record.status}</td>
-                </tr>
-              ))}
-            </Table>
-          </Card>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                  <div className="lg:col-span-2">
+                    <AttendanceCalendar attendanceRecords={attendanceRecords} />
+                  </div>
+                </div>
 
-          <div className="mt-6">
-            <LaborCard worker={DummyWorker} />
-          </div>
+                <AttendanceTable attendanceRecords={attendanceRecords} />
 
-          {/* Payment Summary */}
-          <div className="grid grid-cols-3 gap-4">
-            <Card>
-              <h3 className="font-semibold">Total Earned</h3>
-              <p>${dummyLaborCard.reduce((sum, r) => sum + r.amount, 0)}</p>
-            </Card>
-            <Card>
-              <h3 className="font-semibold">Total Paid</h3>
-              <p>${dummyLaborCard.filter(r => r.status === "Paid").reduce((sum, r) => sum + r.amount, 0)}</p>
-            </Card>
-            <Card>
-              <h3 className="font-semibold">Balance Due</h3>
-              <p>${dummyLaborCard.filter(r => r.status !== "Paid").reduce((sum, r) => sum + r.amount, 0)}</p>
-            </Card>
-
-            <div className="col-span-3">
-                <AttendanceCalendar attendanceRecords={attendanceRecords} />
+                <PaymentHistory payments={paymentHistory} />
+              </div>
             </div>
-          </div>
-        </main>
+          </main>
+        </LoadingBoundary>
       </div>
-    </div>
-  );
+    </RoleGuard>);
+
 };
+
+
 
 export default LaborerDashboard;
