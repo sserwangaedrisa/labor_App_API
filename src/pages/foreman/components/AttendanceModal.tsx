@@ -123,7 +123,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth focus-ring"
             aria-label="Close modal"
           >
-            <Icon name="X" size={20} />
+            <Icon key = "x" name="X" size={20} />
           </button>
         </div>
 
@@ -201,18 +201,13 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
-              variant="outline"
-              fullWidth
               onClick={onClose}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              variant="default"
-              fullWidth
-              iconName="Check"
-              iconPosition="left"
+              className=''
             >
               Submit
             </Button>

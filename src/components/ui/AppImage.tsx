@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  src: string;
+  src?: string;
   alt?: string;
   className?: string;
 }
