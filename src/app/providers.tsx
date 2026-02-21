@@ -10,7 +10,9 @@ export interface User {
   name: string;
   phone?: string;
   role: Role;
-  siteId?: string; // optional: if user is assigned to a site
+  siteId?: string;
+  assignedSite?: string;
+  isBlocked?: boolean // optional: if user is assigned to a site
   email?: string;
 }
 

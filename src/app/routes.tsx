@@ -8,7 +8,8 @@ import LaborerDashboard from "../pages/laborer/Dashboard";
 import ForemanDashboard from "../pages/foreman/Dashboard";
 import WorkersPage from "../pages/foreman/Workers";
 import AddDailyRecord from "../pages/foreman/AddDailyRecord";
-import OwnerDashboard from "../pages/owner/Dashboard";
+// import OwnerDashboard from "../pages/owner/Dashboard";
+import OwnerDashboard from '../pages/owner-dashboard/index'
 import SettingsPage from "../pages/owner/Settings";
 import ReportsPage from "../pages/owner/Reports";
 import OwnerPayments from "../pages/owner/Payments";
