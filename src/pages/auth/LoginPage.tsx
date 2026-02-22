@@ -55,7 +55,6 @@ const LoginPage = () => {
         });
         navigate("/laborer/dashboard");
       }
-
     } catch (err: any) {
       setError(err.message || "Login failed.");
     } finally {

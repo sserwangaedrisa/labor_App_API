@@ -22,7 +22,7 @@ const ForgotPasswordPage = () => {
       await new Promise((res) => setTimeout(res, 1000));
 
       setSuccess(
-        `Password reset instructions sent to ${phone}. Check SMS or email.`
+        `Password reset instructions sent to ${phone}. Check SMS or email.`,
       );
       setPhone("");
     } catch (err: any) {
