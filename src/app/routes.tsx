@@ -25,9 +25,9 @@ export const AppRoutes = () => {
 
       {/* Laborer routes */}
       <Route
-        path="/laborer/*"
+        path="/laborer"
         element={
-          user?.role === "laborer" ? (
+          user?.role === "LABORER" ? (
             <LaborerDashboard />
           ) : (
             <Navigate to="/auth/login" />
@@ -39,7 +39,7 @@ export const AppRoutes = () => {
       <Route
         path="/foreman/dashboard"
         element={
-          user?.role === "foreman" ? (
+          user?.role === "FOREMAN" ? (
             <ForemanDashboard />
           ) : (
             <Navigate to="/auth/login" />
@@ -49,7 +49,7 @@ export const AppRoutes = () => {
       <Route
         path="/foreman/workers"
         element={
-          user?.role === "foreman" ? (
+          user?.role === "FOREMAN" ? (
             <WorkersPage />
           ) : (
             <Navigate to="/auth/login" />

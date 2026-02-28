@@ -1,9 +1,9 @@
-import {  createContext, useContext, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 import type { ReactNode } from "react";
 
 // Define types for your user object
-export type Role = "laborer" | "foreman" | "owner";
+export type Role = "LABORER" | "FOREMAN" | "OWNER";
 
 export interface User {
   id: string;
@@ -12,14 +12,14 @@ export interface User {
   role: Role;
   siteId?: string;
   assignedSite?: string;
-  isBlocked?: boolean // optional: if user is assigned to a site
+  isBlocked?: boolean; // optional: if user is assigned to a site
   email?: string;
 }
 
 // Context type
 interface AuthContextType {
   user: User | null;
-  login: (user: User) => void;
+  login: (user: User, token: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -31,10 +31,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const Providers = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
-  const login = (u: User) => {
+  const login = (u: User, token: string) => {
     setUser(u);
     // Save to localStorage for persistence
     localStorage.setItem("user", JSON.stringify(u));
+    localStorage.setItem("token", JSON.stringify(token));
   };
 
   const logout = () => {

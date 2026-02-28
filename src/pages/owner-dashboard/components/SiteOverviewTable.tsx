@@ -5,7 +5,6 @@ import type { Site } from '../../../types/SharedTypes';
 
 /* ================= TYPES ================= */
 
-type SiteStatus = 'Active' | 'Inactive' | string;
 
 
 type SortDirection = 'asc' | 'desc';

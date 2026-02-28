@@ -1,5 +1,5 @@
 // src/types.ts
-type UserRole = 'laborer' | 'owner' | 'foreman'
+export type UserRole = 'laborer' | 'owner' | 'foreman'
 
 export interface Payment {
   id: string; // must be string
@@ -8,6 +8,7 @@ export interface Payment {
   siteName: string;
   period: string;
   amount: number;
+  
   status: 'Pending' | 'Unpaid' | 'Paid';
 }
 
