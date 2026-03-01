@@ -1,28 +1,12 @@
-import React from 'react';
-import Icon from '../../../components/ui/AppIconl';
-import Button from '../../../components/ui/Button';
-
-type NotificationType = 'info' | 'warning' | 'success';
-
-interface Notification {
-  id: string | number;
-  title: string;
-  message: string;
-  type: NotificationType;
-}
-
-interface NotificationBannerProps {
-  notifications?: Notification[];
-  onDismiss: (id: string | number) => void;
-  onViewAll: () => void;
-}
-
-interface NotificationStyle {
-  bg: string;
-  border: string;
-  icon: string;
-  iconColor: string;
-}
+import React from "react";
+import Icon from "../../../components/ui/AppIconl";
+import Button from "../../../components/ui/Button";
+import type {
+  NotificationType,
+  Notification,
+  NotificationBannerProps,
+  NotificationStyle,
+} from "../../../types/SharedTypes";
 
 const NotificationBanner: React.FC<NotificationBannerProps> = ({
   notifications,
@@ -36,22 +20,22 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({
   const getNotificationStyle = (type: NotificationType): NotificationStyle => {
     const styles: Record<NotificationType, NotificationStyle> = {
       info: {
-        bg: 'bg-primary/10',
-        border: 'border-primary/20',
-        icon: 'Info',
-        iconColor: 'var(--color-primary)',
+        bg: "bg-primary/10",
+        border: "border-primary/20",
+        icon: "Info",
+        iconColor: "var(--color-primary)",
       },
       warning: {
-        bg: 'bg-warning/10',
-        border: 'border-warning/20',
-        icon: 'AlertTriangle',
-        iconColor: 'var(--color-warning)',
+        bg: "bg-warning/10",
+        border: "border-warning/20",
+        icon: "AlertTriangle",
+        iconColor: "var(--color-warning)",
       },
       success: {
-        bg: 'bg-success/10',
-        border: 'border-success/20',
-        icon: 'CheckCircle',
-        iconColor: 'var(--color-success)',
+        bg: "bg-success/10",
+        border: "border-success/20",
+        icon: "CheckCircle",
+        iconColor: "var(--color-success)",
       },
     };
 
@@ -61,10 +45,12 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({
   const style = getNotificationStyle(latestNotification.type);
 
   return (
-    <div className={`${style.bg} border ${style.border} rounded-xl p-4 mb-4 md:p-6 md:mb-6`}>
+    <div
+      className={`${style.bg} border ${style.border} rounded-xl p-4 mb-4 md:p-6 md:mb-6`}
+    >
       <div className="flex items-start gap-3">
         <Icon
-        key = "style"
+          key="style"
           name="Info"
           size={20}
           color={style.iconColor}
@@ -87,7 +73,7 @@ const NotificationBanner: React.FC<NotificationBannerProps> = ({
               className="w-6 h-6 flex items-center justify-center rounded hover:bg-background/50 transition-smooth flex-shrink-0"
               aria-label="Dismiss notification"
             >
-              <Icon key = "x" name="X" size={16} />
+              <Icon key="x" name="X" size={16} />
             </button>
           </div>
 

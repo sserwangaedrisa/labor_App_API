@@ -18,6 +18,7 @@ const authorizePostRequestWOT = async <T = unknown>(
 
   try {
     const response = await instance.post<T>(baseURL, formData);
+    console.log('request sent')
     return response.data;
   } catch (error) {
     const err = error as AxiosError;

@@ -1,4 +1,4 @@
-import OwnerLayout from "../../components/layout/ownerLayout";
+import OwnerLayout from "../../components/layout/OwnerLayout.tsx";
 
 const sites = [
   { id: 1, name: "Downtown Project", location: "City Center", cost: 7200 },

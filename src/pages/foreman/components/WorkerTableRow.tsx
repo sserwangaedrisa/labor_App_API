@@ -1,21 +1,9 @@
-import React from 'react';
-import Image from '../../../components/ui/AppImage';
-import Icon from '../../../components/ui/AppIconl';
-import Button from '../../../components/ui/Button';
-import WorkerStatusBadge from './WorkerStatusBadge';
-
-type WorkerStatus = 'present' | 'absent' | 'pending' | 'late';
-
-interface Worker {
-  id: string | number;
-  name: string;
-  avatar: string;
-  avatarAlt: string;
-  role: string;
-  todayStatus: WorkerStatus;
-  hoursToday: number;
-  wageRate: number;
-}
+import React from "react";
+import Image from "../../../components/ui/AppImage";
+import Icon from "../../../components/ui/AppIconl";
+import Button from "../../../components/ui/Button";
+import WorkerStatusBadge from "./WorkerStatusBadge";
+import type { Worker, WorkerStatus } from "../../../types/SharedTypes";
 
 interface WorkerTableRowProps {
   worker: Worker;
@@ -83,13 +71,11 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
             onClick={() => onRecordAttendance(worker)}
             className="md:hidden"
           >
-            <Icon name="Clock" size={18} />
+            <Icon key="clock" name="Clock" size={18} />
           </Button>
 
-          <Button
-            onClick={() => onViewDetails(worker)}
-          >
-            <Icon name="Eye" size={18} />
+          <Button onClick={() => onViewDetails(worker)}>
+            <Icon key="eye" name="Eye" size={18} />
           </Button>
         </div>
       </td>

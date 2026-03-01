@@ -1,4 +1,4 @@
-export type UserRole = 'laborer' | 'foreman' | 'owner';
+export type UserRole = "LABORER" | "FOREMAN" | "OWNER";
 
 export interface LoginFormData {
   username: string;
@@ -21,6 +21,6 @@ export interface RoleOption {
 }
 
 export interface User {
-  username: string;
+  name: string;
   role: UserRole;
 }

@@ -1,6 +1,6 @@
 import Sidebar from "../../components/layout/Slidebar";
 import Header from "../../components/layout/Header";
-import Input from "../../components/ui/input";
+import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";

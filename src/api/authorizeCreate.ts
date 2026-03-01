@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const authorizeCreate = async (url, data) => {
+const authorizeCreate = async (url: string, data: unknown) => {
   if (localStorage.token) {
     const a = axios.create({
       headers: {

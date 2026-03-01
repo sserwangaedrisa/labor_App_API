@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import Icon from '../../../components/ui/AppIconl';
-import Image from '../../../components/ui/AppImage';
-import Button from '../../../components/ui/Button';
-import Input from '../../../components/ui/Input';
-import Select from '../../../components/ui/Select';
+import React, { useState } from "react";
+import Icon from "../../../components/ui/AppIconl";
+import Image from "../../../components/ui/AppImage";
+import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
+import Select from "../../../components/ui/Select";
 
 interface Worker {
   id: number | string;
@@ -13,8 +13,7 @@ interface Worker {
   wageRate: number;
 }
 
-
-interface FormData {
+export interface FormData {
   date: string;
   hours: string;
   status: string;
@@ -33,37 +32,36 @@ interface AttendanceModalProps {
   onSubmit: (data: FormData) => void;
 }
 
-
 const AttendanceModal: React.FC<AttendanceModalProps> = ({
   worker,
   onClose,
   onSubmit,
 }) => {
   const [formData, setFormData] = useState<FormData>({
-    date: new Date().toISOString().split('T')[0],
-    hours: '',
-    status: 'present',
-    notes:'',
+    date: new Date().toISOString().split("T")[0],
+    hours: "",
+    status: "present",
+    notes: "",
   });
 
   const [errors, setErrors] = useState<Errors>({});
 
   const statusOptions = [
-    { value: 'present', label: 'Present' },
-    { value: 'absent', label: 'Absent' },
-    { value: 'halfday', label: 'Half Day' },
-    { value: 'overtime', label: 'Overtime' },
+    { value: "present", label: "Present" },
+    { value: "absent", label: "Absent" },
+    { value: "halfday", label: "Half Day" },
+    { value: "overtime", label: "Overtime" },
   ];
 
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
 
     if (!formData.hours || parseFloat(formData.hours) <= 0) {
-      newErrors.hours = 'Please enter valid hours';
+      newErrors.hours = "Please enter valid hours";
     }
 
     if (parseFloat(formData.hours) > 24) {
-      newErrors.hours = 'Hours cannot exceed 24';
+      newErrors.hours = "Hours cannot exceed 24";
     }
 
     const selectedDate = new Date(formData.date);
@@ -71,7 +69,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
     today.setHours(0, 0, 0, 0);
 
     if (selectedDate > today) {
-      newErrors.date = 'Cannot record attendance for future dates';
+      newErrors.date = "Cannot record attendance for future dates";
     }
 
     setErrors(newErrors);
@@ -93,7 +91,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors?.[field as keyof Errors]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -123,7 +121,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth focus-ring"
             aria-label="Close modal"
           >
-            <Icon key = "x" name="X" size={20} />
+            <Icon key="x" name="X" size={20} />
           </button>
         </div>
 
@@ -133,10 +131,10 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             label="Date"
             value={formData?.date}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleChange('date', e.target.value)
+              handleChange("date", e.target.value)
             }
             error={errors?.date}
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toISOString().split("T")[0]}
             required
           />
 
@@ -144,7 +142,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             label="Status"
             options={statusOptions}
             value={formData?.status}
-            onChange={(value: string) => handleChange('status', value)}
+            onChange={(value: string) => handleChange("status", value)}
             required
           />
 
@@ -154,7 +152,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             placeholder="Enter hours (e.g., 8)"
             value={formData?.hours}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleChange('hours', e.target.value)
+              handleChange("hours", e.target.value)
             }
             error={errors?.hours}
             min="0"
@@ -170,7 +168,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             placeholder="Add any additional notes"
             value={formData?.notes}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleChange('notes', e.target.value)
+              handleChange("notes", e.target.value)
             }
           />
 
@@ -199,16 +197,10 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={onClose}
-            >
+            <Button type="button" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className=''
-            >
+            <Button type="submit" className="">
               Submit
             </Button>
           </div>

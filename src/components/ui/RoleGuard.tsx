@@ -1,13 +1,14 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { getUser, getDashboardRoute } from '../../utils/mockAuth';
-import type { UserRole } from '../../types/auth.types';
+import React, { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { getDashboardRoute } from "../../utils/mockAuth";
+import type { UserRole } from "../../types/auth.types";
+import { useAuth } from "../../app/providers";
 
-const RoleGuard = ({ 
-  allowedRoles = [] as UserRole[], 
-  fallbackRoute = '/login',
+const RoleGuard = ({
+  allowedRoles = [] as UserRole[],
+  fallbackRoute = "/login",
   requireAuth = true,
-  children
+  children,
 }: {
   allowedRoles?: UserRole[];
   fallbackRoute?: string;
@@ -16,26 +17,36 @@ const RoleGuard = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const currentUser = getUser();
+  const { user } = useAuth();
+  const currentUser = user;
 
   useEffect(() => {
     if (requireAuth && !currentUser) {
-      navigate(fallbackRoute, { 
+      navigate(fallbackRoute, {
         replace: true,
-        state: { from: location?.pathname }
+        state: { from: location?.pathname },
       });
       return;
     }
 
     if (currentUser && allowedRoles?.length > 0) {
-      const hasPermission = allowedRoles?.includes(currentUser?.role as UserRole);
-      
+      const hasPermission = allowedRoles?.includes(
+        currentUser?.role as UserRole,
+      );
+
       if (!hasPermission) {
         const redirectPath = getDashboardRoute(currentUser?.role);
         navigate(redirectPath, { replace: true });
       }
     }
-  }, [currentUser, allowedRoles, navigate, location, fallbackRoute, requireAuth]);
+  }, [
+    currentUser,
+    allowedRoles,
+    navigate,
+    location,
+    fallbackRoute,
+    requireAuth,
+  ]);
 
   if (requireAuth && !currentUser) {
     return null;

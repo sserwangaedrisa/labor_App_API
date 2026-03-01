@@ -1,62 +1,6 @@
-// import Sidebar from "../../components/layout/Slidebar";
-// import Header from "../../components/layout/Header";
-// import Card from "../../components/ui/Card";
-// import SiteCostChart from "../../components/charts/SiteCostChart";
-// import { useAuth } from "../../app/providers";
-
-// const ForemanDashboard = () => {
-//   const { user } = useAuth();
-
-//   // Dummy site summary data
-//   const siteSummary = {
-//     siteName: "Site A",
-//     totalWorkers: 12,
-//     totalHours: 96,
-//     totalCost: 1200,
-//   };
-
-//   return (
-//     <div className="flex h-screen">
-//       <Sidebar />
-
-//       <div className="flex-1 flex flex-col">
-//         <Header />
-
-//         <main className="p-6 bg-gray-100 flex-1 overflow-auto">
-//           <h1 className="text-3xl font-bold mb-6">
-//             Foreman Dashboard - {user?.name}
-//           </h1>
-
-//           <div className="grid grid-cols-3 gap-4 mb-6">
-//             <Card>
-//               <h3 className="font-semibold">Workers Assigned</h3>
-//               <p>{siteSummary.totalWorkers}</p>
-//             </Card>
-//             <Card>
-//               <h3 className="font-semibold">Total Hours</h3>
-//               <p>{siteSummary.totalHours}</p>
-//             </Card>
-//             <Card>
-//               <h3 className="font-semibold">Site Cost</h3>
-//               <p>${siteSummary.totalCost}</p>
-//             </Card>
-//           </div>
-
-//           <Card>
-//             <h2 className="text-xl font-semibold mb-4">Site Cost Chart</h2>
-//             <SiteCostChart data={[120, 150, 100, 200, 80, 170]} />
-//           </Card>
-//         </main>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default ForemanDashboard;
-
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../src/app/providers";
 import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
 import RoleGuard from "../../components/ui/RoleGuard";
 import LoadingBoundary from "../../components/ui/LoadingBoundary";
@@ -66,37 +10,19 @@ import SiteOverviewCard from "./components/SiteOverviewCard";
 import WorkerTableRow from "./components/WorkerTableRow";
 import AttendanceModal from "./components/AttendanceModal";
 import PaymentRequestCard from "./components/PaymentRequest";
+import UserManagementPanel from "./components/UserManagementPanel";
 import QuickActionsPanel from "./components/QuickActions";
 import NotificationBanner from "./components/NotificatonBanner";
-import { getUser } from "../../utils/mockAuth";
-import { User } from "lucide-react";
+import authorizeCreate from "../../api/authorizeCreate";
+import type {
+  Worker,
+  Notification,
+  User,
+  NewUser,
+} from "../../types/SharedTypes";
+import type { FormData } from "../../../src/pages/foreman/components/AttendanceModal";
 
-/* =======================
-   Type Definitions
-======================= */
-
-interface Notification {
-  id: number;
-  type: "warning" | "success" | "info" | "error";
-  title: string;
-  message: string;
-}
-
-interface Worker {
-  id: string;
-  name: string;
-  avatar: string;
-  avatarAlt: string;
-  role: string;
-  todayStatus: "present" | "absent" | "pending";
-  hoursToday: number;
-  wageRate: number;
-  lastUpdated: string;
-}
-
-interface AttendanceData {
-  [key: string]: unknown;
-}
+// TYPES
 
 /* =======================
    Component
@@ -105,9 +31,12 @@ interface AttendanceData {
 const ForemanDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(false);
-  const [selectedWorker, setSelectedWorker] = useState<Worker | undefined>();
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>();
   const [showAttendanceModal, setShowAttendanceModal] =
     useState<boolean>(false);
+  const [msg, setMsg] = useState<string>("");
+  const [isErr, setIsErr] = useState<boolean>(false);
+
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: 1,
@@ -125,7 +54,8 @@ const ForemanDashboard: React.FC = () => {
     },
   ]);
 
-  const currentUser = getUser();
+  const { user } = useAuth();
+  const currentUser = user;
 
   const siteOverview = {
     totalWorkers: 24,
@@ -242,10 +172,6 @@ const ForemanDashboard: React.FC = () => {
     },
   ];
 
-  const handleLogout = (): void => {
-    navigate("/login");
-  };
-
   const handleRecordAttendance = (worker: Worker): void => {
     setSelectedWorker(worker);
     setShowAttendanceModal(true);
@@ -255,10 +181,10 @@ const ForemanDashboard: React.FC = () => {
     console.log("View worker details:", worker);
   };
 
-  const handleSubmitAttendance = (attendanceData: AttendanceData): void => {
+  const handleSubmitAttendance = (attendanceData: FormData): void => {
     console.log("Attendance submitted:", attendanceData);
     setShowAttendanceModal(false);
-    setSelectedWorker(undefined);
+    setSelectedWorker(null);
   };
 
   const handleSubmitPaymentRequest = (): void => {
@@ -281,7 +207,7 @@ const ForemanDashboard: React.FC = () => {
     console.log("Open site settings");
   };
 
-  const handleDismissNotification = (id: number): void => {
+  const handleDismissNotification = (id: string | number): void => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
@@ -289,12 +215,39 @@ const ForemanDashboard: React.FC = () => {
     console.log("View all notifications");
   };
 
+  const handleCreateUser = async (userData: NewUser) => {
+    try {
+      const response = await authorizeCreate("users/register", userData);
+      setMsg(response.message);
+      setIsErr(false);
+      console.log("Creating user with : ", userData);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleBlockUser = (user: User) => {
+    console.log("Blocking user:", user);
+  };
+
+  const handleUnblockUser = (user: User) => {
+    console.log("Unblocking user:", user);
+  };
+
+  const handleExportPDF = () => {
+    console.log("Exporting analytics as PDF");
+  };
+
+  const handleExportExcel = () => {
+    console.log("Exporting analytics as Excel");
+  };
+
   return (
-    <RoleGuard allowedRoles={["foreman"]} currentUser={currentUser}>
+    <RoleGuard allowedRoles={["FOREMAN"]}>
       <LoadingBoundary loading={loading} fullScreen>
         <div className="min-h-screen bg-background">
-          <AuthenticatedHeader user={currentUser} onLogout={handleLogout} />
-          
+          <AuthenticatedHeader />
+
           <main className="pt-[60px]">
             <div className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-8 lg:px-8">
               <div className="mb-6 md:mb-8">
@@ -303,26 +256,28 @@ const ForemanDashboard: React.FC = () => {
                     Foreman Dashboard
                   </h1>
                   <Button
-                    variant="default"
-                    size="default"
-                    iconName="Plus"
-                    iconPosition="left"
                     onClick={() => handleRecordAttendance(workers?.[0])}
-                    className="hidden sm:inline-flex">
-
+                    className="hidden sm:inline-flex"
+                  >
                     Record Attendance
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground md:text-base">
-                  {currentUser?.assignedSite} • Today: {new Date()?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  {currentUser?.assignedSite} • Today:{" "}
+                  {new Date()?.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
                 </p>
               </div>
 
               <NotificationBanner
                 notifications={notifications}
                 onDismiss={handleDismissNotification}
-                onViewAll={handleViewAllNotifications} />
-
+                onViewAll={handleViewAllNotifications}
+              />
 
               <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-6 md:mb-8">
                 <SiteOverviewCard
@@ -331,7 +286,7 @@ const ForemanDashboard: React.FC = () => {
                   subtitle="Assigned to site"
                   iconName="Users"
                   iconColor="var(--color-primary)"
-                  trend={null} />
+                />
 
                 <SiteOverviewCard
                   title="Present Today"
@@ -339,7 +294,12 @@ const ForemanDashboard: React.FC = () => {
                   subtitle={`${siteOverview?.pendingAttendance} pending`}
                   iconName="UserCheck"
                   iconColor="var(--color-success)"
-                  trend={{ value: '+3', label: 'vs yesterday', isPositive: true }} />
+                  trend={{
+                    value: "+3",
+                    label: "vs yesterday",
+                    isPositive: true,
+                  }}
+                />
 
                 <SiteOverviewCard
                   title="Total Hours"
@@ -347,7 +307,7 @@ const ForemanDashboard: React.FC = () => {
                   subtitle="Logged today"
                   iconName="Clock"
                   iconColor="var(--color-accent)"
-                  trend={null} />
+                />
 
                 <SiteOverviewCard
                   title="Pending Payments"
@@ -355,8 +315,7 @@ const ForemanDashboard: React.FC = () => {
                   subtitle="Workers awaiting"
                   iconName="DollarSign"
                   iconColor="var(--color-warning)"
-                  trend={null} />
-
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-3 md:mb-8">
@@ -364,15 +323,15 @@ const ForemanDashboard: React.FC = () => {
                   <QuickActionsPanel
                     onBulkAttendance={handleBulkAttendance}
                     onViewReports={handleViewReports}
-                    onSiteSettings={handleSiteSettings} />
-
+                    onSiteSettings={handleSiteSettings}
+                  />
                 </div>
                 <div>
                   <PaymentRequestCard
                     pendingRequests={siteOverview?.pendingPayments}
                     onSubmitRequest={handleSubmitPaymentRequest}
-                    onViewHistory={handleViewPaymentHistory} />
-
+                    onViewHistory={handleViewPaymentHistory}
+                  />
                 </div>
               </div>
 
@@ -387,38 +346,25 @@ const ForemanDashboard: React.FC = () => {
                         {workers?.length} workers assigned to your site
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      iconName="Download"
-                      iconPosition="left"
-                      className="hidden md:inline-flex">
-
-                      Export
-                    </Button>
+                    <Button className="hidden md:inline-flex">Export</Button>
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="flex-1 relative">
                       <Icon
+                        key="search"
                         name="Search"
                         size={18}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      />
 
                       <input
                         type="text"
                         placeholder="Search workers..."
-                        className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth" />
-
+                        className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
+                      />
                     </div>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      iconName="Filter"
-                      iconPosition="left">
-
-                      Filter
-                    </Button>
+                    <Button>Filter</Button>
                   </div>
                 </div>
 
@@ -447,14 +393,14 @@ const ForemanDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border">
-                      {workers?.map((worker) =>
-                      <WorkerTableRow
-                        key={worker?.id}
-                        worker={worker}
-                        onRecordAttendance={handleRecordAttendance}
-                        onViewDetails={handleViewDetails} />
-
-                      )}
+                      {workers?.map((worker) => (
+                        <WorkerTableRow
+                          key={worker?.id}
+                          worker={worker}
+                          onRecordAttendance={handleRecordAttendance}
+                          onViewDetails={handleViewDetails}
+                        />
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -464,11 +410,11 @@ const ForemanDashboard: React.FC = () => {
                     Showing {workers?.length} of {workers?.length} workers
                   </p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled>
-                      <Icon name="ChevronLeft" size={16} />
+                    <Button disabled>
+                      <Icon key="cheveronLeft" name="ChevronLeft" size={16} />
                     </Button>
                     <Button variant="outline" size="sm" disabled>
-                      <Icon name="ChevronRight" size={16} />
+                      <Icon key="chevronRight" name="ChevronRight" size={16} />
                     </Button>
                   </div>
                 </div>
@@ -479,27 +425,36 @@ const ForemanDashboard: React.FC = () => {
                 size="lg"
                 iconName="Plus"
                 onClick={() => handleRecordAttendance(workers?.[0])}
-                className="fixed bottom-6 right-6 sm:hidden shadow-elevation-4 rounded-full w-14 h-14 p-0">
-
+                className="fixed bottom-6 right-6 sm:hidden shadow-elevation-4 rounded-full w-14 h-14 p-0"
+              >
                 <span className="sr-only">Record Attendance</span>
               </Button>
             </div>
           </main>
 
-          {showAttendanceModal && selectedWorker &&
-          <AttendanceModal
-            worker={selectedWorker}
-            onClose={() => {
-              setShowAttendanceModal(false);
-              setSelectedWorker();
-            }}
-            onSubmit={handleSubmitAttendance} />
+          {showAttendanceModal && selectedWorker && (
+            <AttendanceModal
+              worker={selectedWorker}
+              onClose={() => {
+                setShowAttendanceModal(false);
+                setSelectedWorker(null);
+              }}
+              onSubmit={handleSubmitAttendance}
+            />
+          )}
+        </div>
 
-          }
+        <div>
+          <UserManagementPanel
+            onCreateUser={handleCreateUser}
+            onBlockUser={handleBlockUser}
+            onUnblockUser={handleUnblockUser}
+            users={[]}
+          />
         </div>
       </LoadingBoundary>
-    </RoleGuard>);
-
+    </RoleGuard>
+  );
 };
 
 export default ForemanDashboard;

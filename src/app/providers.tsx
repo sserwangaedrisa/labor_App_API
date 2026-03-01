@@ -16,10 +16,15 @@ export interface User {
   email?: string;
 }
 
+export interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
 // Context type
 interface AuthContextType {
   user: User | null;
-  login: (user: User, token: string) => void;
+  login: (user: User, tokens: Tokens) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -29,28 +34,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider component
 export const Providers = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
 
-  const login = (u: User, token: string) => {
+  const login = (u: User, tokens: Tokens) => {
     setUser(u);
     // Save to localStorage for persistence
     localStorage.setItem("user", JSON.stringify(u));
-    localStorage.setItem("token", JSON.stringify(token));
+    localStorage.setItem("accessToken", JSON.stringify(tokens.accessToken));
+    localStorage.setItem("refreshToken", JSON.stringify(tokens.refreshToken));
   };
 
   const logout = () => {
-    setUser(null);
     localStorage.removeItem("user");
+    setUser(null);
   };
 
   const isAuthenticated = !!user;
-
-  // Load user from localStorage on mount
-  // Optional: can wrap in useEffect for actual persistence
-  if (!user) {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-  }
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>

@@ -5,11 +5,11 @@ import authorizePatchRequestWOT from "../../api/authorizePatchRequestWOT";
 import authorizePostRequestWOT from "../../api/authorizePostRequestWOT";
 import { motion } from "framer-motion";
 import { useAuth } from "../../app/providers";
-import type { User } from "../../app/providers";
+import type { User, Tokens } from "../../app/providers";
 
 interface LoginResponse {
   user: User;
-  token: string;
+  tokens: Tokens;
   message: string;
 }
 
@@ -48,11 +48,11 @@ const Login: React.FC = () => {
           { email, password },
         );
 
-        const { user, token, message } = response;
+        const { user, tokens, message } = response;
         const allowedRoles = ["OWNER", "FOREMAN", "LABORER"];
 
         if (user && allowedRoles.includes(user.role || "")) {
-          login(user, token);
+          login(user, tokens);
           setMsg(message);
           setIsErr(false);
           if (user?.role === "FOREMAN") {
