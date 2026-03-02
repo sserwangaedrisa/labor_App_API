@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../src/app/providers";
 import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
@@ -18,11 +20,17 @@ import type {
   Worker,
   Notification,
   User,
+  verificationData,
   NewUser,
 } from "../../types/SharedTypes";
 import type { FormData } from "../../../src/pages/foreman/components/AttendanceModal";
+import authorizePostRequest from "../../api/authorizePostRequest";
 
 // TYPES
+interface VerifyAccountResponse {
+  status: string;
+  message: string;
+}
 
 /* =======================
    Component
@@ -36,6 +44,11 @@ const ForemanDashboard: React.FC = () => {
     useState<boolean>(false);
   const [msg, setMsg] = useState<string>("");
   const [isErr, setIsErr] = useState<boolean>(false);
+  const [verificationData, setVerificationData] = useState<{
+    userId: string;
+    otp: string;
+  }>({ userId: "", otp: "" });
+  const [resendOtp, setResendOtp] = useState<boolean>(false);
 
   const [notifications, setNotifications] = useState<Notification[]>([
     {
@@ -218,11 +231,73 @@ const ForemanDashboard: React.FC = () => {
   const handleCreateUser = async (userData: NewUser) => {
     try {
       const response = await authorizeCreate("users/register", userData);
+
+      setVerificationData({ ...verificationData, userId: response.user.id });
       setMsg(response.message);
+
       setIsErr(false);
       console.log("Creating user with : ", userData);
+
+      toast.success(
+        "User created successfully, please check email for credentials",
+      );
     } catch (error) {
       console.log(error);
+      toast.error("Failed to create user. Please try again.");
+      setIsErr(true);
+      setMsg("Failed to create user. Please try again.");
+    }
+  };
+
+  const handleEmailVerification = async (
+    verificationData: verificationData,
+  ) => {
+    try {
+      const response = await authorizePostRequest<VerifyAccountResponse>(
+        "users/verify-account",
+        verificationData,
+      );
+
+      if (response.status === "success") {
+        console.log("Email verified successfully");
+        toast.success(response.message);
+        setVerificationData({ userId: "", otp: "" });
+        return;
+      }
+
+      if (response.status === "expired") {
+        console.log("OTP expired");
+        setVerificationData({ ...verificationData, otp: "" });
+        setResendOtp(true);
+        setMsg(response.message);
+        toast.error(response.message);
+        return;
+      }
+
+      // Any other failure case
+      console.log("Email verification failed");
+      toast.error(response.message);
+    } catch (error) {
+      console.log(error);
+      toast.error("Verification failed. Please try again.");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      const response = await authorizePostRequest<VerifyAccountResponse>(
+        "users/resent-otp",
+        { userId: verificationData.userId },
+      );
+      if (response.status === "success") {
+        toast.success("OTP resent successfully");
+        setResendOtp(false);
+      } else {
+        toast.error(response.message);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to resend OTP. Please try again.");
     }
   };
 
@@ -446,6 +521,8 @@ const ForemanDashboard: React.FC = () => {
 
         <div>
           <UserManagementPanel
+            verificationData={verificationData}
+            verifyEmail={handleEmailVerification}
             onCreateUser={handleCreateUser}
             onBlockUser={handleBlockUser}
             onUnblockUser={handleUnblockUser}
@@ -456,5 +533,4 @@ const ForemanDashboard: React.FC = () => {
     </RoleGuard>
   );
 };
-
 export default ForemanDashboard;

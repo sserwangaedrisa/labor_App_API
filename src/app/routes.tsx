@@ -59,7 +59,7 @@ export const AppRoutes = () => {
       <Route
         path="/foreman/add-daily-record"
         element={
-          user?.role === "foreman" ? (
+          user?.role === "FOREMAN" ? (
             <AddDailyRecord />
           ) : (
             <Navigate to="/auth/login" />
@@ -71,7 +71,7 @@ export const AppRoutes = () => {
       <Route
         path="/owner/dashboard"
         element={
-          user?.role === "owner" ? (
+          user?.role === "OWNER" ? (
             <OwnerDashboard />
           ) : (
             <Navigate to="/auth/login" />
@@ -82,7 +82,7 @@ export const AppRoutes = () => {
       <Route
         path="/owner/workers"
         element={
-          user?.role === "owner" ? (
+          user?.role === "OWNER" ? (
             <WorkersPage />
           ) : (
             <Navigate to="/auth/login" />
@@ -93,7 +93,7 @@ export const AppRoutes = () => {
       <Route
         path="/owner/payments"
         element={
-          user?.role === "owner" ? (
+          user?.role === "OWNER" ? (
             <OwnerPayments />
           ) : (
             <Navigate to="/auth/login" />
@@ -103,7 +103,7 @@ export const AppRoutes = () => {
       <Route
         path="/owner/reports"
         element={
-          user?.role === "owner" ? (
+          user?.role === "OWNER" ? (
             <ReportsPage />
           ) : (
             <Navigate to="/auth/login" />
@@ -113,7 +113,7 @@ export const AppRoutes = () => {
       <Route
         path="/owner/settings"
         element={
-          user?.role === "owner" ? (
+          user?.role === "OWNER" ? (
             <SettingsPage />
           ) : (
             <Navigate to="/auth/login" />
@@ -124,7 +124,7 @@ export const AppRoutes = () => {
       <Route
         path="/owner/sites"
         element={
-          user?.role === "owner" ? <SitesPage /> : <Navigate to="/auth/login" />
+          user?.role === "OWNER" ? <SitesPage /> : <Navigate to="/auth/login" />
         }
       />
 

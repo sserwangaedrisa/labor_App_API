@@ -1,5 +1,5 @@
 // src/types.ts
-export type UserRole = "laborer" | "owner" | "foreman";
+export type UserRole = "LABORER" | "OWNER" | "FOREMAN";
 
 export interface Payment {
   id: string; // must be string
@@ -31,14 +31,19 @@ export interface User {
   assignedSite?: string;
   isBlocked: boolean;
 }
+
+export type verificationData = {
+  userId: string;
+  otp: string;
+};
+
 export interface NewUser {
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   role: UserRole;
-  sites?: string;
-  password?: string;
-  cratedAt?: string;
+  password: string;
+  sites: string;
 }
 
 export type WorkerStatus = "present" | "absent" | "pending" | "late";

@@ -6,7 +6,7 @@ import Select from "../../../components/ui/Select";
 
 /* ================= TYPES ================= */
 
-type UserRole = "laborer" | "foreman" | "owner";
+type UserRole = "LABORER" | "FOREMAN" | "OWNER";
 type RoleFilter = UserRole | "all";
 
 interface User {
@@ -24,12 +24,21 @@ interface NewUser {
   email: string;
   phone: string;
   role: UserRole;
-  site: string;
+  password: string;
+  sites: string;
+  verificationCode?: string;
+}
+
+interface EmailVerificationData {
+  userId: string;
+  otp: string;
 }
 
 interface UserManagementPanelProps {
-  users: User[];
-  onCreateUser: (user: NewUser) => void;
+  users?: User[];
+  verificationData: EmailVerificationData;
+  onCreateUser: (newUser: NewUser) => void;
+  verifyEmail: (data: EmailVerificationData) => void;
   onBlockUser: (user: User) => void;
   onUnblockUser: (user: User) => void;
 }
@@ -38,26 +47,32 @@ interface UserManagementPanelProps {
 
 const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   users,
+  verificationData,
   onCreateUser,
   onBlockUser,
   onUnblockUser,
+  verifyEmail,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [emailVerification, setEmailVerification] = useState<boolean>(false);
+
   const [newUser, setNewUser] = useState<NewUser>({
     name: "",
     email: "",
+    password: "",
     phone: "",
-    role: "laborer",
-    site: "",
+    role: "LABORER",
+    sites: "",
+    verificationCode: "",
   });
 
   const roleOptions = [
     { value: "all", label: "All Roles" },
-    { value: "laborer", label: "Laborer" },
-    { value: "foreman", label: "Foreman" },
-    { value: "owner", label: "Owner" },
+    { value: "LABORER", label: "LABORER" },
+    { value: "FOREMAN", label: "FOREMAN" },
+    { value: "OWNER", label: "OWNER" },
   ];
 
   const siteOptions = [
@@ -83,29 +98,47 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       onCreateUser(newUser);
       setNewUser({
         name: "",
+        password: "",
         email: "",
         phone: "",
-        role: "laborer",
-        site: "",
+        role: "LABORER",
+        sites: "",
+        verificationCode: "",
       });
       setShowCreateModal(false);
     }
   };
 
+  const handleEmailVerification = () => {
+    if (newUser?.verificationCode) {
+      verifyEmail(verificationData);
+      setNewUser({
+        name: "",
+        password: "",
+        email: "",
+        phone: "",
+        role: "LABORER",
+        sites: "",
+        verificationCode: "",
+      });
+      setEmailVerification(false);
+    }
+  };
+
   const getRoleBadgeColor = (role: UserRole): string => {
     const colors: Record<UserRole, string> = {
-      laborer: "bg-primary/10 text-primary",
-      foreman: "bg-accent/10 text-accent",
-      owner: "bg-success/10 text-success",
+      LABORER: "bg-primary/10 text-primary",
+      FOREMAN: "bg-accent/10 text-accent",
+      OWNER: "bg-success/10 text-success",
     };
     return colors?.[role];
   };
 
   const getRoleIcon = (role: UserRole): string => {
     const icons: Record<UserRole, string> = {
-      laborer: "HardHat",
-      foreman: "Clipboard",
-      owner: "Crown",
+      LABORER: "HardHat",
+      FOREMAN: "Clipboard",
+      OWNER: "Crown",
     };
     return icons?.[role];
   };
@@ -201,7 +234,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <Icon
                           key="color"
-                          name={getRoleIcon(user?.role)}
+                          name="AArrowDown"
                           size={18}
                           color="var(--color-primary)"
                         />
@@ -227,7 +260,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.role)}`}
                       >
-                        <Icon name={getRoleIcon(user?.role)} size={12} />
+                        <Icon key="arrowDown" name="AArrowDown" size={12} />
                         {user?.role?.charAt(0)?.toUpperCase() +
                           user?.role?.slice(1)}
                       </span>
@@ -289,8 +322,8 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                     <Icon
-                      name={getRoleIcon(user?.role)}
-                      size={18}
+                      key="color"
+                      name="AArrowDown"
                       color="var(--color-primary)"
                     />
                   </div>
@@ -345,7 +378,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.role)}`}
                   >
-                    <Icon name={getRoleIcon(user?.role)} size={12} />
+                    <Icon name="ArrowDown" key="user" size={12} />
                     {user?.role?.charAt(0)?.toUpperCase() +
                       user?.role?.slice(1)}
                   </span>
@@ -413,7 +446,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 
               <div className="p-6 space-y-4">
                 <Input
-                  label="Full Name"
+                  label="name"
                   type="text"
                   placeholder="Enter full name"
                   value={newUser?.name}
@@ -424,7 +457,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 />
 
                 <Input
-                  label="Email Address"
+                  label="email"
                   type="email"
                   placeholder="Enter email address"
                   value={newUser?.email}
@@ -435,7 +468,17 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 />
 
                 <Input
-                  label="Phone Number"
+                  type="password"
+                  label="password"
+                  placeholder="Enter password"
+                  value={newUser?.password}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e?.target?.value })
+                  }
+                />
+
+                <Input
+                  label="phone"
                   type="tel"
                   placeholder="Enter phone number"
                   value={newUser?.phone}
@@ -446,22 +489,10 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 />
 
                 <Select
-                  label="User Role"
-                  options={[
-                    { value: "laborer", label: "Laborer" },
-                    { value: "foreman", label: "Foreman" },
-                    { value: "owner", label: "Owner" },
-                  ]}
-                  value={newUser?.role}
-                  onChange={(value) => setNewUser({ ...newUser, role: value })}
-                  required
-                />
-
-                <Select
                   label="Assign to Site"
                   options={siteOptions}
-                  value={newUser?.site}
-                  onChange={(value) => setNewUser({ ...newUser, site: value })}
+                  value={newUser?.sites}
+                  onChange={(value) => setNewUser({ ...newUser, sites: value })}
                   placeholder="Select a site"
                 />
               </div>
@@ -471,6 +502,61 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   Cancel
                 </Button>
                 <Button onClick={handleCreateUser}>Create User</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {emailVerification && (
+        <>
+          <div
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-modal"
+            onClick={() => setEmailVerification(false)}
+          />
+          <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-foreground">
+                    Email verification
+                  </h3>
+                  <button
+                    onClick={() => setEmailVerification(false)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth"
+                  >
+                    <Icon key="x" name="X" size={20} />
+                  </button>
+                </div>
+              </div>
+              <div className="form px-10 py-10 flex justify-center items-center border round-sm shadow border-white">
+                <p className="text-white text-xl text-bold ">
+                  Please enter the verification code sent to your email.
+                </p>
+
+                <div className="border-gray-300 text-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <label className="text-white ">Verification Code</label>
+                  <Input
+                    label="verificationCode"
+                    type="text"
+                    placeholder="0 0 0 0 0 0"
+                    value={newUser?.verificationCode}
+                    onChange={(e) =>
+                      setNewUser({
+                        ...newUser,
+                        verificationCode: e?.target?.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-border flex gap-3">
+                <Button onClick={() => setEmailVerification(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleEmailVerification}>Submit</Button>
               </div>
             </div>
           </div>
