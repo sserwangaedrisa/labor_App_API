@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
@@ -37,7 +37,7 @@ interface EmailVerificationData {
 interface UserManagementPanelProps {
   users?: User[];
   verificationData: EmailVerificationData;
-  onCreateUser: (newUser: NewUser) => void;
+  onCreateUser: (newUser: NewUser) => Promise<boolean>;
   verifyEmail: (data: EmailVerificationData) => void;
   onBlockUser: (user: User) => void;
   onUnblockUser: (user: User) => void;
@@ -57,7 +57,13 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [emailVerification, setEmailVerification] = useState<boolean>(false);
-
+  const [verificationInfo, setVerificationInfo] = useState<{
+    userId: string;
+    otp: string;
+  }>({
+    userId: verificationData.userId,
+    otp: "",
+  });
   const [newUser, setNewUser] = useState<NewUser>({
     name: "",
     email: "",
@@ -67,6 +73,17 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     sites: "",
     verificationCode: "",
   });
+
+  useEffect(() => {
+    console.log("verificationInfo", verificationInfo);
+    if (verificationData?.userId) {
+      setVerificationInfo({
+        ...verificationInfo,
+        userId: verificationData.userId,
+      });
+      setEmailVerification(true);
+    }
+  }, [verificationData]);
 
   const roleOptions = [
     { value: "all", label: "All Roles" },
@@ -93,25 +110,35 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     return matchesSearch && matchesRole;
   });
 
-  const handleCreateUser = () => {
+  const handleCreateUser = async () => {
     if (newUser?.name && newUser?.email && newUser?.phone) {
-      onCreateUser(newUser);
-      setNewUser({
-        name: "",
-        password: "",
-        email: "",
-        phone: "",
-        role: "LABORER",
-        sites: "",
-        verificationCode: "",
-      });
-      setShowCreateModal(false);
+      const success = await onCreateUser(newUser);
+
+      if (success) {
+        setNewUser({
+          name: "",
+          password: "",
+          email: "",
+          phone: "",
+          role: "LABORER",
+          sites: "",
+          verificationCode: "",
+        });
+
+        setShowCreateModal(false);
+        setEmailVerification(true);
+      }
     }
   };
 
   const handleEmailVerification = () => {
-    if (newUser?.verificationCode) {
-      verifyEmail(verificationData);
+    if (!verificationInfo.otp) {
+      alert("Please enter the verification code");
+      return;
+    }
+    if (verificationInfo?.otp) {
+      verifyEmail(verificationInfo);
+      console.log("Verification data:", verificationInfo);
       setNewUser({
         name: "",
         password: "",
@@ -145,7 +172,6 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Header with Search and Create */}
       <div className="bg-card rounded-xl shadow-elevation-2 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
@@ -508,7 +534,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
         </>
       )}
 
-      {emailVerification && (
+      {/* {emailVerification && (
         <>
           <div
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-modal"
@@ -542,9 +568,9 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     placeholder="0 0 0 0 0 0"
                     value={newUser?.verificationCode}
                     onChange={(e) =>
-                      setNewUser({
-                        ...newUser,
-                        verificationCode: e?.target?.value,
+                      setVerificationInfo({
+                        ...verificationInfo,
+                        otp: e?.target?.value,
                       })
                     }
                     required
@@ -553,6 +579,68 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
               </div>
 
               <div className="p-6 border-t border-border flex gap-3">
+                <Button onClick={() => setEmailVerification(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleEmailVerification}>Submit</Button>
+              </div>
+            </div>
+          </div>
+        </>
+      )} */}
+
+      {/* ================= EMAIL VERIFICATION MODAL ================= */}
+      {emailVerification && (
+        <>
+          {/* Light gray overlay */}
+          <div
+            className="fixed inset-0 bg-gray-200/70 z-40 backdrop-blur-sm"
+            onClick={() => setEmailVerification(false)}
+          />
+
+          {/* Modal container */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="p-6 border-b border-border flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-foreground">
+                  Email Verification
+                </h3>
+                <button
+                  onClick={() => setEmailVerification(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth"
+                >
+                  <Icon key="x" name="X" size={20} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-10 flex flex-col items-center gap-6">
+                <p className="text-foreground text-lg text-center font-medium">
+                  Please enter the verification code sent to your email
+                </p>
+
+                <div className="w-full">
+                  <label className="block mb-2 text-sm text-muted-foreground">
+                    Verification Code
+                  </label>
+                  <Input
+                    label="verificationCode"
+                    type="text"
+                    placeholder="Enter code here"
+                    value={verificationInfo.otp}
+                    onChange={(e) =>
+                      setVerificationInfo({
+                        ...verificationInfo,
+                        otp: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-border flex justify-end gap-3">
                 <Button onClick={() => setEmailVerification(false)}>
                   Cancel
                 </Button>
