@@ -228,24 +228,31 @@ const ForemanDashboard: React.FC = () => {
     console.log("View all notifications");
   };
 
-  const handleCreateUser = async (userData: NewUser) => {
+  const handleCreateUser = async (userData: FormData): Promise<boolean> => {
     try {
       const response = await authorizeCreate("users/register", userData);
 
-      setVerificationData({ ...verificationData, userId: response.user.id });
-      setMsg(response.message);
+      if (!response || !response.userId) {
+        throw new Error("Invalid response from server");
+      }
 
-      setIsErr(false);
-      console.log("Creating user with : ", userData);
+      if (response.status === "success") {
+        setVerificationData({ ...verificationData, userId: response.userId });
+        console.log("verificationData", verificationData);
+        setMsg(response.message);
+        setIsErr(false);
+        toast.success(response.message);
 
-      toast.success(
-        "User created successfully, please check email for credentials",
-      );
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.log(error);
       toast.error("Failed to create user. Please try again.");
       setIsErr(true);
       setMsg("Failed to create user. Please try again.");
+      return false;
     }
   };
 

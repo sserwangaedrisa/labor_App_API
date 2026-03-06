@@ -40,10 +40,11 @@ export type verificationData = {
 export interface NewUser {
   name: string;
   email: string;
-  phone?: string;
+  phone: string;
   role: UserRole;
   password: string;
   sites: string;
+  image: File | null;
 }
 
 export type WorkerStatus = "present" | "absent" | "pending" | "late";

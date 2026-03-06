@@ -1,45 +1,37 @@
 import axios from "axios";
 
 const authorizeCreate = async (url: string, data: unknown) => {
-  if (localStorage.token) {
-    const a = axios.create({
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw { message: "Login again to proceed" };
+  }
+
+  const baseURL = `${import.meta.env.VITE_API_URL}/${url}`;
+  console.log("baseURL", baseURL);
+
+  try {
+    const response = await axios.post(baseURL, data, {
       headers: {
-        Authorization: `Bearer ${localStorage.token}`,
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
       },
     });
-    let baseURL = `${import.meta.env.VITE_API_URL}/${url}`;
-    console.log("baseURL", baseURL);
 
-    return a
-      .post(baseURL, data)
-      .then((response) => {
-        return response.data;
-      })
-      .catch((error) => {
-        let res;
-        if (error.response) {
-          console.log("error1", error.response.data);
-          throw error.response.data;
-        } else if (error.request) {
-          console.log("error2");
-          res = {
-            message: "Network Error",
-          };
-          throw res;
-        } else {
-          console.log("error3");
-          res = {
-            message: "Something went wrong, Refresh page",
-          };
-          throw res;
-        }
-      });
-  } else {
-    const res = {
-      message: "Login again to proceed",
-    };
-    throw res;
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      console.log("error1", error.response.data);
+      throw error.response.data;
+    }
+
+    if (error.request) {
+      console.log("error2");
+      throw { message: "Network Error" };
+    }
+
+    console.log("error3");
+    throw { message: "Something went wrong, Refresh page" };
   }
 };
 

@@ -27,6 +27,7 @@ interface NewUser {
   password: string;
   sites: string;
   verificationCode?: string;
+  image?: File | null;
 }
 
 interface EmailVerificationData {
@@ -37,7 +38,7 @@ interface EmailVerificationData {
 interface UserManagementPanelProps {
   users?: User[];
   verificationData: EmailVerificationData;
-  onCreateUser: (newUser: NewUser) => Promise<boolean>;
+  onCreateUser: (newUser: FormData) => Promise<boolean>;
   verifyEmail: (data: EmailVerificationData) => void;
   onBlockUser: (user: User) => void;
   onUnblockUser: (user: User) => void;
@@ -72,6 +73,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     role: "LABORER",
     sites: "",
     verificationCode: "",
+    image: null,
   });
 
   useEffect(() => {
@@ -112,7 +114,21 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 
   const handleCreateUser = async () => {
     if (newUser?.name && newUser?.email && newUser?.phone) {
-      const success = await onCreateUser(newUser);
+      const formData = new FormData();
+      formData.append("name", newUser.name);
+      formData.append("email", newUser.email);
+      formData.append("phone", newUser.phone);
+      formData.append("role", newUser.role);
+      formData.append("password", newUser.password);
+      formData.append("sites", newUser.sites);
+      if (newUser.image) {
+        formData.append("image", newUser.image);
+      }
+      formData.forEach((item, key) => {
+        console.log(`${key}: ${item}`);
+      });
+
+      const success = await onCreateUser(formData);
 
       if (success) {
         setNewUser({
@@ -520,6 +536,18 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   value={newUser?.sites}
                   onChange={(value) => setNewUser({ ...newUser, sites: value })}
                   placeholder="Select a site"
+                />
+
+                <Input
+                  label="image"
+                  type="file"
+                  accept="image/*"
+                  placeholder="Upload profile image"
+                  onChange={(e) => {
+                    if (e?.target?.files && e?.target?.files?.[0]) {
+                      setNewUser({ ...newUser, image: e.target.files?.[0] });
+                    }
+                  }}
                 />
               </div>
 
