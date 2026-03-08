@@ -12,7 +12,7 @@ import SiteOverviewCard from "./components/SiteOverviewCard";
 import WorkerTableRow from "./components/WorkerTableRow";
 import AttendanceModal from "./components/AttendanceModal";
 import PaymentRequestCard from "./components/PaymentRequest";
-import UserManagementPanel from "./components/UserManagementPanel";
+import { UserManagementPanel } from "./components/UserManagementPanel";
 import QuickActionsPanel from "./components/QuickActions";
 import NotificationBanner from "./components/NotificatonBanner";
 import authorizeCreate from "../../api/authorizeCreate";
@@ -23,7 +23,7 @@ import type {
   verificationData,
   NewUser,
 } from "../../types/SharedTypes";
-import type { FormData } from "../../../src/pages/foreman/components/AttendanceModal";
+import type { FormData as AttendanceFormData } from "../../../src/pages/foreman/components/AttendanceModal";
 import authorizePostRequest from "../../api/authorizePostRequest";
 
 // TYPES
@@ -48,6 +48,8 @@ const ForemanDashboard: React.FC = () => {
     userId: string;
     otp: string;
   }>({ userId: "", otp: "" });
+  const [verificationResponse, setVerificationResponse] =
+    useState<VerifyAccountResponse | null>(null);
   const [resendOtp, setResendOtp] = useState<boolean>(false);
 
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -194,7 +196,7 @@ const ForemanDashboard: React.FC = () => {
     console.log("View worker details:", worker);
   };
 
-  const handleSubmitAttendance = (attendanceData: FormData): void => {
+  const handleSubmitAttendance = (attendanceData: AttendanceFormData): void => {
     console.log("Attendance submitted:", attendanceData);
     setShowAttendanceModal(false);
     setSelectedWorker(null);
@@ -232,18 +234,28 @@ const ForemanDashboard: React.FC = () => {
     try {
       const response = await authorizeCreate("users/register", userData);
 
-      if (!response || !response.userId) {
-        throw new Error("Invalid response from server");
-      }
-
       if (response.status === "success") {
         setVerificationData({ ...verificationData, userId: response.userId });
-        console.log("verificationData", verificationData);
         setMsg(response.message);
         setIsErr(false);
         toast.success(response.message);
 
         return true;
+      }
+
+      if (response.status !== "success") {
+        console.log("register new user response: ", response);
+        setMsg(response.message);
+        setIsErr(false);
+        toast.error(response.message);
+        toast.success("its itsss  ");
+        return false;
+      }
+
+      if (!response || !response.userId) {
+        toast.error("Invalid response from server. Please try again.");
+        throw new Error("Invalid response from server");
+        return false;
       }
 
       return false;
@@ -256,55 +268,73 @@ const ForemanDashboard: React.FC = () => {
     }
   };
 
-  const handleEmailVerification = async (
-    verificationData: verificationData,
-  ) => {
+  const handleEmailVerification = async (data: verificationData) => {
     try {
       const response = await authorizePostRequest<VerifyAccountResponse>(
         "users/verify-account",
-        verificationData,
+        data,
       );
+
+      setVerificationResponse(response);
 
       if (response.status === "success") {
         console.log("Email verified successfully");
         toast.success(response.message);
         setVerificationData({ userId: "", otp: "" });
-        return;
+        setResendOtp(false);
+        setVerificationResponse(null);
       }
 
       if (response.status === "expired") {
         console.log("OTP expired");
-        setVerificationData({ ...verificationData, otp: "" });
+        setVerificationData({ ...data, otp: "" });
         setResendOtp(true);
-        setMsg(response.message);
         toast.error(response.message);
-        return;
       }
 
       // Any other failure case
-      console.log("Email verification failed");
-      toast.error(response.message);
-    } catch (error) {
-      console.log(error);
-      toast.error("Verification failed. Please try again.");
-    }
-  };
-
-  const handleResendOtp = async () => {
-    try {
-      const response = await authorizePostRequest<VerifyAccountResponse>(
-        "users/resent-otp",
-        { userId: verificationData.userId },
-      );
-      if (response.status === "success") {
-        toast.success("OTP resent successfully");
-        setResendOtp(false);
-      } else {
+      if (response.status !== "success" && response.status !== "expired") {
+        console.log("Email verification failed");
         toast.error(response.message);
       }
     } catch (error) {
       console.log(error);
+      toast.error("Verification failed. Please try again.");
+      setVerificationResponse({
+        status: "error",
+        message: "Verification failed. Please try again.",
+      });
+    }
+  };
+
+  const handleResendOtp: () => Promise<VerifyAccountResponse> = async () => {
+    try {
+      const response = await authorizePostRequest<VerifyAccountResponse>(
+        "users/resend-otp",
+        { userId: verificationData.userId },
+      );
+      if (response.status === "success") {
+        toast.success(
+          "OTP resent successfully, check your email for the new otp.",
+        );
+        console.log("response: ", response);
+        setResendOtp(false);
+        setVerificationResponse(null);
+        return response;
+      }
+      if (response.status !== "success") {
+        console.log("response: ", response);
+      }
+
+      toast.error(response.message);
+      return response;
+    } catch (error) {
+      console.log(error);
       toast.error("Failed to resend OTP. Please try again.");
+      return {
+        status: "error",
+        message: "Failed to resend OTP. Please try again.",
+      };
     }
   };
 
@@ -529,11 +559,15 @@ const ForemanDashboard: React.FC = () => {
         <div>
           <UserManagementPanel
             verificationData={verificationData}
-            verifyEmail={handleEmailVerification}
+            resendOtp={resendOtp}
+            verificationResponse={verificationResponse}
+            onVerifyEmail={handleEmailVerification}
+            onResendOtp={handleResendOtp}
             onCreateUser={handleCreateUser}
             onBlockUser={handleBlockUser}
             onUnblockUser={handleUnblockUser}
             users={[]}
+            onSetResendOtp={setResendOtp}
           />
         </div>
       </LoadingBoundary>

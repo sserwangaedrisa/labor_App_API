@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
@@ -35,24 +36,37 @@ interface EmailVerificationData {
   otp: string;
 }
 
+interface HandleResendOtpResponse {
+  status: string;
+  message: string;
+}
+
 interface UserManagementPanelProps {
   users?: User[];
+  resendOtp: boolean;
   verificationData: EmailVerificationData;
+  verificationResponse: HandleResendOtpResponse | null;
   onCreateUser: (newUser: FormData) => Promise<boolean>;
-  verifyEmail: (data: EmailVerificationData) => void;
+  onVerifyEmail: (data: EmailVerificationData) => void;
+  onResendOtp: () => Promise<HandleResendOtpResponse>;
   onBlockUser: (user: User) => void;
   onUnblockUser: (user: User) => void;
+  onSetResendOtp: (value: boolean) => void;
 }
 
 /* ================= COMPONENT ================= */
 
-const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
+export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   users,
+  resendOtp,
   verificationData,
+  verificationResponse,
   onCreateUser,
   onBlockUser,
   onUnblockUser,
-  verifyEmail,
+  onVerifyEmail,
+  onResendOtp,
+  onSetResendOtp,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
@@ -147,24 +161,26 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     }
   };
 
-  const handleEmailVerification = () => {
+  const handleEmailVerification = async () => {
     if (!verificationInfo.otp) {
       alert("Please enter the verification code");
       return;
     }
-    if (verificationInfo?.otp) {
-      verifyEmail(verificationInfo);
-      console.log("Verification data:", verificationInfo);
-      setNewUser({
-        name: "",
-        password: "",
-        email: "",
-        phone: "",
-        role: "LABORER",
-        sites: "",
-        verificationCode: "",
-      });
-      setEmailVerification(false);
+    onVerifyEmail(verificationInfo);
+  };
+
+  const handleResendOtp = async () => {
+    if (!verificationInfo.userId) {
+      return;
+    }
+    try {
+      const response = await onResendOtp();
+      if (response.status === "success") {
+        onSetResendOtp(false);
+        setEmailVerification(true);
+      }
+    } catch (error) {
+      console.error("Failed to resend OTP. Please try again.");
     }
   };
 
@@ -200,7 +216,10 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
             </p>
           </div>
           <Button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              toast("Create New User clicked");
+              setShowCreateModal(true);
+            }}
             className="w-full lg:w-auto"
           >
             Create New User
@@ -470,8 +489,8 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-modal"
             onClick={() => setShowCreateModal(false)}
           />
-          <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
-            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-modal flex items-center justify-center p-4 border border-orange-300">
+            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-gray-400 shadow-2xl shadow-blue-500/50">
               <div className="p-6 border-b border-border">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-semibold text-foreground">
@@ -562,61 +581,6 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
         </>
       )}
 
-      {/* {emailVerification && (
-        <>
-          <div
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-modal"
-            onClick={() => setEmailVerification(false)}
-          />
-          <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
-            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold text-foreground">
-                    Email verification
-                  </h3>
-                  <button
-                    onClick={() => setEmailVerification(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth"
-                  >
-                    <Icon key="x" name="X" size={20} />
-                  </button>
-                </div>
-              </div>
-              <div className="form px-10 py-10 flex justify-center items-center border round-sm shadow border-white">
-                <p className="text-white text-xl text-bold ">
-                  Please enter the verification code sent to your email.
-                </p>
-
-                <div className="border-gray-300 text-white w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <label className="text-white ">Verification Code</label>
-                  <Input
-                    label="verificationCode"
-                    type="text"
-                    placeholder="0 0 0 0 0 0"
-                    value={newUser?.verificationCode}
-                    onChange={(e) =>
-                      setVerificationInfo({
-                        ...verificationInfo,
-                        otp: e?.target?.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-border flex gap-3">
-                <Button onClick={() => setEmailVerification(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleEmailVerification}>Submit</Button>
-              </div>
-            </div>
-          </div>
-        </>
-      )} */}
-
       {/* ================= EMAIL VERIFICATION MODAL ================= */}
       {emailVerification && (
         <>
@@ -627,8 +591,8 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
           />
 
           {/* Modal container */}
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 border  border-orange-300">
+            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-gray-400 shadow-2xl shadow-blue-500/50">
               {/* Header */}
               <div className="p-6 border-b border-border flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-foreground">
@@ -648,6 +612,14 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   Please enter the verification code sent to your email
                 </p>
 
+                {verificationResponse && (
+                  <p
+                    className={`text-sm text-center text-orange-800 ${verificationResponse.status === "expired" ? "text-destructive" : "text-muted-foreground"}`}
+                  >
+                    {verificationResponse.message}
+                  </p>
+                )}
+
                 <div className="w-full">
                   <label className="block mb-2 text-sm text-muted-foreground">
                     Verification Code
@@ -657,12 +629,13 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     type="text"
                     placeholder="Enter code here"
                     value={verificationInfo.otp}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setVerificationInfo({
                         ...verificationInfo,
                         otp: e.target.value,
-                      })
-                    }
+                      });
+                      console.log("verificationInfo", verificationInfo);
+                    }}
                     required
                   />
                 </div>
@@ -672,7 +645,13 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 <Button onClick={() => setEmailVerification(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleEmailVerification}>Submit</Button>
+                {resendOtp && (
+                  <Button onClick={handleResendOtp}>ResendOtp</Button>
+                )}
+
+                {!resendOtp && (
+                  <Button onClick={handleEmailVerification}>Submit</Button>
+                )}
               </div>
             </div>
           </div>
