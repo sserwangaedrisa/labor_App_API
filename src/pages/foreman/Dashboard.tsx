@@ -30,6 +30,10 @@ import authorizePostRequest from "../../api/authorizePostRequest";
 interface VerifyAccountResponse {
   status: string;
   message: string;
+  user?: {
+    id: string;
+    email: string;
+  };
 }
 
 /* =======================
@@ -51,6 +55,7 @@ const ForemanDashboard: React.FC = () => {
   const [verificationResponse, setVerificationResponse] =
     useState<VerifyAccountResponse | null>(null);
   const [resendOtp, setResendOtp] = useState<boolean>(false);
+  const [workerss, setWorkers] = useState<Worker[]>([]);
 
   const [notifications, setNotifications] = useState<Notification[]>([
     {
@@ -186,6 +191,8 @@ const ForemanDashboard: React.FC = () => {
       lastUpdated: "2026-01-26 08:30 AM",
     },
   ];
+
+  useEffect(() => {}, [workerss]);
 
   const handleRecordAttendance = (worker: Worker): void => {
     setSelectedWorker(worker);
