@@ -1,11 +1,5 @@
 import axios, { AxiosError } from "axios";
 
-interface ApiResponse<T = unknown> {
-  success?: boolean;
-  message?: string;
-  data?: T;
-}
-
 const authorizePostRequest = async <T = unknown>(
   url: string,
   formData: unknown,
@@ -15,7 +9,7 @@ const authorizePostRequest = async <T = unknown>(
   if (!token) {
     return Promise.reject({
       success: false,
-      message: "Login again",
+      message: "Login again to proceed",
     });
   }
 

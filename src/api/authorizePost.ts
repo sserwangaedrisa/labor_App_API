@@ -14,7 +14,6 @@ const authorizePost = async (
   if (!token) {
     throw { message: "Login again to proceed" } as ErrorResponse;
   }
-
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     ...((config.headers as Record<string, string>) || {}),

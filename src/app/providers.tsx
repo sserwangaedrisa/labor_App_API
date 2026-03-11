@@ -62,6 +62,7 @@ export const Providers = ({ children }: { children: ReactNode }) => {
 };
 
 // Hook to use Auth context
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used inside Providers");

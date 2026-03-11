@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -21,8 +21,8 @@ import type {
   Notification,
   User,
   verificationData,
-  NewUser,
 } from "../../types/SharedTypes";
+import * as SharedTypes from "../../types/SharedTypes";
 import type { FormData as AttendanceFormData } from "../../../src/pages/foreman/components/AttendanceModal";
 import authorizePostRequest from "../../api/authorizePostRequest";
 
@@ -55,7 +55,9 @@ const ForemanDashboard: React.FC = () => {
   const [verificationResponse, setVerificationResponse] =
     useState<VerifyAccountResponse | null>(null);
   const [resendOtp, setResendOtp] = useState<boolean>(false);
-  const [workerss, setWorkers] = useState<Worker[]>([]);
+  const [siteWorker, setSiteWorkers] = useState<SharedTypes.SiteWorker[]>([]);
+  const [workers, setWorkersDetatil] = useState<Worker[]>([]);
+  const [siteInfo, setSiteInfo] = useState<SharedTypes.Sited>();
 
   const [notifications, setNotifications] = useState<Notification[]>([
     {
@@ -85,114 +87,165 @@ const ForemanDashboard: React.FC = () => {
     pendingPayments: 8,
   };
 
-  const workers: Worker[] = [
-    {
-      id: "W001",
-      name: "Robert Johnson",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_19b49695f-1763293153611.png",
-      avatarAlt:
-        "Professional headshot of African American man with short black hair wearing blue work shirt",
-      role: "Mason",
-      todayStatus: "present",
-      hoursToday: 8,
-      wageRate: 120,
-      lastUpdated: "2026-01-26 09:30 AM",
-    },
-    {
-      id: "W002",
-      name: "Maria Garcia",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_129aa8ebc-1763299616245.png",
-      avatarAlt:
-        "Professional headshot of Hispanic woman with long brown hair wearing yellow safety vest",
-      role: "Carpenter",
-      todayStatus: "present",
-      hoursToday: 7.5,
-      wageRate: 110,
-      lastUpdated: "2026-01-26 10:15 AM",
-    },
-    {
-      id: "W003",
-      name: "David Chen",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_1b41c284a-1763295621343.png",
-      avatarAlt:
-        "Professional headshot of Asian man with short black hair wearing orange hard hat",
-      role: "Electrician",
-      todayStatus: "present",
-      hoursToday: 8,
-      wageRate: 130,
-      lastUpdated: "2026-01-26 08:45 AM",
-    },
-    {
-      id: "W004",
-      name: "Sarah Williams",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_1b400cc53-1763300240792.png",
-      avatarAlt:
-        "Professional headshot of Caucasian woman with blonde hair wearing white hard hat",
-      role: "Plumber",
-      todayStatus: "pending",
-      hoursToday: 0,
-      wageRate: 115,
-      lastUpdated: "Not recorded today",
-    },
-    {
-      id: "W005",
-      name: "Michael Brown",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_1c7c570ac-1763296079697.png",
-      avatarAlt:
-        "Professional headshot of African American man with gray beard wearing red safety vest",
-      role: "Welder",
-      todayStatus: "present",
-      hoursToday: 8,
-      wageRate: 125,
-      lastUpdated: "2026-01-26 09:00 AM",
-    },
-    {
-      id: "W006",
-      name: "Jennifer Lee",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_1916e8edb-1763295990360.png",
-      avatarAlt:
-        "Professional headshot of Asian woman with short black hair wearing blue work uniform",
-      role: "Painter",
-      todayStatus: "present",
-      hoursToday: 7,
-      wageRate: 100,
-      lastUpdated: "2026-01-26 11:00 AM",
-    },
-    {
-      id: "W007",
-      name: "Carlos Rodriguez",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_1650ed24b-1763296439337.png",
-      avatarAlt:
-        "Professional headshot of Hispanic man with mustache wearing yellow hard hat",
-      role: "Laborer",
-      todayStatus: "absent",
-      hoursToday: 0,
-      wageRate: 90,
-      lastUpdated: "Marked absent",
-    },
-    {
-      id: "W008",
-      name: "Emily Davis",
-      avatar:
-        "https://img.rocket.new/generatedImages/rocket_gen_img_1a90aacde-1763301697203.png",
-      avatarAlt:
-        "Professional headshot of Caucasian woman with red hair wearing green safety vest",
-      role: "Forklift Operator",
-      todayStatus: "present",
-      hoursToday: 8,
-      wageRate: 105,
-      lastUpdated: "2026-01-26 08:30 AM",
-    },
-  ];
+  // const workers: Worker[] = [
+  //   {
+  //     id: "W001",
+  //     name: "Robert Johnson",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_19b49695f-1763293153611.png",
+  //     avatarAlt:
+  //       "Professional headshot of African American man with short black hair wearing blue work shirt",
+  //     role: "Mason",
+  //     todayStatus: "present",
+  //     hoursToday: 8,
+  //     wageRate: 120,
+  //     lastUpdated: "2026-01-26 09:30 AM",
+  //   },
+  //   {
+  //     id: "W002",
+  //     name: "Maria Garcia",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_129aa8ebc-1763299616245.png",
+  //     avatarAlt:
+  //       "Professional headshot of Hispanic woman with long brown hair wearing yellow safety vest",
+  //     role: "Carpenter",
+  //     todayStatus: "present",
+  //     hoursToday: 7.5,
+  //     wageRate: 110,
+  //     lastUpdated: "2026-01-26 10:15 AM",
+  //   },
+  //   {
+  //     id: "W003",
+  //     name: "David Chen",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1b41c284a-1763295621343.png",
+  //     avatarAlt:
+  //       "Professional headshot of Asian man with short black hair wearing orange hard hat",
+  //     role: "Electrician",
+  //     todayStatus: "present",
+  //     hoursToday: 8,
+  //     wageRate: 130,
+  //     lastUpdated: "2026-01-26 08:45 AM",
+  //   },
+  //   {
+  //     id: "W004",
+  //     name: "Sarah Williams",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1b400cc53-1763300240792.png",
+  //     avatarAlt:
+  //       "Professional headshot of Caucasian woman with blonde hair wearing white hard hat",
+  //     role: "Plumber",
+  //     todayStatus: "pending",
+  //     hoursToday: 0,
+  //     wageRate: 115,
+  //     lastUpdated: "Not recorded today",
+  //   },
+  //   {
+  //     id: "W005",
+  //     name: "Michael Brown",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1c7c570ac-1763296079697.png",
+  //     avatarAlt:
+  //       "Professional headshot of African American man with gray beard wearing red safety vest",
+  //     role: "Welder",
+  //     todayStatus: "present",
+  //     hoursToday: 8,
+  //     wageRate: 125,
+  //     lastUpdated: "2026-01-26 09:00 AM",
+  //   },
+  //   {
+  //     id: "W006",
+  //     name: "Jennifer Lee",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1916e8edb-1763295990360.png",
+  //     avatarAlt:
+  //       "Professional headshot of Asian woman with short black hair wearing blue work uniform",
+  //     role: "Painter",
+  //     todayStatus: "present",
+  //     hoursToday: 7,
+  //     wageRate: 100,
+  //     lastUpdated: "2026-01-26 11:00 AM",
+  //   },
+  //   {
+  //     id: "W007",
+  //     name: "Carlos Rodriguez",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1650ed24b-1763296439337.png",
+  //     avatarAlt:
+  //       "Professional headshot of Hispanic man with mustache wearing yellow hard hat",
+  //     role: "Laborer",
+  //     todayStatus: "absent",
+  //     hoursToday: 0,
+  //     wageRate: 90,
+  //     lastUpdated: "Marked absent",
+  //   },
+  //   {
+  //     id: "W008",
+  //     name: "Emily Davis",
+  //     avatar:
+  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1a90aacde-1763301697203.png",
+  //     avatarAlt:
+  //       "Professional headshot of Caucasian woman with red hair wearing green safety vest",
+  //     role: "Forklift Operator",
+  //     todayStatus: "present",
+  //     hoursToday: 8,
+  //     wageRate: 105,
+  //     lastUpdated: "2026-01-26 08:30 AM",
+  //   },
+  // ];
 
-  useEffect(() => {}, [workerss]);
+  useEffect(() => {
+    const fetchSiteInfo =
+      async (): Promise<SharedTypes.SiteInfoResponse | void> => {
+        try {
+          const siteInfo =
+            await authorizePostRequest<SharedTypes.SiteInfoResponse>(
+              "worker/siteDetails",
+              {
+                foremanId: currentUser?.id,
+              },
+            );
+
+          if (!siteInfo) {
+            console.log("No site info received");
+            return;
+          }
+
+          if (siteInfo.site?.workers) {
+            setSiteInfo(siteInfo.site);
+            setSiteWorkers(siteInfo.site?.workers);
+
+            console.log("site info: ", siteInfo);
+          } else {
+            console.log("No workers data in site info");
+          }
+
+          return siteInfo;
+        } catch (error) {
+          console.log(error);
+        }
+      };
+
+    fetchSiteInfo();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!siteInfo?.workers) return;
+
+    setWorkersDetatil(
+      siteInfo.workers.map(({ worker }) => ({
+        id: worker?.id ?? "",
+        name: worker?.name ?? "",
+        avatar: worker?.imageUrl ?? "",
+        avatarAlt: worker?.name ?? "",
+        role: worker?.job ?? "WORKER",
+        todayStatus: "absent",
+        hoursToday: 0,
+        wageRate: worker?.wageRating ?? 0,
+        lastUpdated: new Date().toISOString(),
+      })),
+    );
+  }, [siteInfo]);
 
   const handleRecordAttendance = (worker: Worker): void => {
     setSelectedWorker(worker);

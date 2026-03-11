@@ -4,21 +4,22 @@ import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
+import type { User, UserRole } from "../../../types/SharedTypes";
 
 /* ================= TYPES ================= */
 
-type UserRole = "LABORER" | "FOREMAN" | "OWNER";
+// type UserRole = "LABORER" | "FOREMAN" | "OWNER";
 type RoleFilter = UserRole | "all";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  assignedSite?: string;
-  isBlocked: boolean;
-}
+// interface User {
+//   id: string;
+//   name: string;
+//   email: string;
+//   phone: string;
+//   role: UserRole;
+//   assignedSite?: string;
+//   isBlocked: boolean;
+// }
 
 interface NewUser {
   name: string;
@@ -189,6 +190,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       LABORER: "bg-primary/10 text-primary",
       FOREMAN: "bg-accent/10 text-accent",
       OWNER: "bg-success/10 text-success",
+      WORKER: "bg-muted/10 text-muted-foreground",
     };
     return colors?.[role];
   };
@@ -198,6 +200,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       LABORER: "HardHat",
       FOREMAN: "Clipboard",
       OWNER: "Crown",
+      WORKER: "Users",
     };
     return icons?.[role];
   };

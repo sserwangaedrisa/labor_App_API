@@ -71,7 +71,11 @@ const Login: React.FC = () => {
           console.log("Password reset OTP sent successfully");
           toast.success(response.message);
 
-          setVerificationData({ ...verificationData, email });
+          setVerificationData({
+            ...verificationData,
+            userId: response.user?.id,
+          });
+          setMsg(response.message);
           setVerifyEmail(false);
           setVerifyOtp(true);
           setNewPassword(false);
@@ -86,15 +90,17 @@ const Login: React.FC = () => {
       // STEP 2: VERIFY OTP
       if (verifyOtp) {
         const response = await authorizePostRequest<VerifyAccountResponse>(
-          "users/verifyEmail",
+          "users/verify-account",
           verificationData,
         );
 
         if (response.status === "success") {
           console.log("Email verified successfully");
-          toast.success(response.message);
-
-          setVerificationData({ userId: "", otp: "" });
+          toast.success(
+            "OTP verified successfully, you can now set a new password",
+          );
+          setMsg("OTP verified successfully, you can now set a new password");
+          setVerificationData({ ...verificationData, otp: "" });
           setVerifyEmail(false);
           setVerifyOtp(false);
           setNewPassword(true);
@@ -103,7 +109,7 @@ const Login: React.FC = () => {
 
           setVerificationData({ ...verificationData, otp: "" });
           toast.error(response.message);
-
+          setMsg("OTP expired, please request a new one");
           setVerifyEmail(true);
           setVerifyOtp(false);
           setNewPassword(false);
@@ -125,7 +131,9 @@ const Login: React.FC = () => {
         if (response.status === "success") {
           console.log("Password reset successfully");
           toast.success(response.message);
-
+          setMsg(
+            "Password reset successfully, you can now log in with your new password",
+          );
           setVerificationData({ email: "", newPassword: "" });
           setNewPassword(false);
           setVerifyEmail(false);
@@ -141,7 +149,7 @@ const Login: React.FC = () => {
       // STEP 4: LOGIN
       const response = await authorizePostRequestWOT<LoginResponse>(
         "users/login",
-        { email, password },
+        { email: verificationData.email, password },
       );
 
       const { user, tokens, message } = response;
@@ -199,7 +207,7 @@ const Login: React.FC = () => {
           <p className="mt-2 text-sm text-gray-600">
             {!verifyEmail && !verifyOtp && !newPassword
               ? "Sign in to continue to your account"
-              : "Follow the steps to reset your password"}
+              : "Follow the steps to reset your password. Submit your email to receive an OTP, then verify the OTP and set a new password."}
           </p>
         </div>
 
@@ -225,12 +233,17 @@ const Login: React.FC = () => {
             )}
 
             <div className="rounded-md shadow-sm mb-8 space-y-4">
-              {/* EMAIL INPUT */}
+              {/* FORGOT PASSWORD VERIFICATION EMAIL INPUT */}
               {(verifyEmail || !verifyEmail) && !verifyOtp && !newPassword && (
                 <input
                   name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={verificationData.email}
+                  onChange={(e) =>
+                    setVerificationData({
+                      ...verificationData,
+                      email: e.target.value,
+                    })
+                  }
                   type="email"
                   required
                   className="appearance-none relative block w-full px-3 py-3 border border-gray-300 rounded-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
