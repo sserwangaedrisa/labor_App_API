@@ -205,13 +205,12 @@ export interface SiteWorker {
 }
 
 export interface WorkEntry {
-  id: string;
+  id?: string;
   workerId: string;
   siteId: string;
   date: Date;
   hours?: number;
   overtime?: number;
-
   notes?: string;
 
   createdAt?: Date;

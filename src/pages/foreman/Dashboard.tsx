@@ -25,6 +25,7 @@ import type {
 import * as SharedTypes from "../../types/SharedTypes";
 import type { FormData as AttendanceFormData } from "../../../src/pages/foreman/components/AttendanceModal";
 import authorizePostRequest from "../../api/authorizePostRequest";
+import { s } from "framer-motion/client";
 
 // TYPES
 interface VerifyAccountResponse {
@@ -43,7 +44,8 @@ interface VerifyAccountResponse {
 const ForemanDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(false);
-  const [selectedWorker, setSelectedWorker] = useState<Worker | null>();
+  const [selectedWorker, setSelectedWorker] =
+    useState<SharedTypes.User | null>();
   const [showAttendanceModal, setShowAttendanceModal] =
     useState<boolean>(false);
   const [msg, setMsg] = useState<string>("");
@@ -86,113 +88,6 @@ const ForemanDashboard: React.FC = () => {
     totalHoursToday: 168,
     pendingPayments: 8,
   };
-
-  // const workers: Worker[] = [
-  //   {
-  //     id: "W001",
-  //     name: "Robert Johnson",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_19b49695f-1763293153611.png",
-  //     avatarAlt:
-  //       "Professional headshot of African American man with short black hair wearing blue work shirt",
-  //     role: "Mason",
-  //     todayStatus: "present",
-  //     hoursToday: 8,
-  //     wageRate: 120,
-  //     lastUpdated: "2026-01-26 09:30 AM",
-  //   },
-  //   {
-  //     id: "W002",
-  //     name: "Maria Garcia",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_129aa8ebc-1763299616245.png",
-  //     avatarAlt:
-  //       "Professional headshot of Hispanic woman with long brown hair wearing yellow safety vest",
-  //     role: "Carpenter",
-  //     todayStatus: "present",
-  //     hoursToday: 7.5,
-  //     wageRate: 110,
-  //     lastUpdated: "2026-01-26 10:15 AM",
-  //   },
-  //   {
-  //     id: "W003",
-  //     name: "David Chen",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1b41c284a-1763295621343.png",
-  //     avatarAlt:
-  //       "Professional headshot of Asian man with short black hair wearing orange hard hat",
-  //     role: "Electrician",
-  //     todayStatus: "present",
-  //     hoursToday: 8,
-  //     wageRate: 130,
-  //     lastUpdated: "2026-01-26 08:45 AM",
-  //   },
-  //   {
-  //     id: "W004",
-  //     name: "Sarah Williams",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1b400cc53-1763300240792.png",
-  //     avatarAlt:
-  //       "Professional headshot of Caucasian woman with blonde hair wearing white hard hat",
-  //     role: "Plumber",
-  //     todayStatus: "pending",
-  //     hoursToday: 0,
-  //     wageRate: 115,
-  //     lastUpdated: "Not recorded today",
-  //   },
-  //   {
-  //     id: "W005",
-  //     name: "Michael Brown",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1c7c570ac-1763296079697.png",
-  //     avatarAlt:
-  //       "Professional headshot of African American man with gray beard wearing red safety vest",
-  //     role: "Welder",
-  //     todayStatus: "present",
-  //     hoursToday: 8,
-  //     wageRate: 125,
-  //     lastUpdated: "2026-01-26 09:00 AM",
-  //   },
-  //   {
-  //     id: "W006",
-  //     name: "Jennifer Lee",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1916e8edb-1763295990360.png",
-  //     avatarAlt:
-  //       "Professional headshot of Asian woman with short black hair wearing blue work uniform",
-  //     role: "Painter",
-  //     todayStatus: "present",
-  //     hoursToday: 7,
-  //     wageRate: 100,
-  //     lastUpdated: "2026-01-26 11:00 AM",
-  //   },
-  //   {
-  //     id: "W007",
-  //     name: "Carlos Rodriguez",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1650ed24b-1763296439337.png",
-  //     avatarAlt:
-  //       "Professional headshot of Hispanic man with mustache wearing yellow hard hat",
-  //     role: "Laborer",
-  //     todayStatus: "absent",
-  //     hoursToday: 0,
-  //     wageRate: 90,
-  //     lastUpdated: "Marked absent",
-  //   },
-  //   {
-  //     id: "W008",
-  //     name: "Emily Davis",
-  //     avatar:
-  //       "https://img.rocket.new/generatedImages/rocket_gen_img_1a90aacde-1763301697203.png",
-  //     avatarAlt:
-  //       "Professional headshot of Caucasian woman with red hair wearing green safety vest",
-  //     role: "Forklift Operator",
-  //     todayStatus: "present",
-  //     hoursToday: 8,
-  //     wageRate: 105,
-  //     lastUpdated: "2026-01-26 08:30 AM",
-  //   },
-  // ];
 
   useEffect(() => {
     const fetchSiteInfo =
@@ -247,8 +142,13 @@ const ForemanDashboard: React.FC = () => {
     );
   }, [siteInfo]);
 
-  const handleRecordAttendance = (worker: Worker): void => {
-    setSelectedWorker(worker);
+  const handleRecordAttendanced = (worker: Worker): void => {
+    const selected = siteInfo?.workers?.find((w) => w.workerId === worker.id);
+
+    if (selected) {
+      setSelectedWorker(selected.worker);
+    }
+
     setShowAttendanceModal(true);
   };
 
@@ -256,10 +156,47 @@ const ForemanDashboard: React.FC = () => {
     console.log("View worker details:", worker);
   };
 
-  const handleSubmitAttendance = (attendanceData: AttendanceFormData): void => {
-    console.log("Attendance submitted:", attendanceData);
-    setShowAttendanceModal(false);
-    setSelectedWorker(null);
+  const handleRecordAttendance = async (
+    attendanceData: SharedTypes.WorkEntry,
+  ): Promise<void> => {
+    try {
+      const workEntryResponse =
+        await authorizePostRequest<SharedTypes.SiteInfoResponse>(
+          "attendance/record",
+          attendanceData,
+        );
+
+      if (!workEntryResponse) {
+        console.log("No response received for attendance submission");
+        toast.error("No response from server. Please try again.");
+        return;
+      }
+
+      if (workEntryResponse.status !== "success") {
+        console.log(
+          "Attendance submission failed: ",
+          workEntryResponse.message,
+        );
+        toast.error(
+          workEntryResponse.message ||
+            "Failed to submit attendance. Please try again.",
+        );
+        return;
+      }
+
+      console.log("Attendance submitted successfully");
+      toast.success("Attendance recorded successfully.");
+
+      setShowAttendanceModal(false);
+      setSelectedWorker(null);
+
+      console.log("Attendance submitted:", attendanceData);
+    } catch (error) {
+      console.log("Error submitting attendance: ", error);
+      toast.error("Failed to submit attendance. Please try again.");
+      setSelectedWorker(null);
+      setShowAttendanceModal(false);
+    }
   };
 
   const handleSubmitPaymentRequest = (): void => {
@@ -428,7 +365,7 @@ const ForemanDashboard: React.FC = () => {
                     Foreman Dashboard
                   </h1>
                   <Button
-                    onClick={() => handleRecordAttendance(workers?.[0])}
+                    onClick={() => handleRecordAttendanced(workers?.[0])}
                     className="hidden sm:inline-flex"
                   >
                     Record Attendance
@@ -569,7 +506,7 @@ const ForemanDashboard: React.FC = () => {
                         <WorkerTableRow
                           key={worker?.id}
                           worker={worker}
-                          onRecordAttendance={handleRecordAttendance}
+                          onRecordAttendance={handleRecordAttendanced}
                           onViewDetails={handleViewDetails}
                         />
                       ))}
@@ -596,7 +533,7 @@ const ForemanDashboard: React.FC = () => {
                 variant="default"
                 size="lg"
                 iconName="Plus"
-                onClick={() => handleRecordAttendance(workers?.[0])}
+                onClick={() => handleRecordAttendanced(workers?.[0])}
                 className="fixed bottom-6 right-6 sm:hidden shadow-elevation-4 rounded-full w-14 h-14 p-0"
               >
                 <span className="sr-only">Record Attendance</span>
@@ -611,7 +548,7 @@ const ForemanDashboard: React.FC = () => {
                 setShowAttendanceModal(false);
                 setSelectedWorker(null);
               }}
-              onSubmit={handleSubmitAttendance}
+              onSubmit={handleRecordAttendance}
             />
           )}
         </div>

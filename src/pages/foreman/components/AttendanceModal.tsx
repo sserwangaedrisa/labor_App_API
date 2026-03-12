@@ -4,6 +4,7 @@ import Image from "../../../components/ui/AppImage";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
+import * as sharedTypes from "../../../types/SharedTypes";
 
 interface Worker {
   id: number | string;
@@ -13,23 +14,25 @@ interface Worker {
   wageRate: number;
 }
 
-export interface FormData {
-  date: string;
-  hours: string;
-  status: string;
-  notes: string;
-  workerId?: string | number;
-  workerName?: string;
-}
+// export interface FormData {
+//   date: string;
+//   hours: string;
+//   status: string;
+//   notes: string;
+//   workerId?: string | number;
+//   workerName?: string;
+// }
+
+// export interface FormData {sharedTypes.workEntry}
 
 interface Errors {
   date?: string;
   hours?: string;
 }
 interface AttendanceModalProps {
-  worker: Worker;
+  worker: sharedTypes.User;
   onClose: () => void;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: sharedTypes.WorkEntry) => void;
 }
 
 const AttendanceModal: React.FC<AttendanceModalProps> = ({
@@ -37,11 +40,13 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [formData, setFormData] = useState<FormData>({
-    date: new Date().toISOString().split("T")[0],
-    hours: "",
-    status: "present",
+  const [formData, setFormData] = useState<sharedTypes.WorkEntry>({
+    date: new Date(),
+    hours: 0,
+    overtime: 0,
     notes: "",
+    workerId: worker?.id ?? "",
+    siteId: "",
   });
 
   const [errors, setErrors] = useState<Errors>({});
@@ -56,19 +61,19 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
 
-    if (!formData.hours || parseFloat(formData.hours) <= 0) {
+    if (!formData.hours || formData.hours <= 0) {
       newErrors.hours = "Please enter valid hours";
     }
 
-    if (parseFloat(formData.hours) > 24) {
+    if (!formData.hours || formData.hours > 24) {
       newErrors.hours = "Hours cannot exceed 24";
     }
 
-    const selectedDate = new Date(formData.date);
+    const selectedDate = formData.date ? new Date(formData.date) : null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (selectedDate > today) {
+    if (!selectedDate || selectedDate > today) {
       newErrors.date = "Cannot record attendance for future dates";
     }
 
@@ -82,13 +87,13 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
       onSubmit({
         ...formData,
         workerId: worker?.id,
-        workerName: worker?.name,
       });
+
       onClose();
     }
   };
 
-  const handleChange = (field: keyof FormData, value: string) => {
+  const handleChange = (field: keyof sharedTypes.WorkEntry, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors?.[field as keyof Errors]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -102,8 +107,8 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
               <Image
-                src={worker?.avatar}
-                alt={worker?.avatarAlt}
+                src={worker?.imageUrl}
+                alt={worker?.name}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -129,23 +134,11 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
           <Input
             type="date"
             label="Date"
-            value={formData?.date}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              handleChange("date", e.target.value)
-            }
-            error={errors?.date}
+            value={formData.date ? formData.date.toISOString() : ""}
+            onChange={(e) => handleChange("date", e.target.value)}
             max={new Date().toISOString().split("T")[0]}
             required
           />
-
-          <Select
-            label="Status"
-            options={statusOptions}
-            value={formData?.status}
-            onChange={(value: string) => handleChange("status", value)}
-            required
-          />
-
           <Input
             type="number"
             label="Hours Worked"
@@ -154,17 +147,15 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               handleChange("hours", e.target.value)
             }
-            error={errors?.hours}
             min="0"
             max="24"
             step="0.5"
             required
-            description="Enter hours worked for the selected date"
           />
 
           <Input
             type="text"
-            label="Notes (Optional)"
+            label="comment (Optional)"
             placeholder="Add any additional notes"
             value={formData?.notes}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -176,7 +167,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Wage Rate:</span>
               <span className="data-text font-medium text-foreground">
-                ${worker?.wageRate}/day
+                ${worker?.wageRating}/day
               </span>
             </div>
 
@@ -186,11 +177,7 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
                   Estimated Earnings:
                 </span>
                 <span className="data-text font-semibold text-primary">
-                  $
-                  {(
-                    parseFloat(formData?.hours) *
-                    (worker?.wageRate / 8)
-                  ).toFixed(2)}
+                  ${((formData?.hours * worker?.wageRating) / 8).toFixed(2)}
                 </span>
               </div>
             )}
