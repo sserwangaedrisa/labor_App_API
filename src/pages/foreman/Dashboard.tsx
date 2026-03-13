@@ -60,6 +60,7 @@ const ForemanDashboard: React.FC = () => {
   const [siteWorker, setSiteWorkers] = useState<SharedTypes.SiteWorker[]>([]);
   const [workers, setWorkersDetatil] = useState<Worker[]>([]);
   const [siteInfo, setSiteInfo] = useState<SharedTypes.Sited>();
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [notifications, setNotifications] = useState<Notification[]>([
     {
@@ -159,11 +160,12 @@ const ForemanDashboard: React.FC = () => {
   const handleRecordAttendance = async (
     attendanceData: SharedTypes.WorkEntry,
   ): Promise<void> => {
+    setIsSubmitting(true);
     try {
       const workEntryResponse =
         await authorizePostRequest<SharedTypes.SiteInfoResponse>(
           "attendance/record",
-          attendanceData,
+          { ...attendanceData, siteId: siteInfo?.id ?? "" },
         );
 
       if (!workEntryResponse) {
@@ -189,13 +191,13 @@ const ForemanDashboard: React.FC = () => {
 
       setShowAttendanceModal(false);
       setSelectedWorker(null);
-
-      console.log("Attendance submitted:", attendanceData);
     } catch (error) {
       console.log("Error submitting attendance: ", error);
       toast.error("Failed to submit attendance. Please try again.");
       setSelectedWorker(null);
       setShowAttendanceModal(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -544,6 +546,8 @@ const ForemanDashboard: React.FC = () => {
           {showAttendanceModal && selectedWorker && (
             <AttendanceModal
               worker={selectedWorker}
+              isSubmitting={isSubmitting}
+              setIsSubmitting={setIsSubmitting}
               onClose={() => {
                 setShowAttendanceModal(false);
                 setSelectedWorker(null);
