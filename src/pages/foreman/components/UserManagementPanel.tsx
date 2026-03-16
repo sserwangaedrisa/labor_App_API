@@ -92,7 +92,6 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   });
 
   useEffect(() => {
-    console.log("verificationInfo", verificationInfo);
     if (verificationData?.userId) {
       setVerificationInfo({
         ...verificationInfo,

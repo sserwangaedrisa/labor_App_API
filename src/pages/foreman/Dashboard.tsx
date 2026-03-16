@@ -1,5 +1,4 @@
 import React, { useState, useEffect, use } from "react";
-
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../src/app/providers";
@@ -11,6 +10,7 @@ import Button from "../../components/ui/Button";
 import SiteOverviewCard from "./components/SiteOverviewCard";
 import WorkerTableRow from "./components/WorkerTableRow";
 import AttendanceModal from "./components/AttendanceModal";
+import WorkerModal from "./components/UserModal";
 import PaymentRequestCard from "./components/PaymentRequest";
 import { UserManagementPanel } from "./components/UserManagementPanel";
 import QuickActionsPanel from "./components/QuickActions";
@@ -23,7 +23,6 @@ import type {
   verificationData,
 } from "../../types/SharedTypes";
 import * as SharedTypes from "../../types/SharedTypes";
-import type { FormData as AttendanceFormData } from "../../../src/pages/foreman/components/AttendanceModal";
 import authorizePostRequest from "../../api/authorizePostRequest";
 import { s } from "framer-motion/client";
 
@@ -46,8 +45,11 @@ const ForemanDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedWorker, setSelectedWorker] =
     useState<SharedTypes.User | null>();
+  const [selectedUser, setSelectedUser] = useState<SharedTypes.User | null>();
   const [showAttendanceModal, setShowAttendanceModal] =
     useState<boolean>(false);
+
+  const [showUserModal, setShowUserModal] = useState<boolean>(false);
   const [msg, setMsg] = useState<string>("");
   const [isErr, setIsErr] = useState<boolean>(false);
   const [verificationData, setVerificationData] = useState<{
@@ -110,8 +112,6 @@ const ForemanDashboard: React.FC = () => {
           if (siteInfo.site?.workers) {
             setSiteInfo(siteInfo.site);
             setSiteWorkers(siteInfo.site?.workers);
-
-            console.log("site info: ", siteInfo);
           } else {
             console.log("No workers data in site info");
           }
@@ -153,8 +153,9 @@ const ForemanDashboard: React.FC = () => {
     setShowAttendanceModal(true);
   };
 
-  const handleViewDetails = (worker: Worker): void => {
-    console.log("View worker details:", worker);
+  const handleViewUserDetails = (user: SharedTypes.User): void => {
+    setSelectedUser(user);
+    setShowUserModal(true);
   };
 
   const handleRecordAttendance = async (
@@ -446,6 +447,8 @@ const ForemanDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* worker management */}
+
               <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
                 <div className="p-4 border-b border-border md:p-6">
                   <div className="flex items-center justify-between mb-4">
@@ -504,14 +507,20 @@ const ForemanDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border">
-                      {workers?.map((worker) => (
-                        <WorkerTableRow
-                          key={worker?.id}
-                          worker={worker}
-                          onRecordAttendance={handleRecordAttendanced}
-                          onViewDetails={handleViewDetails}
-                        />
-                      ))}
+                      {workers?.map((worker) => {
+                        const userForWorker = siteInfo?.workers?.find(
+                          (w) => w.workerId === worker.id,
+                        )?.worker;
+                        return (
+                          <WorkerTableRow
+                            key={worker?.id}
+                            user={userForWorker}
+                            worker={worker}
+                            onRecordAttendance={handleRecordAttendanced}
+                            onViewUserDetails={handleViewUserDetails}
+                          />
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -555,6 +564,16 @@ const ForemanDashboard: React.FC = () => {
               onSubmit={handleRecordAttendance}
             />
           )}
+
+          {showUserModal && selectedUser && (
+            <WorkerModal
+              isOpen={showUserModal}
+              worker={selectedUser}
+              onClose={() => {
+                setShowUserModal(false);
+              }}
+            />
+          )}
         </div>
 
         <div>
@@ -571,6 +590,14 @@ const ForemanDashboard: React.FC = () => {
             onSetResendOtp={setResendOtp}
           />
         </div>
+
+        {showUserModal && selectedUser && (
+          <WorkerModal
+            worker={selectedUser}
+            isOpen={showUserModal}
+            onClose={() => setShowUserModal(false)}
+          />
+        )}
       </LoadingBoundary>
     </RoleGuard>
   );

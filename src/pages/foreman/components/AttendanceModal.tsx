@@ -33,7 +33,9 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
   onSubmit,
 }) => {
   const [formData, setFormData] = useState<sharedTypes.WorkEntry>({
-    date: new Date(),
+    date: new Date(
+      new Date().getTime() - new Date().getTimezoneOffset() * 60000,
+    ),
     hours: 0,
     overtime: 0,
     notes: "",
@@ -53,27 +55,32 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
 
-    if (!formData.hours || formData.hours <= 0) {
+    // Hours validation
+    if (formData.hours === undefined || formData.hours <= 0) {
       newErrors.hours = "Please enter valid hours";
-    }
-
-    if (!formData.hours || formData.hours > 24) {
+    } else if (formData.hours > 24) {
       newErrors.hours = "Hours cannot exceed 24";
     }
 
-    const selectedDate = formData.date ? new Date(formData.date) : null;
+    // Date validation
+    const selectedDate = new Date(formData.date);
+    selectedDate.setHours(0, 0, 0, 0);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (!selectedDate || selectedDate > today) {
+    if (selectedDate > today) {
       newErrors.date = "Cannot record attendance for future dates";
     }
+
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("validate data: ", k);
     if (validateForm()) {
       onSubmit({
         ...formData,
@@ -83,7 +90,10 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
     }
   };
 
-  const handleChange = (field: keyof sharedTypes.WorkEntry, value: string) => {
+  const handleChange = (
+    field: keyof sharedTypes.WorkEntry,
+    value: string | number,
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors?.[field as keyof Errors]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -149,25 +159,23 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
               value={
                 formData.date
                   ? new Date(formData.date).toISOString().split("T")[0]
-                  : ""
+                  : new Date().toISOString().split("T")[0]
               }
               onChange={(e) => handleChange("date", e.target.value)}
               max={new Date().toISOString().split("T")[0]}
-              required
-            />
+              error={errors.date}
+            />{" "}
             <Input
               type="number"
               label="Hours Worked"
               placeholder="Enter hours (e.g., 8)"
-              value={formData?.hours}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleChange("hours", e.target.value)
-              }
+              value={formData.hours}
+              onChange={(e) => handleChange("hours", Number(e.target.value))}
               min={0}
               max={24}
               step={0.5}
-              required
-            />
+              error={errors.hours}
+            />{" "}
             <Input
               type="number"
               label="Overtime Hours"
@@ -180,7 +188,6 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
               max={24}
               step={0.5}
             />
-
             <Input
               type="text"
               label="comment (Optional)"
@@ -190,7 +197,6 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
                 handleChange("notes", e.target.value)
               }
             />
-
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Wage Rate:</span>
@@ -210,7 +216,6 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
                 </div>
               )}
             </div>
-
             <div className="flex gap-3 pt-2">
               <Button type="button" onClick={onClose}>
                 Cancel

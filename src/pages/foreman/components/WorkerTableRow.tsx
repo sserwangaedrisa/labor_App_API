@@ -3,18 +3,20 @@ import Image from "../../../components/ui/AppImage";
 import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import WorkerStatusBadge from "./WorkerStatusBadge";
-import type { Worker, WorkerStatus } from "../../../types/SharedTypes";
+import type { Worker, WorkerStatus, User } from "../../../types/SharedTypes";
 
 interface WorkerTableRowProps {
   worker: Worker;
+  user: User | undefined;
   onRecordAttendance: (worker: Worker) => void;
-  onViewDetails: (worker: Worker) => void;
+  onViewUserDetails: (user: User) => void;
 }
 
 const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
   worker,
+  user,
   onRecordAttendance,
-  onViewDetails,
+  onViewUserDetails,
 }) => {
   return (
     <tr className="border-b border-border hover:bg-muted/50 transition-smooth">
@@ -74,7 +76,7 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
             <Icon key="clock" name="Clock" size={18} />
           </Button>
 
-          <Button onClick={() => onViewDetails(worker)}>
+          <Button onClick={() => user && onViewUserDetails(user)}>
             <Icon key="eye" name="Eye" size={18} />
           </Button>
         </div>
