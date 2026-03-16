@@ -157,7 +157,7 @@ export interface User {
   phone?: string;
   role: UserRole;
   job?: string;
-  wageRating?: number;
+  wageRating: number;
   imageUrl?: string;
   status?: string;
   verificationCode?: string;

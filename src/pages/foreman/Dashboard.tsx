@@ -61,6 +61,8 @@ const ForemanDashboard: React.FC = () => {
   const [resendOtp, setResendOtp] = useState<boolean>(false);
   const [siteWorker, setSiteWorkers] = useState<SharedTypes.SiteWorker[]>([]);
   const [workers, setWorkersDetatil] = useState<Worker[]>([]);
+  const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [siteInfo, setSiteInfo] = useState<SharedTypes.Sited>();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -141,7 +143,21 @@ const ForemanDashboard: React.FC = () => {
         lastUpdated: new Date().toISOString(),
       })),
     );
+
+    setFilteredWorkers(workers);
   }, [siteInfo]);
+
+  useEffect(() => {
+    const handleWorkerManagementSearch = () => {
+      const filteredList = workers.filter((w) =>
+        w.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+
+      setFilteredWorkers(filteredList);
+    };
+
+    handleWorkerManagementSearch();
+  }, [searchQuery, workers]);
 
   const handleRecordAttendanced = (worker: Worker): void => {
     const selected = siteInfo?.workers?.find((w) => w.workerId === worker.id);
@@ -476,11 +492,16 @@ const ForemanDashboard: React.FC = () => {
                         type="text"
                         placeholder="Search workers..."
                         className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                        }}
                       />
                     </div>
                     <Button>Filter</Button>
                   </div>
                 </div>
+
+                {/* Worker table */}
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -507,7 +528,7 @@ const ForemanDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border">
-                      {workers?.map((worker) => {
+                      {filteredWorkers?.map((worker) => {
                         const userForWorker = siteInfo?.workers?.find(
                           (w) => w.workerId === worker.id,
                         )?.worker;

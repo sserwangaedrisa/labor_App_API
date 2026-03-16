@@ -80,7 +80,6 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("validate data: ", k);
     if (validateForm()) {
       onSubmit({
         ...formData,
