@@ -1,5 +1,7 @@
 import React, { useState, useEffect, use } from "react";
 import toast from "react-hot-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../src/app/providers";
 import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
@@ -59,6 +61,7 @@ const ForemanDashboard: React.FC = () => {
   const [verificationResponse, setVerificationResponse] =
     useState<VerifyAccountResponse | null>(null);
   const [resendOtp, setResendOtp] = useState<boolean>(false);
+  const [presentWorkers, setPresentWorkers] = useState<string[]>([]);
   const [siteWorker, setSiteWorkers] = useState<SharedTypes.SiteWorker[]>([]);
   const [workers, setWorkersDetatil] = useState<Worker[]>([]);
   const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
@@ -127,25 +130,25 @@ const ForemanDashboard: React.FC = () => {
     fetchSiteInfo();
   }, [currentUser]);
 
-  useEffect(() => {
-    if (!siteInfo?.workers) return;
+  // useEffect(() => {
+  //   if (!siteInfo?.workers) return;
 
-    setWorkersDetatil(
-      siteInfo.workers.map(({ worker }) => ({
-        id: worker?.id ?? "",
-        name: worker?.name ?? "",
-        avatar: worker?.imageUrl ?? "",
-        avatarAlt: worker?.name ?? "",
-        role: worker?.job ?? "WORKER",
-        todayStatus: "absent",
-        hoursToday: 0,
-        wageRate: worker?.wageRating ?? 0,
-        lastUpdated: new Date().toISOString(),
-      })),
-    );
+  //   setWorkersDetatil(
+  //     siteInfo.workers.map(({ worker }) => ({
+  //       id: worker?.id ?? "",
+  //       name: worker?.name ?? "",
+  //       avatar: worker?.imageUrl ?? "",
+  //       avatarAlt: worker?.name ?? "",
+  //       role: worker?.job ?? "WORKER",
+  //       todayStatus: "absent",
+  //       hoursToday: 0,
+  //       wageRate: worker?.wageRating ?? 0,
+  //       lastUpdated: new Date().toISOString(),
+  //     })),
+  //   );
 
-    setFilteredWorkers(workers);
-  }, [siteInfo]);
+  //   setFilteredWorkers(workers);
+  // }, [siteInfo]);
 
   useEffect(() => {
     const handleWorkerManagementSearch = () => {
@@ -158,6 +161,73 @@ const ForemanDashboard: React.FC = () => {
 
     handleWorkerManagementSearch();
   }, [searchQuery, workers]);
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      const res =
+        await authorizePostRequest<SharedTypes.SiteAttendanceInfoResponse>(
+          "attendance/todayAttendace",
+          {
+            siteId: siteInfo?.id,
+          },
+        );
+      if (!res.presentWorkers) {
+        return;
+      }
+      // Store present workers IDs in state or variable
+      const presentWorkerIds = res.presentWorkers.filter(
+        (w) => (w as string) !== undefined,
+      );
+      // Now update workers with attendance status
+      if (siteInfo?.workers) {
+        const updatedWorkers = siteInfo.workers.map(({ worker }) => ({
+          id: worker?.id ?? "",
+          name: worker?.name ?? "",
+          avatar: worker?.imageUrl ?? "",
+          avatarAlt: worker?.name ?? "",
+          role: worker?.job ?? "WORKER",
+          todayStatus:
+            worker?.id && presentWorkerIds.includes(worker?.id)
+              ? "present"
+              : "absent",
+          hoursToday: 0,
+          wageRate: worker?.wageRating ?? 0,
+          lastUpdated: new Date().toISOString(),
+        }));
+
+        setWorkersDetatil(updatedWorkers);
+        setFilteredWorkers(updatedWorkers);
+        console.log("updated list got");
+      }
+    };
+
+    if (siteInfo?.id && !showAttendanceModal) {
+      fetchAttendance();
+    }
+  }, [showAttendanceModal, siteInfo]);
+
+  // useEffect(() => {
+  //   const fetchAttendance = async () => {
+
+  //     const res =
+  //       await authorizePostRequest<SharedTypes.SiteAttendanceInfoResponse>(
+  //         "attendance/todayAttendace",
+  //         {
+  //           siteId: currentUser?.siteId,
+  //         },
+  //       );
+
+  //     if (!res.presentWorkers) {
+  //       console.log("no server response on today's attandace");
+  //       return;
+  //     }
+  //     const presentWorkerss = res.presentWorkers
+
+  //     setPresentWorkers(res.presentWorkers);
+  //   };
+
+  //   fetchAttendance();
+  // }, []);
 
   const handleRecordAttendanced = (worker: Worker): void => {
     const selected = siteInfo?.workers?.find((w) => w.workerId === worker.id);
@@ -363,13 +433,141 @@ const ForemanDashboard: React.FC = () => {
   };
 
   const handleExportPDF = () => {
-    console.log("Exporting analytics as PDF");
+    try {
+      // Creating new PDF document
+      const doc = new jsPDF();
+
+      // Adding title
+      doc.setFontSize(20);
+      doc.text("Site Workers Report", 14, 22);
+
+      // Adding site info
+      doc.setFontSize(12);
+      doc.text(`Site: ${siteInfo?.name || "N/A"}`, 14, 32);
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 38);
+      doc.text(`Total Workers: ${workers.length}`, 14, 44);
+
+      // Preparing table data
+      const tableColumn = [
+        "Name",
+        "Role",
+        "Status",
+        "Hours Today",
+        "Wage Rate",
+      ];
+      const tableRows = workers.map((worker) => [
+        worker.name,
+        worker.role,
+        worker.todayStatus === "present" ? "Present" : "Absent",
+        worker.hoursToday.toString(),
+        `$${worker.wageRate.toFixed(2)}`,
+      ]);
+
+      // Generating table
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 50,
+        theme: "striped",
+        headStyles: { fillColor: [41, 128, 185] },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+      });
+
+      // Adding summary at the bottom
+      const presentCount = workers.filter(
+        (w) => w.todayStatus === "present",
+      ).length;
+      const absentCount = workers.filter(
+        (w) => w.todayStatus === "absent",
+      ).length;
+      const totalHours = workers.reduce((sum, w) => sum + w.hoursToday, 0);
+
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+      doc.setFontSize(11);
+      doc.text(`Summary:`, 14, finalY);
+      doc.text(`• Present: ${presentCount} workers`, 14, finalY + 7);
+      doc.text(`• Absent: ${absentCount} workers`, 14, finalY + 14);
+      doc.text(`• Total Hours: ${totalHours} hrs`, 14, finalY + 21);
+
+      // Saving the PDF
+      doc.save(`site-workers-${new Date().toISOString().split("T")[0]}.pdf`);
+
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast.error("Failed to export PDF");
+    }
   };
 
   const handleExportExcel = () => {
-    console.log("Exporting analytics as Excel");
-  };
+    try {
+      // Creating CSV content
+      const headers = [
+        "Name",
+        "Role",
+        "Status",
+        "Hours Today",
+        "Wage Rate",
+        "Last Updated",
+      ];
+      const csvRows = [];
 
+      // Adding headers
+      csvRows.push(headers.join(","));
+
+      // Adding data rows
+      workers.forEach((worker) => {
+        const row = [
+          `"${worker.name}"`,
+          `"${worker.role}"`,
+          worker.todayStatus,
+          worker.hoursToday,
+          worker.wageRate,
+          `"${new Date(worker.lastUpdated).toLocaleString()}"`,
+        ];
+        csvRows.push(row.join(","));
+      });
+
+      // Adding summary rows
+      csvRows.push("");
+      csvRows.push(`"Summary:,,"`);
+
+      const presentCount = workers.filter(
+        (w) => w.todayStatus === "present",
+      ).length;
+      const absentCount = workers.filter(
+        (w) => w.todayStatus === "absent",
+      ).length;
+      const totalHours = workers.reduce((sum, w) => sum + w.hoursToday, 0);
+
+      csvRows.push(`"Present Workers:,${presentCount}"`);
+      csvRows.push(`"Absent Workers:,${absentCount}"`);
+      csvRows.push(`"Total Hours:,${totalHours}"`);
+
+      // Creating and download CSV
+      const csvContent = csvRows.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `site-workers-${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      link.style.visibility = "hidden";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Excel file exported successfully");
+    } catch (error) {
+      console.error("Error exporting Excel:", error);
+      toast.error("Failed to export Excel file");
+    }
+  };
   return (
     <RoleGuard allowedRoles={["FOREMAN"]}>
       <LoadingBoundary loading={loading} fullScreen>
@@ -468,7 +666,7 @@ const ForemanDashboard: React.FC = () => {
               <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
                 <div className="p-4 border-b border-border md:p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <div>
+                    <div className="w-80">
                       <h2 className="text-lg font-semibold text-foreground md:text-xl">
                         Worker Management
                       </h2>
@@ -476,7 +674,18 @@ const ForemanDashboard: React.FC = () => {
                         {workers?.length} workers assigned to your site
                       </p>
                     </div>
-                    <Button className="hidden md:inline-flex">Export</Button>
+                    <Button
+                      onClick={handleExportPDF}
+                      className="hidden md:inline-flex pr-auto"
+                    >
+                      Export pdf file
+                    </Button>
+                    <Button
+                      onClick={handleExportExcel}
+                      className="hidden md:inline-flex pr-auto"
+                    >
+                      Export Excel file
+                    </Button>
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

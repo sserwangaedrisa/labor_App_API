@@ -1,16 +1,3 @@
-// src/types.ts
-
-// export interface Payment {
-//   id: string; // must be string
-//   workerId: string;
-//   workerName: string;
-//   siteName: string;
-//   period: string;
-//   amount: number;
-
-//   status: "Pending" | "Unpaid" | "Paid";
-// }
-
 export type Site = {
   id: string;
   name: string;
@@ -20,16 +7,6 @@ export type Site = {
   pendingPayments: number;
   status: "Active" | "Inactive";
 };
-
-// export interface User {
-//   id: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   role: UserRole;
-//   assignedSite?: string;
-//   isBlocked: boolean;
-// }
 
 export type verificationData = {
   userId: string;
@@ -46,7 +23,7 @@ export interface NewUser {
   image: File | null;
 }
 
-export type WorkerStatus = "present" | "absent" | "pending" | "late";
+export type WorkerStatus = "present" | "absent" | "pending" | "late" | string;
 
 export interface Worker {
   id: string | number;
@@ -58,6 +35,7 @@ export interface Worker {
   hoursToday: number;
   wageRate: number;
   lastUpdated: string;
+  staus?: string;
 }
 
 export type NotificationType = "info" | "warning" | "success";
@@ -82,51 +60,16 @@ export interface NotificationStyle {
   iconColor: string;
 }
 
-// interface SiteWorker {
-//   id: string;
-//   workerId: string;
-//   siteId: string;
-// }
-
-// interface WorkEntry {
-//   id: string;
-//   workerId: string;
-//   siteId: string;
-//   date: string;
-// }
-
 interface MonthClose {
   id: string;
   siteId: string;
 }
-
-// export interface Sited {
-//   id: string;
-//   name: string;
-//   location: string;
-//   description?: string | null;
-
-//   ownerId?: string | null;
-//   foremanId?: string | null;
-
-//   createdAt: string;
-//   updatedAt: string;
-
-//   monthCloses?: MonthClose[];
-//   payments?: Payment[];
-//   foreman?: User | null;
-//   owner?: User;
-//   workers?: Worker[];
-//   workEntries?: WorkEntry[];
-// }
 
 export interface SiteInfoResponse {
   status?: string;
   site?: Sited;
   message?: string;
 }
-
-// Interface for the database rows returned by the API
 
 export type UserRole = "OWNER" | "FOREMAN" | "WORKER" | "LABORER";
 
@@ -280,4 +223,12 @@ export interface ActivityLog {
   createdAt: Date;
 
   user?: User;
+}
+
+// Database responses
+
+export interface SiteAttendanceInfoResponse {
+  status?: string;
+  message?: string;
+  presentWorkers?: string[];
 }
