@@ -4,6 +4,7 @@ type WorkerStatus = "present" | "absent" | "pending" | "late" | string;
 
 interface WorkerStatusBadgeProps {
   status: WorkerStatus;
+  currentWorkEntryId?: string; // Made optional if not always needed
 }
 
 interface StatusConfig {
@@ -12,26 +13,38 @@ interface StatusConfig {
 }
 
 const WorkerStatusBadge: React.FC<WorkerStatusBadgeProps> = ({ status }) => {
-  const statusConfig: Record<WorkerStatus, StatusConfig> = {
-    present: {
-      label: "Present",
-      className: "bg-success/10 text-success border-success/20",
-    },
-    absent: {
-      label: "Absent",
-      className: "bg-destructive/10 text-destructive border-destructive/20",
-    },
-    pending: {
-      label: "Pending",
-      className: "bg-warning/10 text-warning border-warning/20",
-    },
-    late: {
-      label: "Late Entry",
-      className: "bg-accent/10 text-accent border-accent/20",
-    },
+  // Use a function to get the config based on status
+  const getStatusConfig = (status: WorkerStatus): StatusConfig => {
+    switch (status) {
+      case "present":
+        return {
+          label: "Present",
+          className:
+            "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+        };
+      case "absent":
+        return {
+          label: "Absent",
+          className:
+            "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+        };
+      case "late":
+        return {
+          label: "Late Entry",
+          className:
+            "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+        };
+      case "pending":
+      default:
+        return {
+          label: "Pending",
+          className:
+            "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700",
+        };
+    }
   };
 
-  const config = statusConfig[status] || statusConfig.pending;
+  const config = getStatusConfig(status);
 
   return (
     <span

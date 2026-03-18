@@ -86,6 +86,8 @@ const ForemanDashboard: React.FC = () => {
     },
   ]);
 
+  const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
+
   const { user } = useAuth();
   const currentUser = user;
 
@@ -169,31 +171,35 @@ const ForemanDashboard: React.FC = () => {
           "attendance/todayAttendace",
           {
             siteId: siteInfo?.id,
+            date: attendanceDate,
           },
         );
-      if (!res.presentWorkers) {
-        return;
-      }
-      // Store present workers IDs in state or variable
-      const presentWorkerIds = res.presentWorkers.filter(
-        (w) => (w as string) !== undefined,
+
+      if (!res.presentWorkers) return;
+
+      const presentWorkerMap = new Map(
+        res.presentWorkers.map((w) => [w.workerId, w.id]),
       );
-      // Now update workers with attendance status
+
       if (siteInfo?.workers) {
-        const updatedWorkers = siteInfo.workers.map(({ worker }) => ({
-          id: worker?.id ?? "",
-          name: worker?.name ?? "",
-          avatar: worker?.imageUrl ?? "",
-          avatarAlt: worker?.name ?? "",
-          role: worker?.job ?? "WORKER",
-          todayStatus:
-            worker?.id && presentWorkerIds.includes(worker?.id)
-              ? "present"
-              : "absent",
-          hoursToday: 0,
-          wageRate: worker?.wageRating ?? 0,
-          lastUpdated: new Date().toISOString(),
-        }));
+        const updatedWorkers = siteInfo.workers.map(({ worker }) => {
+          const workerId = worker?.id ?? "";
+
+          const currentWorkEntryId = presentWorkerMap.get(workerId);
+
+          return {
+            id: workerId,
+            name: worker?.name ?? "",
+            avatar: worker?.imageUrl ?? "",
+            avatarAlt: worker?.name ?? "",
+            role: worker?.job ?? "WORKER",
+            todayStatus: currentWorkEntryId ? "present" : "absent",
+            currentWorkEntryId: currentWorkEntryId ?? "",
+            hoursToday: 0,
+            wageRate: worker?.wageRating ?? 0,
+            lastUpdated: new Date().toISOString(),
+          };
+        });
 
         setWorkersDetatil(updatedWorkers);
         setFilteredWorkers(updatedWorkers);
@@ -204,7 +210,7 @@ const ForemanDashboard: React.FC = () => {
     if (siteInfo?.id && !showAttendanceModal) {
       fetchAttendance();
     }
-  }, [showAttendanceModal, siteInfo]);
+  }, [showAttendanceModal, siteInfo, attendanceDate]);
 
   // useEffect(() => {
   //   const fetchAttendance = async () => {
@@ -298,6 +304,12 @@ const ForemanDashboard: React.FC = () => {
 
   const handleBulkAttendance = (): void => {
     console.log("Open bulk attendance entry");
+    // try {
+    //   const response = await authorizePostRequest("");
+    // } catch (error) {
+    //   console.log("error while updating attendace");
+    //   toast.error("Error while recording the attendane");
+    // }
   };
 
   const handleViewReports = (): void => {
@@ -743,6 +755,7 @@ const ForemanDashboard: React.FC = () => {
                         )?.worker;
                         return (
                           <WorkerTableRow
+                            currentWorkEntryId={worker.currentWorkEntryId}
                             key={worker?.id}
                             user={userForWorker}
                             worker={worker}

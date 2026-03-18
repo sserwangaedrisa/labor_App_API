@@ -32,6 +32,7 @@ export interface Worker {
   avatarAlt: string;
   role: string;
   todayStatus: WorkerStatus;
+  currentWorkEntryId?: string;
   hoursToday: number;
   wageRate: number;
   lastUpdated: string;
@@ -230,5 +231,5 @@ export interface ActivityLog {
 export interface SiteAttendanceInfoResponse {
   status?: string;
   message?: string;
-  presentWorkers?: string[];
+  presentWorkers?: { id: string; workerId: string }[];
 }

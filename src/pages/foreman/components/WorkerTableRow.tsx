@@ -8,6 +8,7 @@ import type { Worker, WorkerStatus, User } from "../../../types/SharedTypes";
 interface WorkerTableRowProps {
   worker: Worker;
   user: User | undefined;
+  currentyWorkEntryId?: string;
   onRecordAttendance: (worker: Worker) => void;
   onViewUserDetails: (user: User) => void;
 }
@@ -15,6 +16,7 @@ interface WorkerTableRowProps {
 const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
   worker,
   user,
+  currentyWorkEntryId,
   onRecordAttendance,
   onViewUserDetails,
 }) => {
@@ -45,7 +47,10 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
       </td>
 
       <td className="px-4 py-3 md:px-6 md:py-4">
-        <WorkerStatusBadge status={worker.todayStatus} />
+        <WorkerStatusBadge
+          currentWorkEntryId={currentyWorkEntryId}
+          status={worker.todayStatus}
+        />
       </td>
 
       <td className="px-4 py-3 hidden lg:table-cell md:px-6 md:py-4">
@@ -70,13 +75,17 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
           </Button>
 
           <Button
+            key={currentyWorkEntryId}
             onClick={() => onRecordAttendance(worker)}
             className="md:hidden"
           >
             <Icon key="clock" name="Clock" size={18} />
           </Button>
 
-          <Button onClick={() => user && onViewUserDetails(user)}>
+          <Button
+            key={currentyWorkEntryId}
+            onClick={() => user && onViewUserDetails(user)}
+          >
             <Icon key="eye" name="Eye" size={18} />
           </Button>
         </div>
