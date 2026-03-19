@@ -18,6 +18,7 @@ import { UserManagementPanel } from "./components/UserManagementPanel";
 import QuickActionsPanel from "./components/QuickActions";
 import NotificationBanner from "./components/NotificatonBanner";
 import authorizeCreate from "../../api/authorizeCreate";
+import SiteSettingsComponent from "./components/siteSettings";
 import type {
   Worker,
   Notification,
@@ -51,6 +52,8 @@ const ForemanDashboard: React.FC = () => {
   const [showAttendanceModal, setShowAttendanceModal] =
     useState<boolean>(false);
 
+  const [currentSettings, setCurrentSettings] =
+    useState<SharedTypes.SiteSettings | null>(null);
   const [showUserModal, setShowUserModal] = useState<boolean>(false);
   const [msg, setMsg] = useState<string>("");
   const [isErr, setIsErr] = useState<boolean>(false);
@@ -86,7 +89,8 @@ const ForemanDashboard: React.FC = () => {
     },
   ]);
 
-  const [attendanceDate, setAttendanceDate] = useState<Date>(new Date());
+  // const [attendanceDate, setcurrentDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
   const { user } = useAuth();
   const currentUser = user;
@@ -132,26 +136,7 @@ const ForemanDashboard: React.FC = () => {
     fetchSiteInfo();
   }, [currentUser]);
 
-  // useEffect(() => {
-  //   if (!siteInfo?.workers) return;
-
-  //   setWorkersDetatil(
-  //     siteInfo.workers.map(({ worker }) => ({
-  //       id: worker?.id ?? "",
-  //       name: worker?.name ?? "",
-  //       avatar: worker?.imageUrl ?? "",
-  //       avatarAlt: worker?.name ?? "",
-  //       role: worker?.job ?? "WORKER",
-  //       todayStatus: "absent",
-  //       hoursToday: 0,
-  //       wageRate: worker?.wageRating ?? 0,
-  //       lastUpdated: new Date().toISOString(),
-  //     })),
-  //   );
-
-  //   setFilteredWorkers(workers);
-  // }, [siteInfo]);
-
+  // setting the workers for the given search query
   useEffect(() => {
     const handleWorkerManagementSearch = () => {
       const filteredList = workers.filter((w) =>
@@ -164,6 +149,7 @@ const ForemanDashboard: React.FC = () => {
     handleWorkerManagementSearch();
   }, [searchQuery, workers]);
 
+  // getting the attendance of the selected day
   useEffect(() => {
     const fetchAttendance = async () => {
       const res =
@@ -171,7 +157,7 @@ const ForemanDashboard: React.FC = () => {
           "attendance/todayAttendace",
           {
             siteId: siteInfo?.id,
-            date: attendanceDate,
+            date: currentDate,
           },
         );
 
@@ -210,31 +196,21 @@ const ForemanDashboard: React.FC = () => {
     if (siteInfo?.id && !showAttendanceModal) {
       fetchAttendance();
     }
-  }, [showAttendanceModal, siteInfo, attendanceDate]);
+  }, [showAttendanceModal, siteInfo, currentDate]);
 
-  // useEffect(() => {
-  //   const fetchAttendance = async () => {
+  // setting current date for work entries
+  const handleDateChange = (date: Date) => {
+    setCurrentDate(date);
+  };
 
-  //     const res =
-  //       await authorizePostRequest<SharedTypes.SiteAttendanceInfoResponse>(
-  //         "attendance/todayAttendace",
-  //         {
-  //           siteId: currentUser?.siteId,
-  //         },
-  //       );
+  // Handle site settings
+  const handleSettingsUpdate = (settings: SharedTypes.SiteSettings) => {
+    setCurrentSettings(settings);
+    // You can update other parts of your app here
+    console.log("Settings updated:", settings);
+  };
 
-  //     if (!res.presentWorkers) {
-  //       console.log("no server response on today's attandace");
-  //       return;
-  //     }
-  //     const presentWorkerss = res.presentWorkers
-
-  //     setPresentWorkers(res.presentWorkers);
-  //   };
-
-  //   fetchAttendance();
-  // }, []);
-
+  //initiation for  Recording the attendace for the worker with the details different from the site setting details .
   const handleRecordAttendanced = (worker: Worker): void => {
     const selected = siteInfo?.workers?.find((w) => w.workerId === worker.id);
 
@@ -245,11 +221,12 @@ const ForemanDashboard: React.FC = () => {
     setShowAttendanceModal(true);
   };
 
+  // Viewing the user details.
   const handleViewUserDetails = (user: SharedTypes.User): void => {
     setSelectedUser(user);
     setShowUserModal(true);
   };
-
+  // Recording attendace fuction
   const handleRecordAttendance = async (
     attendanceData: SharedTypes.WorkEntry,
   ): Promise<void> => {
@@ -722,6 +699,34 @@ const ForemanDashboard: React.FC = () => {
                   </div>
                 </div>
 
+                {/* site settings  */}
+                <div className="container mx-auto px-4 py-8">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                    Site Configuration
+                  </h1>
+
+                  <SiteSettingsComponent
+                    siteId={siteInfo?.id}
+                    initialDate={currentDate}
+                    setCurrentDate={handleDateChange} // Pass the setter function
+                    onSettingsUpdate={(settings) => {
+                      console.log("Settings updated:", settings);
+                    }}
+                  />
+
+                  {/* You can display current settings elsewhere in your app */}
+                  {currentSettings && (
+                    <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <h3 className="text-lg font-medium text-blue-900 dark:text-blue-300 mb-2">
+                        Active Settings
+                      </h3>
+                      <pre className="text-sm text-blue-800 dark:text-blue-400">
+                        {JSON.stringify(currentSettings, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+
                 {/* Worker table */}
 
                 <div className="overflow-x-auto">
@@ -755,7 +760,7 @@ const ForemanDashboard: React.FC = () => {
                         )?.worker;
                         return (
                           <WorkerTableRow
-                            currentWorkEntryId={worker.currentWorkEntryId}
+                            currentyWorkEntryId={worker.currentWorkEntryId}
                             key={worker?.id}
                             user={userForWorker}
                             worker={worker}

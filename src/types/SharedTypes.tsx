@@ -202,8 +202,9 @@ export interface Payment {
   amount: number;
 }
 
-export interface Settings {
+export interface SiteSettings {
   id: string;
+  siteId: string;
 
   overtimeRate: number;
   maxDailyHours: number;
@@ -211,6 +212,16 @@ export interface Settings {
 
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface UpdateSettingsDto {
+  id?: String;
+  siteId?: string;
+  overtimeRate?: number;
+  maxDailyHours?: number;
+  baseHourlyRate?: number;
+  startDateStr?: string;
+  endDateStr?: string;
 }
 
 export interface ActivityLog {
