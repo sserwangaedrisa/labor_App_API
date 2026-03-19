@@ -557,6 +557,7 @@ const ForemanDashboard: React.FC = () => {
       toast.error("Failed to export Excel file");
     }
   };
+
   return (
     <RoleGuard allowedRoles={["FOREMAN"]}>
       <LoadingBoundary loading={loading} fullScreen>
@@ -704,15 +705,16 @@ const ForemanDashboard: React.FC = () => {
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                     Site Configuration
                   </h1>
-
-                  <SiteSettingsComponent
-                    siteId={siteInfo?.id}
-                    initialDate={currentDate}
-                    setCurrentDate={handleDateChange} // Pass the setter function
-                    onSettingsUpdate={(settings) => {
-                      console.log("Settings updated:", settings);
-                    }}
-                  />
+                  {siteInfo?.id && (
+                    <SiteSettingsComponent
+                      siteID={siteInfo?.id}
+                      initialDate={currentDate}
+                      setCurrentDate={handleDateChange} // Pass the setter function
+                      onSettingsUpdate={(settings) => {
+                        console.log("Settings updated:", settings);
+                      }}
+                    />
+                  )}
 
                   {/* You can display current settings elsewhere in your app */}
                   {currentSettings && (

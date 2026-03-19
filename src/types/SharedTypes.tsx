@@ -216,7 +216,7 @@ export interface SiteSettings {
 
 export interface UpdateSettingsDto {
   id?: String;
-  siteId?: string;
+  siteId: string;
   overtimeRate?: number;
   maxDailyHours?: number;
   baseHourlyRate?: number;

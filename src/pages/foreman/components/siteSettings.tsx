@@ -13,7 +13,7 @@ import { toast } from "react-hot-toast";
 
 interface SiteSettingsProps {
   initialDate?: Date;
-  siteId?: string;
+  siteID: string;
   onSettingsUpdate?: (settings: SiteSettings) => void;
   // NEW: Add setCurrentDate prop
   setCurrentDate?: (date: Date) => void;
@@ -21,7 +21,7 @@ interface SiteSettingsProps {
 
 const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   initialDate = new Date(),
-  siteId,
+  siteID,
   onSettingsUpdate,
   setCurrentDate, // NEW: Destructure the prop
 }) => {
@@ -51,7 +51,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
 
   // Form state
   const [formData, setFormData] = useState<UpdateSettingsDto>({
-    siteId: siteId,
+    siteId: siteID,
     id: "",
     overtimeRate: 0,
     maxDailyHours: 10,
@@ -63,7 +63,8 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   // Load settings when date changes
   useEffect(() => {
     loadSettingsForDate(selectedDate);
-  }, [selectedDate]);
+    setFormData({ ...formData, siteId: siteID });
+  }, [selectedDate, siteID]);
 
   const loadSettingsForDate = async (date: Date) => {
     setIsLoading(true);
@@ -74,7 +75,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
       try {
         const requestDate = new Date(formattedDate);
         const response = await authorizePostRequest<any>("settings/byDate", {
-          siteId,
+          siteID,
           dateStr: requestDate,
         });
 
@@ -96,6 +97,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
 
       setCurrentSettings(settings);
       setFormData({
+        siteId: siteID,
         overtimeRate: settings.overtimeRate,
         maxDailyHours: settings.maxDailyHours,
         baseHourlyRate: settings.baseHourlyRate,
@@ -110,16 +112,20 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
 
   const loadSettingsHistory = async () => {
     try {
-      const history = await authorizePostRequest<SiteSettings[]>(
-        "settings/history",
-        {
-          ...formData,
-          startDateStr: historyStartDate,
-          endDateStr: historyEndDate,
-          siteId,
-        },
-      );
-      setSettingsHistory(history);
+      const history = await authorizePostRequest<any>("settings/history", {
+        ...formData,
+        startDateStr: historyStartDate,
+        endDateStr: historyEndDate,
+        siteID,
+      });
+
+      if (!history.data) {
+        setSettingsHistory([]);
+        toast.error("no data found");
+        return;
+      }
+
+      setSettingsHistory(history.data);
       setShowHistory(true);
     } catch (error) {
       console.error("Error loading history:", error);
@@ -138,30 +144,53 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setFormData({ ...formData, siteId: siteID });
 
     try {
-      let updatedSettings: SiteSettings;
+      let updatedSettings: {
+        success: boolean;
+        status?: string;
+        message?: string;
+        data?: SiteSettings;
+      };
 
-      if (currentSettings) {
+      if (currentSettings?.id !== "dummy-settings-1") {
         // Update existing settings
         updatedSettings = await authorizePostRequest("settings/update", {
+          ...formData,
           id: currentSettings.id,
-          date: formData,
         });
+        if (!updatedSettings.success) {
+          console.log(updatedSettings?.message);
+          toast.error(updatedSettings?.message || "Something went wrong");
+          return;
+        }
         toast.success("Settings updated successfully");
       } else {
         // Create new settings
-        updatedSettings = await authorizePostRequest("settings/create", {
+        updatedSettings = await authorizePostRequest(
+          "settings/create",
           formData,
-        });
+        );
+
+        if (!updatedSettings?.success) {
+          console.log(updatedSettings?.message);
+          toast.error(updatedSettings?.message || "Something went wrong");
+          return;
+        }
+
         toast.success("Settings created successfully");
       }
 
-      setCurrentSettings(updatedSettings);
+      setCurrentSettings(
+        updatedSettings.data ? updatedSettings.data : currentSettings,
+      );
       setIsEditing(false);
 
       if (onSettingsUpdate) {
-        onSettingsUpdate(updatedSettings);
+        onSettingsUpdate(
+          updatedSettings.data ? updatedSettings.data : currentSettings,
+        );
       }
 
       // Refresh history if showing
@@ -191,6 +220,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   const handleApplyToCurrent = () => {
     if (currentSettings) {
       setFormData({
+        siteId: siteID,
         overtimeRate: currentSettings.overtimeRate,
         maxDailyHours: currentSettings.maxDailyHours,
         baseHourlyRate: currentSettings.baseHourlyRate,
