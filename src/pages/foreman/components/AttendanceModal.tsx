@@ -21,24 +21,31 @@ interface Errors {
 interface AttendanceModalProps {
   setIsSubmitting: React.Dispatch<React.SetStateAction<boolean>>;
   worker: sharedTypes.User;
+  currentDate?: Date | number;
   isSubmitting: boolean;
+  siteSettings: sharedTypes.SiteSettings;
   onClose: () => void;
   onSubmit: (data: sharedTypes.WorkEntry) => void;
 }
 
 const AttendanceModal: React.FC<AttendanceModalProps> = ({
   worker,
+  currentDate,
   isSubmitting,
+  siteSettings,
   onClose,
   onSubmit,
 }) => {
   const [formData, setFormData] = useState<sharedTypes.WorkEntry>({
-    date: new Date(
-      new Date().getTime() - new Date().getTimezoneOffset() * 60000,
-    ),
-    hours: 0,
-    overtime: 0,
-    notes: "",
+    date: currentDate
+      ? new Date(
+          new Date(currentDate).getTime() -
+            new Date(currentDate).getTimezoneOffset() * 6000,
+        )
+      : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000),
+    hours: siteSettings.maxDailyHours,
+    overtime: siteSettings.overtimeRate,
+    notes: "Present",
     workerId: worker?.id ?? "",
     siteId: "",
   });

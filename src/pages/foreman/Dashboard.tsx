@@ -28,6 +28,7 @@ import type {
 import * as SharedTypes from "../../types/SharedTypes";
 import authorizePostRequest from "../../api/authorizePostRequest";
 import { s } from "framer-motion/client";
+import { Settings } from "lucide-react";
 
 // TYPES
 interface VerifyAccountResponse {
@@ -221,6 +222,7 @@ const ForemanDashboard: React.FC = () => {
     setShowAttendanceModal(true);
   };
 
+  console.log("settings: ", currentSettings);
   // Viewing the user details.
   const handleViewUserDetails = (user: SharedTypes.User): void => {
     setSelectedUser(user);
@@ -268,6 +270,25 @@ const ForemanDashboard: React.FC = () => {
       setShowAttendanceModal(false);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const deleteAttendance = async (id: string) => {
+    try {
+      const response = await authorizePostRequest<SharedTypes.SiteInfoResponse>(
+        "attendance/delete",
+        { id },
+      );
+      if (!response.success) {
+        console.log(response.message);
+        toast.error(response?.message || "error  while deleting record");
+        return;
+      } else {
+        toast.success("Successfully update");
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error("error while deleting the record");
     }
   };
 
@@ -762,6 +783,10 @@ const ForemanDashboard: React.FC = () => {
                         )?.worker;
                         return (
                           <WorkerTableRow
+                            deleteAttendance={deleteAttendance}
+                            siteSettings={currentSettings}
+                            currentDate={currentDate}
+                            recordAttendance={handleRecordAttendance}
                             currentyWorkEntryId={worker.currentWorkEntryId}
                             key={worker?.id}
                             user={userForWorker}
@@ -771,7 +796,7 @@ const ForemanDashboard: React.FC = () => {
                           />
                         );
                       })}
-                    </tbody>
+                    </tbody>{" "}
                   </table>
                 </div>
 
@@ -802,11 +827,13 @@ const ForemanDashboard: React.FC = () => {
             </div>
           </main>
 
-          {showAttendanceModal && selectedWorker && (
+          {showAttendanceModal && selectedWorker && currentSettings && (
             <AttendanceModal
               worker={selectedWorker}
+              currentDate={currentDate}
               isSubmitting={isSubmitting}
               setIsSubmitting={setIsSubmitting}
+              siteSettings={currentSettings}
               onClose={() => {
                 setShowAttendanceModal(false);
                 setSelectedWorker(null);

@@ -70,6 +70,7 @@ export interface SiteInfoResponse {
   status?: string;
   site?: Sited;
   message?: string;
+  success?: boolean;
 }
 
 export type UserRole = "OWNER" | "FOREMAN" | "WORKER" | "LABORER";
