@@ -9,7 +9,7 @@ const authorizePost = async (
   data: unknown,
   config: AxiosRequestConfig = {},
 ) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("accessToken");
 
   if (!token) {
     throw { message: "Login again to proceed" } as ErrorResponse;

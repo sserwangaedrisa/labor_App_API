@@ -4,7 +4,7 @@ const authorizePostRequest = async <T = unknown>(
   url: string,
   formData: unknown,
 ): Promise<T> => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("accessToken");
 
   if (!token) {
     return Promise.reject({

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const authorizeCreate = async (url: string, data: unknown) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("accessToken");
 
   if (!token) {
     throw { message: "Login again to proceed" };

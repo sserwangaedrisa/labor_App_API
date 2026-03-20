@@ -10,9 +10,10 @@ export interface User {
   name: string;
   phone?: string;
   role: Role;
+  status?: string;
   siteId?: string;
   assignedSite?: string;
-  isBlocked?: boolean; // optional: if user is assigned to a site
+  isBlocked?: boolean;
   email?: string;
 }
 
@@ -50,6 +51,9 @@ export const Providers = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.getItem("token") ? localStorage.removeItem("token") : null;
   };
 
   const isAuthenticated = !!user;

@@ -222,6 +222,7 @@ export interface UpdateSettingsDto {
   baseHourlyRate?: number;
   startDateStr?: string;
   endDateStr?: string;
+  createdAt?: string;
 }
 
 export interface ActivityLog {

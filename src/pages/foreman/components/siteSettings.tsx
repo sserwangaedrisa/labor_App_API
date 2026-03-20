@@ -40,6 +40,12 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [deletingSettingId, setDeletingSettingId] = useState<string | null>(
+    null,
+  );
+  const [updatingSettingId, setUpdatingSettingId] = useState<string | null>(
+    null,
+  );
 
   // State for history date range
   const [historyStartDate, setHistoryStartDate] = useState<string>(
@@ -56,6 +62,9 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
     overtimeRate: 0,
     maxDailyHours: 10,
     baseHourlyRate: 0,
+    createdAt: initialDate
+      ? new Date(initialDate).toISOString().split("T")[0]
+      : new Date().toISOString().split("T")[0],
     startDateStr: format(new Date(), "yyyy-MM-01"),
     endDateStr: format(new Date(), "yyyy-MM-dd"),
   });
@@ -116,6 +125,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
         ...formData,
         startDateStr: historyStartDate,
         endDateStr: historyEndDate,
+        createdAt: initialDate,
         siteID,
       });
 
@@ -154,11 +164,18 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
         data?: SiteSettings;
       };
 
-      if (currentSettings?.id !== "dummy-settings-1") {
+      // Check if settings exist for the selected date AND it's not the dummy
+      const settingsExistForSelectedDate =
+        currentSettings?.id !== "dummy-settings-1" &&
+        format(new Date(currentSettings.createdAt), "yyyy-MM-dd") ===
+          format(selectedDate, "yyyy-MM-dd");
+
+      if (settingsExistForSelectedDate) {
         // Update existing settings
         updatedSettings = await authorizePostRequest("settings/update", {
           ...formData,
           id: currentSettings.id,
+          createdAt: initialDate,
         });
         if (!updatedSettings.success) {
           console.log(updatedSettings?.message);
@@ -168,10 +185,10 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
         toast.success("Settings updated successfully");
       } else {
         // Create new settings
-        updatedSettings = await authorizePostRequest(
-          "settings/create",
-          formData,
-        );
+        updatedSettings = await authorizePostRequest("settings/create", {
+          ...formData,
+          createdAt: initialDate,
+        });
 
         if (!updatedSettings?.success) {
           console.log(updatedSettings?.message);
@@ -202,6 +219,143 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
       toast.error("Failed to save settings");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // NEW: Handle update settings from history
+  // NEW: Handle update settings from history
+  const handleUpdateFromHistory = async (setting: SiteSettings) => {
+    if (
+      !confirm(
+        "Are you sure you want to update the current settings with this historical record?",
+      )
+    ) {
+      return;
+    }
+
+    setUpdatingSettingId(setting.id);
+    try {
+      // First, check if settings exist for the selected date
+      const settingsExistForSelectedDate =
+        currentSettings?.id !== "dummy-settings-1" &&
+        format(new Date(currentSettings.createdAt), "yyyy-MM-dd") ===
+          format(selectedDate, "yyyy-MM-dd");
+
+      let updatedSettings: {
+        success: boolean;
+        status?: string;
+        message?: string;
+        data?: SiteSettings;
+      };
+
+      // FIX: Format the createdAt date properly
+      const formattedCreatedAt =
+        initialDate instanceof Date ? initialDate.toISOString() : initialDate;
+
+      const updateData = {
+        siteId: siteID,
+        createdAt: formattedCreatedAt, // Send as ISO string
+        id: settingsExistForSelectedDate ? currentSettings.id : undefined,
+        overtimeRate: setting.overtimeRate,
+        maxDailyHours: setting.maxDailyHours,
+        baseHourlyRate: setting.baseHourlyRate,
+      };
+
+      if (settingsExistForSelectedDate) {
+        // Update existing settings
+        updatedSettings = await authorizePostRequest("settings/update", {
+          ...updateData,
+          id: currentSettings.id,
+        });
+      } else {
+        // Create new settings
+        updatedSettings = await authorizePostRequest(
+          "settings/create",
+          updateData,
+        );
+      }
+
+      if (!updatedSettings.success) {
+        toast.error(updatedSettings.message || "Failed to update settings");
+        return;
+      }
+
+      toast.success("Settings updated successfully from history");
+
+      // Update current settings
+      setCurrentSettings(
+        updatedSettings.data ? updatedSettings.data : currentSettings,
+      );
+
+      // Update form data
+      setFormData({
+        siteId: siteID,
+        overtimeRate: setting.overtimeRate,
+        maxDailyHours: setting.maxDailyHours,
+        baseHourlyRate: setting.baseHourlyRate,
+      });
+
+      setIsEditing(false);
+
+      if (onSettingsUpdate) {
+        onSettingsUpdate(
+          updatedSettings.data ? updatedSettings.data : currentSettings,
+        );
+      }
+
+      // Refresh history if showing
+      if (showHistory) {
+        loadSettingsHistory();
+      }
+    } catch (error) {
+      console.error("Error updating settings from history:", error);
+      toast.error("Failed to update settings");
+    } finally {
+      setUpdatingSettingId(null);
+    }
+  };
+  // NEW: Handle delete settings
+  const handleDeleteSettings = async (settingId: string, settingDate: Date) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this settings record? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    setDeletingSettingId(settingId);
+    try {
+      const response = await authorizePostRequest<{
+        success: boolean;
+        status?: string;
+        message?: string;
+        data?: SiteSettings;
+      }>("settings/delete", {
+        id: settingId,
+        siteID,
+      });
+
+      if (!response.success) {
+        toast.error(response.message || "Failed to delete settings");
+        return;
+      }
+
+      toast.success("Settings deleted successfully");
+
+      // Refresh history list
+      await loadSettingsHistory();
+
+      // If the deleted settings is the currently selected one, reload current settings
+      const currentSettingDate = new Date(currentSettings.createdAt);
+      if (currentSettingDate.toDateString() === settingDate.toDateString()) {
+        await loadSettingsForDate(selectedDate);
+      }
+    } catch (error) {
+      console.error("Error deleting settings:", error);
+      toast.error("Failed to delete settings");
+    } finally {
+      setDeletingSettingId(null);
     }
   };
 
@@ -514,10 +668,11 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
                         new Date(setting.updatedAt).toISOString().split("T")[0],
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       <button
                         onClick={() => {
                           setSelectedDate(new Date(setting.createdAt));
+                          setCurrentSettings(setting);
                           setShowHistory(false);
 
                           // Also update parent when viewing a historical date
@@ -528,6 +683,29 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         View
+                      </button>
+                      {/* <button
+                        onClick={() => handleUpdateFromHistory(setting)}
+                        disabled={updatingSettingId === setting.id}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {updatingSettingId === setting.id
+                          ? "Updating..."
+                          : "Apply to Current"}
+                      </button> */}
+                      <button
+                        onClick={() =>
+                          handleDeleteSettings(
+                            setting.id,
+                            new Date(setting.createdAt),
+                          )
+                        }
+                        disabled={deletingSettingId === setting.id}
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingSettingId === setting.id
+                          ? "Deleting..."
+                          : "Delete"}
                       </button>
                     </td>
                   </tr>
