@@ -3,20 +3,22 @@ import Image from "../../../components/ui/AppImage";
 import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import WorkerStatusBadge from "./WorkerStatusBadge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type {
   Worker,
   WorkerStatus,
   WorkEntry,
+  SiteInfoResponse,
   User,
   SiteSettings,
 } from "../../../types/SharedTypes";
+import toast from "react-hot-toast";
 
 interface WorkerTableRowProps {
   worker: Worker;
   user: User | undefined;
-  recordAttendance: (data: WorkEntry) => void;
-  deleteAttendance: (workEntryId: string) => void;
+  recordAttendance: (data: WorkEntry) => Promise<SiteInfoResponse>;
+  deleteAttendance: (workEntryId: string) => Promise<boolean>;
   currentyWorkEntryId?: string;
   siteSettings: SiteSettings;
   currentDate: Date;
@@ -37,6 +39,13 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
 }) => {
   const [isToggling, setIsToggling] = useState(false);
 
+  // Sync local state with props when worker changes
+  const [currentAttendance, setCurrentAttendance] = useState<WorkEntry | null>(
+    worker?.workEntry ?? null,
+  );
+  const [isPresent, setIsPresent] = useState<boolean>(!!worker?.workEntry);
+
+  // Update formData when dependencies change
   const [formData, setFormData] = useState<WorkEntry>({
     date: currentDate
       ? new Date(
@@ -48,33 +57,84 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
     overtime: siteSettings.overtimeRate,
     notes: "Present",
     workerId: String(worker.id),
-    siteId: "",
+    siteId: "", // Use the siteId prop
   });
 
-  const handleToggleAttendance = async () => {
-    if (isToggling) return; // Prevent multiple clicks
+  // Sync local state when worker prop changes (important for parent updates)
+  useEffect(() => {
+    setCurrentAttendance(worker?.workEntry ?? null);
+    setIsPresent(!!worker?.workEntry);
+  }, [worker?.workEntry]); // Re-run when workEntry changes from parent
 
+  // Update formData when siteSettings or currentDate changes
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      date: currentDate
+        ? new Date(
+            new Date(currentDate).getTime() -
+              new Date(currentDate).getTimezoneOffset() * 6000,
+          )
+        : new Date(
+            new Date().getTime() - new Date().getTimezoneOffset() * 60000,
+          ),
+      hours: siteSettings.maxDailyHours,
+      overtime: siteSettings.overtimeRate,
+    }));
+  }, [siteSettings, currentDate]);
+
+  console.log(`${worker.name} is ${isPresent ? "present" : "absent"}`);
+
+  const handleToggleAttendance = async () => {
+    console.log("button clicked for", worker.name);
+    console.log("current state:", { isPresent, currentAttendance });
+
+    if (isToggling) return;
     setIsToggling(true);
 
     try {
-      if (currentyWorkEntryId) {
-        // If worker is present, delete the attendance
-        if (deleteAttendance) {
-          await deleteAttendance(currentyWorkEntryId);
+      // If currently present, delete attendance
+      if (isPresent && currentAttendance?.id) {
+        console.log("Deleting attendance:", currentAttendance.id);
+
+        const res = await deleteAttendance(currentAttendance.id);
+        if (!res) {
+          console.log("Failed to delete record");
+          toast.error("Error while deleting attendance");
+          return;
         }
-      } else {
-        // If worker is absent, record attendance
-        await recordAttendance(formData);
+
+        // Update local state
+        setCurrentAttendance(null);
+        setIsPresent(false);
+        toast.success("Attendance removed successfully");
+      }
+      // If absent, create attendance
+      else {
+        console.log("Creating attendance with data:", formData);
+
+        const response = await recordAttendance(formData);
+        if (!response.success) {
+          toast.error(response.message || "Failed to record attendance");
+          return;
+        }
+
+        // Update local state with the new work entry
+        if (response.workEntry) {
+          setCurrentAttendance(response.workEntry);
+          setIsPresent(true);
+          toast.success("Attendance recorded successfully");
+        } else {
+          toast.error("No work entry returned");
+        }
       }
     } catch (error) {
       console.error("Error toggling attendance:", error);
+      toast.error("An error occurred while updating attendance");
     } finally {
       setIsToggling(false);
     }
   };
-
-  // Determine if worker is currently present
-  const isPresent = !!currentyWorkEntryId;
 
   return (
     <tr className="border-b border-border hover:bg-muted/50 transition-smooth">
@@ -99,14 +159,14 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
       </td>
 
       <td className="px-4 py-3 hidden md:table-cell md:px-6 md:py-4">
-        <span className="text-sm text-foreground">{worker.role}</span>
+        <span className="text-sm text-foreground">{user?.job}</span>
       </td>
 
       <td className="px-4 py-3 md:px-6 md:py-4">
         <div className="flex items-center gap-3">
           <WorkerStatusBadge
-            currentWorkEntryId={currentyWorkEntryId}
-            status={worker.todayStatus}
+            currentWorkEntryId={currentAttendance?.id}
+            status={currentAttendance ? "present" : "absent"}
           />
 
           {/* Toggle Button */}
@@ -143,13 +203,13 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
 
       <td className="px-4 py-3 hidden lg:table-cell md:px-6 md:py-4">
         <span className="data-text text-sm text-foreground font-medium">
-          {worker.hoursToday}h
+          {currentAttendance ? currentAttendance.hours : 0} h
         </span>
       </td>
 
       <td className="px-4 py-3 hidden lg:table-cell md:px-6 md:py-4">
         <span className="data-text text-sm text-foreground">
-          ${worker.wageRate}/day
+          AED {user?.wageRating}/Hour
         </span>
       </td>
 
@@ -170,10 +230,7 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
             <Icon key="clock" name="Clock" size={18} />
           </Button>
 
-          <Button
-            key={currentyWorkEntryId}
-            onClick={() => user && onViewUserDetails(user)}
-          >
+          <Button onClick={() => user && onViewUserDetails(user)}>
             <Icon key="eye" name="Eye" size={18} />
           </Button>
         </div>

@@ -52,6 +52,8 @@ const ForemanDashboard: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<SharedTypes.User | null>();
   const [showAttendanceModal, setShowAttendanceModal] =
     useState<boolean>(false);
+  const [currentUserWorkEntry, setCurrentUserWorkEntry] =
+    useState<SharedTypes.WorkEntry | null>(null);
 
   const [currentSettings, setCurrentSettings] =
     useState<SharedTypes.SiteSettings | null>(null);
@@ -103,6 +105,10 @@ const ForemanDashboard: React.FC = () => {
     totalHoursToday: 168,
     pendingPayments: 8,
   };
+
+  useEffect(() => {
+    console.log("current present list : ", presentWorkers);
+  }, [currentDate]);
 
   useEffect(() => {
     const fetchSiteInfo =
@@ -164,16 +170,19 @@ const ForemanDashboard: React.FC = () => {
 
       if (!res.presentWorkers) return;
 
-      const presentWorkerMap = new Map(
-        res.presentWorkers.map((w) => [w.workerId, w.id]),
-      );
+      const presentWorkers = res.presentWorkers;
 
       if (siteInfo?.workers) {
         const updatedWorkers = siteInfo.workers.map(({ worker }) => {
           const workerId = worker?.id ?? "";
 
-          const currentWorkEntryId = presentWorkerMap.get(workerId);
-
+          // const currentWorkEntryId = presentWorkerMap.get(workerId);
+          const workEntry = presentWorkers.find(
+            (entry) => entry.workerId === worker?.id,
+          );
+          const currentWorkEntryId = workEntry?.id;
+          const timeWorkedToday = workEntry?.hours;
+          const overtime = workEntry?.overtime;
           return {
             id: workerId,
             name: worker?.name ?? "",
@@ -182,9 +191,11 @@ const ForemanDashboard: React.FC = () => {
             role: worker?.job ?? "WORKER",
             todayStatus: currentWorkEntryId ? "present" : "absent",
             currentWorkEntryId: currentWorkEntryId ?? "",
-            hoursToday: 0,
+            hoursToday:
+              timeWorkedToday && overtime ? timeWorkedToday + overtime : 0,
             wageRate: worker?.wageRating ?? 0,
             lastUpdated: new Date().toISOString(),
+            workEntry,
           };
         });
 
@@ -207,8 +218,7 @@ const ForemanDashboard: React.FC = () => {
   // Handle site settings
   const handleSettingsUpdate = (settings: SharedTypes.SiteSettings) => {
     setCurrentSettings(settings);
-    // You can update other parts of your app here
-    console.log("Settings updated:", settings);
+    console.log("Settings updated:");
   };
 
   //initiation for  Recording the attendace for the worker with the details different from the site setting details .
@@ -222,16 +232,16 @@ const ForemanDashboard: React.FC = () => {
     setShowAttendanceModal(true);
   };
 
-  console.log("settings: ", currentSettings);
   // Viewing the user details.
   const handleViewUserDetails = (user: SharedTypes.User): void => {
     setSelectedUser(user);
     setShowUserModal(true);
   };
+
   // Recording attendace fuction
   const handleRecordAttendance = async (
     attendanceData: SharedTypes.WorkEntry,
-  ): Promise<void> => {
+  ): Promise<SharedTypes.SiteInfoResponse> => {
     setIsSubmitting(true);
     try {
       const workEntryResponse =
@@ -243,7 +253,7 @@ const ForemanDashboard: React.FC = () => {
       if (!workEntryResponse) {
         console.log("No response received for attendance submission");
         toast.error("No response from server. Please try again.");
-        return;
+        return {};
       }
 
       if (workEntryResponse.status !== "success") {
@@ -255,25 +265,32 @@ const ForemanDashboard: React.FC = () => {
           workEntryResponse.message ||
             "Failed to submit attendance. Please try again.",
         );
-        return;
+        return {
+          success: false,
+        };
       }
 
       console.log("Attendance submitted successfully");
       toast.success("Attendance recorded successfully.");
-
+      setCurrentUserWorkEntry(
+        workEntryResponse.workEntry ? workEntryResponse.workEntry : null,
+      );
       setShowAttendanceModal(false);
       setSelectedWorker(null);
+      return workEntryResponse;
     } catch (error) {
       console.log("Error submitting attendance: ", error);
       toast.error("Failed to submit attendance. Please try again.");
       setSelectedWorker(null);
       setShowAttendanceModal(false);
+      console.log("error while updating the record: ", error);
+      return { success: false };
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const deleteAttendance = async (id: string) => {
+  const deleteAttendance = async (id: string): Promise<boolean> => {
     try {
       const response = await authorizePostRequest<SharedTypes.SiteInfoResponse>(
         "attendance/delete",
@@ -282,13 +299,15 @@ const ForemanDashboard: React.FC = () => {
       if (!response.success) {
         console.log(response.message);
         toast.error(response?.message || "error  while deleting record");
-        return;
+        return false;
       } else {
         toast.success("Successfully update");
+        return true;
       }
     } catch (error) {
       console.log(error);
       toast.error("error while deleting the record");
+      return false;
     }
   };
 
@@ -728,25 +747,14 @@ const ForemanDashboard: React.FC = () => {
                   </h1>
                   {siteInfo?.id && (
                     <SiteSettingsComponent
+                      handleSettingsUpdate={handleSettingsUpdate}
                       siteID={siteInfo?.id}
                       initialDate={currentDate}
                       setCurrentDate={handleDateChange} // Pass the setter function
                       onSettingsUpdate={(settings) => {
-                        console.log("Settings updated:", settings);
+                        console.log("Settings updated:");
                       }}
                     />
-                  )}
-
-                  {/* You can display current settings elsewhere in your app */}
-                  {currentSettings && (
-                    <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <h3 className="text-lg font-medium text-blue-900 dark:text-blue-300 mb-2">
-                        Active Settings
-                      </h3>
-                      <pre className="text-sm text-blue-800 dark:text-blue-400">
-                        {JSON.stringify(currentSettings, null, 2)}
-                      </pre>
-                    </div>
                   )}
                 </div>
 
@@ -756,23 +764,23 @@ const ForemanDashboard: React.FC = () => {
                   <table className="w-full">
                     <thead className="bg-muted/50 border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
-                          Worker
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
+                          WORKER
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
-                          Role
+                          JOB
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
-                          Status
+                          STATUS
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
-                          Hours Today
+                          TIME WORKED
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
-                          Wage Rate
+                          RATE
                         </th>
                         <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
-                          Actions
+                          ACTIONS
                         </th>
                       </tr>
                     </thead>
@@ -784,9 +792,35 @@ const ForemanDashboard: React.FC = () => {
                         return (
                           <WorkerTableRow
                             deleteAttendance={deleteAttendance}
-                            siteSettings={currentSettings}
+                            siteSettings={
+                              currentSettings || {
+                                id: "1",
+                                siteId: "",
+                                createdAt: currentDate,
+                                updatedAt: currentDate,
+                                baseHourlyRate: 0,
+                                maxDailyHours: 0,
+                                overtimeRate: 0,
+                              }
+                            }
                             currentDate={currentDate}
                             recordAttendance={handleRecordAttendance}
+                            // currentWorkEntry={
+                            //   siteInfo?.workEntries?.find((entry) => {
+                            //     const entryDate = new Date(entry.date);
+                            //     const currentDateTime = new Date(currentDate);
+                            //     return (
+                            //       entryDate.toDateString() ===
+                            //         currentDateTime.toDateString() &&
+                            //       entry.workerId === worker.id
+                            //     );
+                            //   }) || {
+                            //     workerId: worker.id as string,
+                            //     id: "1",
+                            //     date: currentDate,
+                            //     siteId: "siteID",
+                            //   }
+                            // }
                             currentyWorkEntryId={worker.currentWorkEntryId}
                             key={worker?.id}
                             user={userForWorker}
@@ -796,7 +830,7 @@ const ForemanDashboard: React.FC = () => {
                           />
                         );
                       })}
-                    </tbody>{" "}
+                    </tbody>
                   </table>
                 </div>
 

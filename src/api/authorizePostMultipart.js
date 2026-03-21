@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const authorizePostMultipart = async (url, formData) => {
-  if (localStorage.token) {
+  if (localStorage.accessToken) {
     const a = axios.create({
       headers: {
-        Authorization: `Bearer ${localStorage.token}`,
+        Authorization: `Bearer ${localStorage.accessToken}`,
         'Content-Type': 'multipart/form-data',
       },
     });

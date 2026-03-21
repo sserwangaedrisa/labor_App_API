@@ -37,6 +37,7 @@ export interface Worker {
   wageRate: number;
   lastUpdated: string;
   staus?: string;
+  workEntry?: WorkEntry;
 }
 
 export type NotificationType = "info" | "warning" | "success";
@@ -71,6 +72,7 @@ export interface SiteInfoResponse {
   site?: Sited;
   message?: string;
   success?: boolean;
+  workEntry?: WorkEntry;
 }
 
 export type UserRole = "OWNER" | "FOREMAN" | "WORKER" | "LABORER";
@@ -244,5 +246,5 @@ export interface ActivityLog {
 export interface SiteAttendanceInfoResponse {
   status?: string;
   message?: string;
-  presentWorkers?: { id: string; workerId: string }[];
+  presentWorkers?: WorkEntry[];
 }

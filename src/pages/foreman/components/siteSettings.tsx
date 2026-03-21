@@ -4,14 +4,12 @@ import type {
   SiteSettings,
   UpdateSettingsDto,
 } from "../../../types/SharedTypes";
-// import {
-//   siteSettingsService,
-// } from "../../services/siteSettingsService";
 import authorizePostRequest from "../../../api/authorizePostRequest";
 import { format } from "date-fns";
 import { toast } from "react-hot-toast";
 
 interface SiteSettingsProps {
+  handleSettingsUpdate: (settings: SiteSettings) => void;
   initialDate?: Date;
   siteID: string;
   onSettingsUpdate?: (settings: SiteSettings) => void;
@@ -21,6 +19,7 @@ interface SiteSettingsProps {
 
 const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   initialDate = new Date(),
+  handleSettingsUpdate,
   siteID,
   onSettingsUpdate,
   setCurrentDate, // NEW: Destructure the prop
@@ -71,11 +70,24 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
 
   // Load settings when date changes
   useEffect(() => {
-    loadSettingsForDate(selectedDate);
-    setFormData({ ...formData, siteId: siteID });
+    const loadData = async () => {
+      try {
+        const loadedSettings = await loadSettingsForDate(selectedDate);
+        if (loadedSettings) {
+          await handleSettingsUpdate(loadedSettings);
+        }
+        setFormData((prev) => ({ ...prev, siteId: siteID }));
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    loadData();
   }, [selectedDate, siteID]);
 
-  const loadSettingsForDate = async (date: Date) => {
+  const loadSettingsForDate = async (
+    date: Date,
+  ): Promise<SiteSettings | null> => {
     setIsLoading(true);
     try {
       const formattedDate = format(date, "yyyy-MM-dd");
@@ -101,7 +113,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
       if (!settings) {
         toast.error("No settings available");
         setIsLoading(false);
-        return;
+        return null;
       }
 
       setCurrentSettings(settings);
@@ -111,14 +123,16 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
         maxDailyHours: settings.maxDailyHours,
         baseHourlyRate: settings.baseHourlyRate,
       });
+
+      return settings;
     } catch (error) {
       console.error("Error loading settings:", error);
       toast.error("Failed to load site settings");
+      return null;
     } finally {
       setIsLoading(false);
     }
   };
-
   const loadSettingsHistory = async () => {
     try {
       const history = await authorizePostRequest<any>("settings/history", {
@@ -585,6 +599,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
                         onClick={() => {
                           setSelectedDate(new Date(setting.createdAt));
                           setCurrentSettings(setting);
+
                           setShowHistory(false);
 
                           // Also update parent when viewing a historical date
