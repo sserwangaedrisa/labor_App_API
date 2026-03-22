@@ -83,8 +83,6 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
     }));
   }, [siteSettings, currentDate]);
 
-  console.log(`${worker.name} is ${isPresent ? "present" : "absent"}`);
-
   const handleToggleAttendance = async () => {
     console.log("button clicked for", worker.name);
     console.log("current state:", { isPresent, currentAttendance });
@@ -141,11 +139,7 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
       <td className="px-4 py-3 md:px-6 md:py-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 md:w-12 md:h-12">
-            <Image
-              src={worker.avatar}
-              alt={worker.avatarAlt}
-              className="w-full h-full object-cover"
-            />
+            <Image src={worker.avatar} alt={worker.avatarAlt} />
           </div>
           <div className="min-w-0">
             <p className="font-medium text-foreground text-sm truncate md:text-base">

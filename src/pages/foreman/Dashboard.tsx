@@ -67,8 +67,7 @@ const ForemanDashboard: React.FC = () => {
   const [verificationResponse, setVerificationResponse] =
     useState<VerifyAccountResponse | null>(null);
   const [resendOtp, setResendOtp] = useState<boolean>(false);
-  const [presentWorkers, setPresentWorkers] = useState<string[]>([]);
-  const [siteWorker, setSiteWorkers] = useState<SharedTypes.SiteWorker[]>([]);
+  const [siteWorkers, setSiteWorkers] = useState<SharedTypes.User[]>([]);
   const [workers, setWorkersDetatil] = useState<Worker[]>([]);
   const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -107,10 +106,6 @@ const ForemanDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log("current present list : ", presentWorkers);
-  }, [currentDate]);
-
-  useEffect(() => {
     const fetchSiteInfo =
       async (): Promise<SharedTypes.SiteInfoResponse | void> => {
         try {
@@ -129,7 +124,12 @@ const ForemanDashboard: React.FC = () => {
 
           if (siteInfo.site?.workers) {
             setSiteInfo(siteInfo.site);
-            setSiteWorkers(siteInfo.site?.workers);
+            // setSiteWorkers(siteInfo.site?.workers);
+            setSiteWorkers(
+              siteInfo?.site?.workers
+                ?.filter((w) => w.worker)
+                .map((w) => w.worker as SharedTypes.User),
+            );
           } else {
             console.log("No workers data in site info");
           }
@@ -175,8 +175,6 @@ const ForemanDashboard: React.FC = () => {
       if (siteInfo?.workers) {
         const updatedWorkers = siteInfo.workers.map(({ worker }) => {
           const workerId = worker?.id ?? "";
-
-          // const currentWorkEntryId = presentWorkerMap.get(workerId);
           const workEntry = presentWorkers.find(
             (entry) => entry.workerId === worker?.id,
           );
@@ -889,6 +887,7 @@ const ForemanDashboard: React.FC = () => {
 
         <div>
           <UserManagementPanel
+            users={siteWorkers}
             verificationData={verificationData}
             resendOtp={resendOtp}
             verificationResponse={verificationResponse}
@@ -897,7 +896,6 @@ const ForemanDashboard: React.FC = () => {
             onCreateUser={handleCreateUser}
             onBlockUser={handleBlockUser}
             onUnblockUser={handleUnblockUser}
-            users={[]}
             onSetResendOtp={setResendOtp}
           />
         </div>

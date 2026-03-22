@@ -4,22 +4,14 @@ import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
+import Image from "../../../components/ui/AppImage";
 import type { User, UserRole } from "../../../types/SharedTypes";
+import Loading from "../../../components/ui/Loading";
 
 /* ================= TYPES ================= */
 
 // type UserRole = "LABORER" | "FOREMAN" | "OWNER";
 type RoleFilter = UserRole | "all";
-
-// interface User {
-//   id: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   role: UserRole;
-//   assignedSite?: string;
-//   isBlocked: boolean;
-// }
 
 interface NewUser {
   name: string;
@@ -27,8 +19,10 @@ interface NewUser {
   phone: string;
   role: UserRole;
   password: string;
-  sites: string;
+  sites?: string;
+  wageRating: number | string;
   verificationCode?: string;
+  job: string;
   image?: File | null;
 }
 
@@ -55,8 +49,6 @@ interface UserManagementPanelProps {
   onSetResendOtp: (value: boolean) => void;
 }
 
-/* ================= COMPONENT ================= */
-
 export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   users,
   resendOtp,
@@ -69,6 +61,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   onResendOtp,
   onSetResendOtp,
 }) => {
+  const [loading, SetLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
@@ -86,8 +79,10 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     password: "",
     phone: "",
     role: "LABORER",
+    wageRating: "",
     sites: "",
     verificationCode: "",
+    job: "",
     image: null,
   });
 
@@ -103,9 +98,17 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 
   const roleOptions = [
     { value: "all", label: "All Roles" },
-    { value: "LABORER", label: "LABORER" },
-    { value: "FOREMAN", label: "FOREMAN" },
-    { value: "OWNER", label: "OWNER" },
+    { value: "OWNER", label: "Owner" },
+    { value: "FOREMAN", label: "Foreman" },
+    { value: "WORKER", label: "Worker" },
+    { value: "LABORER", label: "Laborer" },
+    { value: "HELPER", label: "Helper" },
+    { value: "MASON", label: "Mason" },
+    { value: "STEEL_FIXER", label: "Steel Fixer" },
+    { value: "PAINTER", label: "Painter" },
+    { value: "ELECTRICIAN", label: "Electrician" },
+    { value: "SITE_ADMIN", label: "Site Admin" },
+    { value: "ADMIN", label: "Admin" },
   ];
 
   const siteOptions = [
@@ -128,35 +131,44 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 
   const handleCreateUser = async () => {
     if (newUser?.name && newUser?.email && newUser?.phone) {
-      const formData = new FormData();
-      formData.append("name", newUser.name);
-      formData.append("email", newUser.email);
-      formData.append("phone", newUser.phone);
-      formData.append("role", newUser.role);
-      formData.append("password", newUser.password);
-      formData.append("sites", newUser.sites);
-      if (newUser.image) {
-        formData.append("image", newUser.image);
-      }
-      formData.forEach((item, key) => {
-        console.log(`${key}: ${item}`);
-      });
+      SetLoading(true);
 
-      const success = await onCreateUser(formData);
+      try {
+        const formData = new FormData();
+        formData.append("name", newUser.name);
+        formData.append("email", newUser.email);
+        formData.append("phone", newUser.phone);
+        formData.append("role", newUser.role);
+        formData.append("password", newUser.password);
+        formData.append("wageRating", String(newUser.wageRating));
+        formData.append("job", newUser.job);
+        if (newUser.image) {
+          formData.append("image", newUser.image);
+        }
 
-      if (success) {
-        setNewUser({
-          name: "",
-          password: "",
-          email: "",
-          phone: "",
-          role: "LABORER",
-          sites: "",
-          verificationCode: "",
-        });
+        const success = await onCreateUser(formData);
 
-        setShowCreateModal(false);
-        setEmailVerification(true);
+        if (success) {
+          setNewUser({
+            name: "",
+            password: "",
+            email: "",
+            wageRating: "",
+            phone: "",
+            role: "LABORER",
+            job: "",
+            sites: "",
+            verificationCode: "",
+          });
+
+          setShowCreateModal(false);
+          setEmailVerification(true);
+        }
+      } catch (error) {
+        console.log("error while creating user", error);
+        toast.error("error while creating user");
+      } finally {
+        SetLoading(false);
       }
     }
   };
@@ -166,13 +178,22 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       alert("Please enter the verification code");
       return;
     }
-    onVerifyEmail(verificationInfo);
+    try {
+      onVerifyEmail(verificationInfo);
+      SetLoading(true);
+    } catch (error) {
+      console.log("error while verifying email: ", error);
+      toast.error("Error while verifying email");
+    } finally {
+      SetLoading(false);
+    }
   };
 
   const handleResendOtp = async () => {
     if (!verificationInfo.userId) {
       return;
     }
+    SetLoading(true);
     try {
       const response = await onResendOtp();
       if (response.status === "success") {
@@ -181,31 +202,55 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       }
     } catch (error) {
       console.error("Failed to resend OTP. Please try again.");
+    } finally {
+      SetLoading(false);
     }
   };
 
-  const getRoleBadgeColor = (role: UserRole): string => {
-    const colors: Record<UserRole, string> = {
-      LABORER: "bg-primary/10 text-primary",
-      FOREMAN: "bg-accent/10 text-accent",
-      OWNER: "bg-success/10 text-success",
-      WORKER: "bg-muted/10 text-muted-foreground",
+  const getRoleBadgeColor = (job: string): string => {
+    const colors: Record<string, string> = {
+      USER: "bg-gray-100 text-gray-700",
+
+      HELPER: "bg-yellow-100 text-yellow-700",
+      LABORER: "bg-orange-100 text-orange-700",
+
+      MASON: "bg-amber-200 text-amber-900",
+      STEEL_FIXER: "bg-slate-300 text-slate-900",
+
+      PAINTER: "bg-pink-100 text-pink-700",
+      ELECTRICIAN: "bg-blue-100 text-blue-700",
+
+      FOREMAN: "bg-purple-100 text-purple-700",
+      SITE_ADMIN: "bg-indigo-100 text-indigo-700",
+
+      ADMIN: "bg-red-100 text-red-700",
     };
-    return colors?.[role];
+
+    return colors[job] || "bg-gray-100 text-gray-600";
   };
 
-  const getRoleIcon = (role: UserRole): string => {
-    const icons: Record<UserRole, string> = {
+  const getRoleIcon = (job: string): string => {
+    const icons: Record<string, string> = {
+      USER: "User",
+      HELPER: "UserPlus",
       LABORER: "HardHat",
-      FOREMAN: "Clipboard",
-      OWNER: "Crown",
-      WORKER: "Users",
+      MASON: "Hammer",
+      STEEL_FIXER: "Wrench",
+      PAINTER: "Paintbrush",
+      ELECTRICIAN: "Zap",
+      FOREMAN: "ClipboardList",
+      SITE_ADMIN: "Settings",
+      ADMIN: "ShieldCheck",
     };
-    return icons?.[role];
+
+    return icons[job] || "User";
   };
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* loading component */}
+      {loading && <Loading message="Loading..." />}
+
       <div className="bg-card rounded-xl shadow-elevation-2 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
@@ -294,6 +339,9 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 md:w-12 md:h-12">
+                        <Image src={user.imageUrl} alt={"user"} />
+                      </div>
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                         <Icon
                           key="color"
@@ -324,37 +372,41 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.role)}`}
                       >
                         <Icon key="arrowDown" name="AArrowDown" size={12} />
-                        {user?.role?.charAt(0)?.toUpperCase() +
-                          user?.role?.slice(1)}
+                        {user.job
+                          ? user?.job?.charAt(0)?.toUpperCase() +
+                            user?.job?.slice(1)
+                          : null}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-muted-foreground">
-                      {user?.assignedSite || "Not assigned"}
+                      {user?.sites || "Not assigned"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                          user?.isBlocked
+                          user.status !== "Active"
                             ? "bg-destructive/10 text-destructive"
                             : "bg-success/10 text-success"
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            user?.isBlocked ? "bg-destructive" : "bg-success"
+                            user.status !== "Active"
+                              ? "bg-destructive"
+                              : "bg-success"
                           }`}
                         ></span>
-                        {user?.isBlocked ? "Blocked" : "Active"}
+                        {user.status !== "Active" ? "Blocked" : "Active"}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      {user?.isBlocked ? (
+                      {user.status !== "Active" ? (
                         <Button
                           onClick={() => onUnblockUser(user)}
                           className="hover:bg-success/10 hover:text-success"
@@ -401,17 +453,19 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 </div>
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                    user?.isBlocked
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-success/10 text-success"
+                    user?.status !== "Active"
+                      ? "bg-success/10 text-success"
+                      : null
                   }`}
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      user?.isBlocked ? "bg-destructive" : "bg-success"
+                      user?.status !== "Active"
+                        ? "bg-destructive"
+                        : "bg-success"
                     }`}
                   ></span>
-                  {user?.isBlocked ? "Blocked" : "Active"}
+                  {user?.status !== "Active" ? "Blocked" : "Active"}
                 </span>
               </div>
 
@@ -441,7 +495,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.role)}`}
                   >
-                    <Icon name="ArrowDown" key="user" size={12} />
+                    <Icon name="ArrowDown" key="Users" size={12} />
                     {user?.role?.charAt(0)?.toUpperCase() +
                       user?.role?.slice(1)}
                   </span>
@@ -449,12 +503,12 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Site:</span>
                   <span className="font-medium text-foreground">
-                    {user?.assignedSite || "Not assigned"}
+                    {user?.sites || "Not assigned"}
                   </span>
                 </div>
               </div>
 
-              {user?.isBlocked ? (
+              {user?.status !== "Active" ? (
                 <Button onClick={() => onUnblockUser(user)}>
                   Unblock User
                 </Button>
@@ -484,14 +538,19 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Create User Modal */}
       {/* Create User Modal */}
       {showCreateModal && (
         <>
+          {/* Fixed overlay */}
           <div
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-modal"
             onClick={() => setShowCreateModal(false)}
           />
-          <div className="fixed inset-0 z-modal flex items-center justify-center p-4 border border-orange-300">
+
+          {/* Modal container */}
+          <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
             <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-gray-400 shadow-2xl shadow-blue-500/50">
               <div className="p-6 border-b border-border">
                 <div className="flex items-center justify-between">
@@ -501,6 +560,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   <button
                     onClick={() => setShowCreateModal(false)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth"
+                    disabled={loading} // Disable when loading
                   >
                     <Icon key="x" name="X" size={20} />
                   </button>
@@ -508,6 +568,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
               </div>
 
               <div className="p-6 space-y-4">
+                {/* Disable all inputs when loading */}
                 <Input
                   label="name"
                   type="text"
@@ -517,6 +578,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     setNewUser({ ...newUser, name: e?.target?.value })
                   }
                   required
+                  disabled={loading}
                 />
 
                 <Input
@@ -528,6 +590,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     setNewUser({ ...newUser, email: e?.target?.value })
                   }
                   required
+                  disabled={loading}
                 />
 
                 <Input
@@ -538,6 +601,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   onChange={(e) =>
                     setNewUser({ ...newUser, password: e?.target?.value })
                   }
+                  disabled={loading}
                 />
 
                 <Input
@@ -549,14 +613,49 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     setNewUser({ ...newUser, phone: e?.target?.value })
                   }
                   required
+                  disabled={loading}
                 />
 
-                <Select
-                  label="Assign to Site"
-                  options={siteOptions}
-                  value={newUser?.sites}
-                  onChange={(value) => setNewUser({ ...newUser, sites: value })}
-                  placeholder="Select a site"
+                <div className="flex flex-row w-full gap-0">
+                  <div className="flex-4">
+                    <Input
+                      label="Job"
+                      disabled={loading}
+                      type="text"
+                      placeholder="Select the Job "
+                      value={newUser?.job}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, job: e?.target?.value })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="flex-2">
+                    <Select
+                      label=""
+                      options={roleOptions}
+                      value={newUser?.job}
+                      onChange={(value) =>
+                        setNewUser({ ...newUser, job: value })
+                      }
+                      placeholder="Select"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <Input
+                  label="Wage Rating"
+                  type="number"
+                  placeholder="Enter the wage rating"
+                  value={newUser.wageRating}
+                  step={0.5}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, wageRating: e?.target?.value })
+                  }
+                  required
+                  disabled={loading}
                 />
 
                 <Input
@@ -569,17 +668,31 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                       setNewUser({ ...newUser, image: e.target.files?.[0] });
                     }
                   }}
+                  disabled={loading}
                 />
               </div>
 
               <div className="p-6 border-t border-border flex gap-3">
-                <Button onClick={() => setShowCreateModal(false)}>
+                <Button
+                  onClick={() => setShowCreateModal(false)}
+                  disabled={loading}
+                >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateUser}>Create User</Button>
+                <Button onClick={handleCreateUser} disabled={loading}>
+                  {loading ? "Creating..." : "Create User"}
+                </Button>
               </div>
             </div>
           </div>
+
+          {loading && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-lg p-6 shadow-xl">
+                <Loading message="Creating user..." />
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -657,6 +770,13 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
               </div>
             </div>
           </div>
+          {loading && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-lg p-6 shadow-xl">
+                <Loading message="Submitting..." />
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

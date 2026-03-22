@@ -18,8 +18,10 @@ export interface NewUser {
   email: string;
   phone: string;
   role: UserRole;
+  job: string;
+  wageRating: number;
   password: string;
-  sites: string;
+  sites?: string;
   image: File | null;
 }
 
@@ -112,9 +114,9 @@ export interface User {
   sites?: string;
   activityLogs?: ActivityLog[];
   payments?: Payment[];
-  foremanSites?: Site[];
-  ownedSites?: Site[];
-  assignedSites?: SiteWorker[];
+  foremanSites?: Sited[];
+  ownedSites?: Sited[];
+  assignedSites?: Sited[];
   workerRecords?: WorkEntry[];
 
   // options for the first state
