@@ -19,6 +19,7 @@ import {
   Mail,
   Phone,
   MapPin,
+  icons,
 } from "lucide-react";
 import {
   format,
@@ -122,18 +123,18 @@ const LaborCard: React.FC<LaborCardProps> = ({
   };
 
   // Get status for a specific date
-  const getDayStatus = (date: Date): "ABSENT" | "PRESENT" => {
+  const getDayStatus = (date: Date): "ABSENT" | "PRESENT" | "OUT" => {
     const entry = getEntryForDate(date);
     if (!entry) {
       return "ABSENT";
     }
-    // Check if the date is within the worker's period
-    // const periodStart = new Date(workerData.period.startDate);
-    // const periodEnd = new Date(workerData.period.endDate);
+    // Checking if the date is within the worker's period
+    const periodStart = new Date(workerData.period.startDate);
+    const periodEnd = new Date(workerData.period.endDate);
 
-    // if (date >= periodStart && date <= periodEnd) {
-    //   return "PRESENT";
-    // }
+    if (date > periodEnd || date < periodStart) {
+      return "OUT";
+    }
     return "PRESENT";
   };
 
@@ -143,7 +144,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
   };
 
   // Get status color and icon
-  const getStatusStyle = (status: "ABSENT" | "PRESENT") => {
+  const getStatusStyle = (status: "ABSENT" | "PRESENT" | "OUT") => {
     switch (status) {
       case "PRESENT":
         return {
@@ -151,6 +152,13 @@ const LaborCard: React.FC<LaborCardProps> = ({
           textColor: "text-green-700",
           icon: <CheckCircle className="w-4 h-4 text-green-500" />,
           label: "Present",
+        };
+
+      case "OUT":
+        return {
+          bgColor: "bg-blue-50 border-red-200 ",
+          textColor: "text-red-700",
+          label: "",
         };
       case "ABSENT":
         return {
@@ -161,11 +169,25 @@ const LaborCard: React.FC<LaborCardProps> = ({
         };
       default:
         return {
-          bgColor: "bg-gray-50 border-gray-200 hover:bg-gray-100",
+          bgColor: "bg-gray-500 border-gray-200 hover:bg-gray-100",
           textColor: "text-gray-500",
           icon: <AlertCircle className="w-4 h-4 text-gray-400" />,
           label: "No Data",
         };
+    }
+  };
+
+  // setting payment status badge
+  const getPaymentStatusColor = (status?: string) => {
+    switch (status?.toUpperCase()) {
+      case "PAID":
+        return "bg-green-500";
+      case "PENDING":
+        return "bg-yellow-500";
+      case "NOT_PAID":
+        return "bg-red-500";
+      default:
+        return "bg-gray-300";
     }
   };
 
@@ -209,15 +231,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
     window.print();
   };
 
-  // // Calculate summary for the displayed month
-  // const monthEntries = workerData.entries.filter((entry) => {
-  //   const entryDate = new Date(entry.date);
-  //   return (
-  //     entryDate.getMonth() === currentMonth.getMonth() &&
-  //     entryDate.getFullYear() === currentMonth.getFullYear()
-  //   );
-  // });
-
   const monthSummary = {
     daysWorked: workerData.metadata.entryCount,
     totalHours: workerData.summary.totalHours,
@@ -240,7 +253,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-white/30 shadow-lg bg-white">
                 <Image
-                  src={workerData.worker.imageUrl || "/avatar.png"}
+                  src={
+                    workerData.worker.imageUrl ||
+                    "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                  }
                   alt={workerData.worker.name}
                   width={64}
                   height={64}
@@ -311,7 +327,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
               </div>
             </div>
           </div>
-
           {/* Month Navigation */}
           <div className="flex items-center justify-between print:hidden">
             <button
@@ -338,7 +353,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
-
           {/* Month Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center">
@@ -381,7 +395,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
               <p className="text-xs text-purple-700 font-medium">Earnings</p>
             </div>
           </div>
-
           {/* Calendar Grid */}
           <div>
             {/* Weekday Headers */}
@@ -411,9 +424,9 @@ const LaborCard: React.FC<LaborCardProps> = ({
                     onClick={() => isCurrentMonth && handleDayClick(day)}
                     className={`
                       min-h-[100px] p-2 rounded-lg border transition-all cursor-pointer
-                      ${!isCurrentMonth && "opacity-40"}
+                      ${!isCurrentMonth && "opacity-20"}
                       ${isSelected ? "ring-2 ring-blue-500 shadow-lg" : ""}
-                      ${statusStyle.bgColor}
+                      ${statusStyle.bgColor || "bg-gray-50"}
                       ${isCurrentMonth ? "hover:shadow-md" : "cursor-default"}
                     `}
                   >
@@ -428,6 +441,15 @@ const LaborCard: React.FC<LaborCardProps> = ({
                       </span>
                       {isCurrentMonth && (
                         <div className="print:hidden">{statusStyle.icon}</div>
+                      )}
+
+                      {entry && isCurrentMonth && (
+                        <div className="mt-1">
+                          <div
+                            className={`w-2 h-2 rounded-full ${getPaymentStatusColor(entry.status)}`}
+                            title={entry.status || "Unknown"}
+                          />
+                        </div>
                       )}
                     </div>
 
@@ -447,16 +469,16 @@ const LaborCard: React.FC<LaborCardProps> = ({
                             </span>
                           </div>
                         )}
-                        <div className="flex justify-between items-center text-green-600">
+                        {/* <div className="flex justify-between items-center text-green-600">
                           <span className="text-xs">Amount:</span>
                           <span className="font-semibold">
                             ${entry?.amount?.toFixed(2)}
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     )}
 
-                    {!entry && isCurrentMonth && status === "absent" && (
+                    {!entry && isCurrentMonth && (
                       <div className="mt-2 text-xs text-red-600 text-center">
                         Absent
                       </div>
@@ -472,7 +494,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
               })}
             </div>
           </div>
-
           {/* Selected Day Details */}
           {selectedDate && selectedEntry && (
             <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 print:bg-gray-50">
@@ -514,7 +535,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
               )}
             </div>
           )}
-
           {/* Legend */}
           <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-200 print:hidden">
             <div className="flex items-center gap-2">
@@ -531,7 +551,26 @@ const LaborCard: React.FC<LaborCardProps> = ({
               <div className="w-4 h-4 bg-gray-50 border border-gray-200 rounded"></div>
               <span className="text-xs text-gray-600">Outside Period</span>
             </div>
-          </div>
+            <div className="border-l border-gray-200 pl-4 ml-2">
+              <span className="text-xs font-semibold text-gray-700 mr-2">
+                Payment Status:
+              </span>
+              <div className="flex gap-3 mt-1">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-xs text-gray-600">Paid</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <span className="text-xs text-gray-600">Pending</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span className="text-xs text-gray-600">Not Paid</span>
+                </div>
+              </div>
+            </div>
+          </div>{" "}
         </div>
       </div>
     </div>

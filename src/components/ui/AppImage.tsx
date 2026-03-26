@@ -24,7 +24,7 @@ const Image: React.FC<ImageProps> = ({
   return (
     <>
       <img
-        src={src}
+        src={src || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"}
         alt={alt}
         className={`cursor-pointer ${className}`}
         onError={handleError}
@@ -39,7 +39,9 @@ const Image: React.FC<ImageProps> = ({
           onClick={closePreview}
         >
           <img
-            src={src}
+            src={
+              src || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+            }
             alt={alt}
             onClick={(e) => e.stopPropagation()}
             className="max-w-[90%] max-h-[90%] object-contain rounded-lg shadow-2xl"

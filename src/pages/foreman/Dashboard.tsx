@@ -904,6 +904,7 @@ const ForemanDashboard: React.FC = () => {
                         const userForWorker = siteInfo?.workers?.find(
                           (w) => w.workerId === worker.id,
                         )?.worker;
+                        // siteActiveWorkers.map((worker) ={}
                         return (
                           <WorkerTableRow
                             deleteAttendance={deleteAttendance}
