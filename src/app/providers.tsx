@@ -5,6 +5,10 @@ import type { ReactNode } from "react";
 // Define types for your user object
 export type Role = "LABORER" | "FOREMAN" | "OWNER";
 
+interface ForemanSite {
+  id?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -15,6 +19,7 @@ export interface User {
   assignedSite?: string;
   isBlocked?: boolean;
   email?: string;
+  foremanSites?: ForemanSite[];
 }
 
 export interface Tokens {

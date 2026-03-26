@@ -63,7 +63,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       onOpenChange,
       ...props
     },
-    ref
+    ref,
   ) => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [searchTerm, setSearchTerm] = useState<string>("");
@@ -82,7 +82,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                 option?.value
                   ?.toString()
                   ?.toLowerCase()
-                  ?.includes(searchTerm?.toLowerCase()))
+                  ?.includes(searchTerm?.toLowerCase())),
           )
         : options;
 
@@ -91,18 +91,15 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
 
       if (multiple) {
         const selectedOptions = options?.filter((opt) =>
-          Array.isArray(value) ? value?.includes(opt?.value) : false
+          Array.isArray(value) ? value?.includes(opt?.value) : false,
         );
         if (!selectedOptions || selectedOptions.length === 0)
           return placeholder;
-        if (selectedOptions.length === 1)
-          return selectedOptions[0]?.label;
+        if (selectedOptions.length === 1) return selectedOptions[0]?.label;
         return `${selectedOptions.length} items selected`;
       }
 
-      const selectedOption = options?.find(
-        (opt) => opt?.value === value
-      );
+      const selectedOption = options?.find((opt) => opt?.value === value);
       return selectedOption ? selectedOption?.label : placeholder;
     };
 
@@ -131,24 +128,20 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       }
     };
 
-    const handleClear = (
-      e: React.MouseEvent<HTMLButtonElement>
-    ): void => {
+    const handleClear = (e: React.MouseEvent<HTMLButtonElement>): void => {
       e?.stopPropagation();
       onChange?.(multiple ? [] : "");
     };
 
     const handleSearchChange = (
-      e: React.ChangeEvent<HTMLInputElement>
+      e: React.ChangeEvent<HTMLInputElement>,
     ): void => {
       setSearchTerm(e?.target?.value);
     };
 
     const isSelected = (optionValue: string | number): boolean => {
       if (multiple) {
-        return Array.isArray(value)
-          ? value?.includes(optionValue)
-          : false;
+        return Array.isArray(value) ? value?.includes(optionValue) : false;
       }
       return value === optionValue;
     };
@@ -158,15 +151,11 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
       : value !== undefined && value !== "";
 
     return (
-      <div >
+      <div>
         {label && (
-          <label
-            htmlFor={selectId}
-          >
+          <label htmlFor={selectId}>
             {label}
-            {required && (
-              <span className="text-destructive ml-1">*</span>
-            )}
+            {required && <span className="text-destructive ml-1">*</span>}
           </label>
         )}
 
@@ -186,16 +175,11 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             aria-haspopup="listbox"
             {...props}
           >
-            <span className="truncate">
-              {getSelectedDisplay()}
-            </span>
+            <span className="truncate">{getSelectedDisplay()}</span>
 
             <div className="flex items-center gap-1">
               {loading && (
-                <svg
-                  className="animate-spin h-4 w-4"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                   <circle
                     className="opacity-25"
                     cx="12"
@@ -218,17 +202,19 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                   variant="ghost"
                   size="icon"
                   className="h-4 w-4"
-                  onClick={handleClear}
+                  onClick={() =>
+                    handleClear({} as React.MouseEvent<HTMLButtonElement>)
+                  }
                 >
                   <X className="h-3 w-3" />
                 </Button>
               )}
 
               <ChevronDown
-                // className={cn(
-                //   "h-4 w-4 transition-transform",
-                //   isOpen && "rotate-180"
-                // )}
+              // className={cn(
+              //   "h-4 w-4 transition-transform",
+              //   isOpen && "rotate-180"
+              // )}
               />
             </div>
           </button>
@@ -244,10 +230,7 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
           >
             <option value="">Select...</option>
             {options?.map((option) => (
-              <option
-                key={option?.value}
-                value={option?.value}
-              >
+              <option key={option?.value} value={option?.value}>
                 {option?.label}
               </option>
             ))}
@@ -272,33 +255,27 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
               <div className="py-1 max-h-60 overflow-auto">
                 {filteredOptions?.length === 0 ? (
                   <div className="px-3 py-2 text-sm text-muted-foreground">
-                    {searchTerm
-                      ? "No options found"
-                      : "No options available"}
+                    {searchTerm ? "No options found" : "No options available"}
                   </div>
                 ) : (
                   filteredOptions?.map((option) => (
                     <div
                       key={option?.value}
-                    //   className={cn(
-                    //     "relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                    //     isSelected(option?.value) &&
-                    //       "bg-primary text-primary-foreground",
-                    //     option?.disabled &&
-                    //       "pointer-events-none opacity-50"
-                    //   )}
+                      //   className={cn(
+                      //     "relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                      //     isSelected(option?.value) &&
+                      //       "bg-primary text-primary-foreground",
+                      //     option?.disabled &&
+                      //       "pointer-events-none opacity-50"
+                      //   )}
                       onClick={() =>
-                        !option?.disabled &&
-                        handleOptionSelect(option)
+                        !option?.disabled && handleOptionSelect(option)
                       }
                     >
-                      <span className="flex-1">
-                        {option?.label}
-                      </span>
-                      {multiple &&
-                        isSelected(option?.value) && (
-                          <Check className="h-4 w-4" />
-                        )}
+                      <span className="flex-1">{option?.label}</span>
+                      {multiple && isSelected(option?.value) && (
+                        <Check className="h-4 w-4" />
+                      )}
                       {option?.description && (
                         <span className="text-xs text-muted-foreground ml-2">
                           {option?.description}
@@ -313,19 +290,13 @@ const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
         </div>
 
         {description && !error && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {description}
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}
 
-        {error && (
-          <p className="text-sm text-destructive mt-1">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
       </div>
     );
-  }
+  },
 );
 
 Select.displayName = "Select";

@@ -5,8 +5,9 @@ import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Image from "../../../components/ui/AppImage";
-import type { User, UserRole } from "../../../types/SharedTypes";
+import type { ActiveWorker, User, UserRole } from "../../../types/SharedTypes";
 import Loading from "../../../components/ui/Loading";
+import type { RoleOption } from "../../../types/auth.types";
 
 /* ================= TYPES ================= */
 
@@ -37,20 +38,20 @@ interface HandleResendOtpResponse {
 }
 
 interface UserManagementPanelProps {
-  users?: User[];
+  propsUsers?: ActiveWorker[];
   resendOtp: boolean;
   verificationData: EmailVerificationData;
   verificationResponse: HandleResendOtpResponse | null;
   onCreateUser: (newUser: FormData) => Promise<boolean>;
   onVerifyEmail: (data: EmailVerificationData) => void;
   onResendOtp: () => Promise<HandleResendOtpResponse>;
-  onBlockUser: (user: User) => void;
-  onUnblockUser: (user: User) => void;
+  onBlockUser: (userId: string, deactivationReason: string) => Promise<boolean>;
+  onUnblockUser: (userId: string) => Promise<boolean>;
   onSetResendOtp: (value: boolean) => void;
 }
 
 export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
-  users,
+  propsUsers,
   resendOtp,
   verificationData,
   verificationResponse,
@@ -86,6 +87,16 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     image: null,
   });
 
+  const [users, setUsers] = useState<ActiveWorker[]>([]);
+  // Blocking user states
+
+  const [showBlockModal, setShowBlockModal] = useState<boolean>(false);
+  const [selectedUser, setSelectedUser] = useState<ActiveWorker | null>(null);
+  const [deactivationReason, setDeactivationReason] =
+    useState<string>("Miss_behaving");
+  const [deactivationReasonError, setDeactivationReasonError] =
+    useState<string>("");
+
   useEffect(() => {
     if (verificationData?.userId) {
       setVerificationInfo({
@@ -95,6 +106,12 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       setEmailVerification(true);
     }
   }, [verificationData]);
+
+  useEffect(() => {
+    if (propsUsers) {
+      setUsers(propsUsers);
+    }
+  }, [propsUsers]);
 
   const roleOptions = [
     { value: "all", label: "All Roles" },
@@ -120,11 +137,12 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 
   const filteredUsers = users?.filter((user) => {
     const matchesSearch =
-      user?.name?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
-      user?.email?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
-      user?.id?.toLowerCase()?.includes(searchQuery?.toLowerCase());
+      user?.worker.name?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
+      user?.worker.email?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
+      user?.worker.id?.toLowerCase()?.includes(searchQuery?.toLowerCase());
 
-    const matchesRole = roleFilter === "all" || user?.role === roleFilter;
+    const matchesRole =
+      roleFilter === "all" || user?.worker.role === roleFilter;
 
     return matchesSearch && matchesRole;
   });
@@ -207,6 +225,95 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     }
   };
 
+  // blocking user functions
+  const handleBlockClick = (user: ActiveWorker) => {
+    setSelectedUser(user);
+    setDeactivationReasonError("");
+    setDeactivationReason("");
+    setShowBlockModal(true);
+  };
+
+  // blocking user confirmantion
+
+  const handleConfirmBlock = async () => {
+    if (!deactivationReason.trim()) {
+      setDeactivationReasonError("Please provide a reason for deactivation");
+      return;
+    }
+
+    if (deactivationReason.trim().length <= 0) {
+      setDeactivationReasonError("Please provide a more detailed reason ");
+      return;
+    }
+
+    SetLoading(true);
+    try {
+      const userId = selectedUser?.worker.id;
+      if (!userId) return;
+      const response = await onBlockUser(userId, deactivationReason);
+      if (response) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.worker.id === userId
+              ? {
+                  ...u,
+                  worker: {
+                    ...u.worker,
+                    status: "BLOCKED",
+                    isActive: false,
+                  },
+                }
+              : u,
+          ),
+        );
+        setShowBlockModal(false);
+        setSelectedUser(null);
+      } else {
+        setShowBlockModal(false);
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      toast.error("Failed to block user");
+    } finally {
+      SetLoading(false);
+    }
+  };
+
+  const handleUnBlock = async (userId: string) => {
+    console.log("handleUnBlock called with userId:", userId); // Add this log
+    SetLoading(true);
+    try {
+      console.log("Attempting to unblock user:", userId);
+      const unblocked = await onUnblockUser(userId);
+      console.log("Unblock response:", unblocked);
+
+      if (unblocked) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.worker.id === userId
+              ? {
+                  ...u,
+                  worker: {
+                    ...u.worker,
+                    status: "ACTIVE",
+                    isActive: true,
+                  },
+                }
+              : u,
+          ),
+        );
+        toast.success("User unblocked successfully");
+      } else {
+        toast.error("Failed to unblock user");
+      }
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      toast.error("Error occurred while unblocking user");
+    } finally {
+      SetLoading(false);
+    }
+  };
   const getRoleBadgeColor = (job: string): string => {
     const colors: Record<string, string> = {
       USER: "bg-gray-100 text-gray-700",
@@ -249,8 +356,6 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
   return (
     <div className="space-y-4 md:space-y-6">
       {/* loading component */}
-      {loading && <Loading message="Loading..." />}
-
       <div className="bg-card rounded-xl shadow-elevation-2 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
@@ -283,10 +388,11 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
             />
           </div>
           <div className="w-full md:w-48">
+            {/* Fixed Select component usage */}
             <Select
               options={roleOptions}
               value={roleFilter}
-              onChange={setRoleFilter}
+              onChange={(value) => setRoleFilter(value as RoleFilter)}
               placeholder="Filter by role"
             />
           </div>
@@ -295,37 +401,38 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       {/* Users List */}
       <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
         {/* Desktop Table View */}
+        {/* Desktop Table View */}
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted/50 border-b border-border">
               <tr>
                 <th className="text-left px-6 py-4">
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     User
                   </span>
                 </th>
                 <th className="text-left px-6 py-4">
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     Contact
                   </span>
                 </th>
                 <th className="text-center px-6 py-4">
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     Role
                   </span>
                 </th>
                 <th className="text-left px-6 py-4">
-                  <span className="text-sm font-semibold text-foreground">
-                    Assigned Site
+                  <span className="text-sm font-bold text-foreground">
+                    Since
                   </span>
                 </th>
                 <th className="text-center px-6 py-4">
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     Status
                   </span>
                 </th>
                 <th className="text-center px-6 py-4">
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-bold text-foreground">
                     Actions
                   </span>
                 </th>
@@ -334,17 +441,21 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
             <tbody>
               {filteredUsers?.map((user) => (
                 <tr
-                  key={user?.id}
+                  key={user?.worker.id}
                   className="border-b border-border hover:bg-muted/30 transition-smooth"
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 md:w-12 md:h-12">
-                        <Image src={user.imageUrl} alt={"user"} />
+                        <Image
+                          src={user.worker?.imageUrl || undefined}
+                          alt={user.worker?.name || "user"}
+                        />
                       </div>
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        {/* Removed duplicate key prop */}
                         <Icon
-                          key="color"
+                          key="arrowDown"
                           name="AArrowDown"
                           size={18}
                           color="var(--color-primary)"
@@ -352,70 +463,75 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                       </div>
                       <div>
                         <p className="font-medium text-foreground">
-                          {user?.name}
+                          {user?.worker.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          ID: {user?.id}
+                          ID: {user?.worker.id}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm">
-                      <p className="text-foreground">{user?.email}</p>
-                      <p className="text-muted-foreground">{user?.phone}</p>
+                      <p className="text-foreground">{user?.worker.email}</p>
+                      <p className="text-muted-foreground">
+                        {user?.worker.phone || "N/A"}
+                      </p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.role)}`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.worker.job || "")}`}
                       >
-                        <Icon key="arrowDown" name="AArrowDown" size={12} />
-                        {user.job
-                          ? user?.job?.charAt(0)?.toUpperCase() +
-                            user?.job?.slice(1)
-                          : null}
+                        {/* Removed duplicate key prop */}
+                        <Icon key="arroown" name="AArrowDown" size={12} />
+                        {user.worker.job
+                          ? user.worker.job.charAt(0).toUpperCase() +
+                            user.worker.job.slice(1).toLowerCase()
+                          : "N/A"}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm text-muted-foreground">
-                      {user?.sites || "Not assigned"}
+                      {user?.assignedAt
+                        ? new Date(user.assignedAt).toISOString().split("T")[0]
+                        : "Not assigned"}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                          user.status !== "Active"
+                          user.worker.status !== "ACTIVE"
                             ? "bg-destructive/10 text-destructive"
                             : "bg-success/10 text-success"
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            user.status !== "Active"
+                            user.worker.status !== "ACTIVE"
                               ? "bg-destructive"
                               : "bg-success"
                           }`}
                         ></span>
-                        {user.status !== "Active" ? "Blocked" : "Active"}
+                        {user.worker.status !== "ACTIVE" ? "Blocked" : "Active"}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2">
-                      {user.status !== "Active" ? (
+                      {user.worker.status !== "ACTIVE" ? (
                         <Button
-                          onClick={() => onUnblockUser(user)}
+                          onClick={() => handleUnBlock(user.worker.id)}
                           className="hover:bg-success/10 hover:text-success"
                         >
                           Unblock
                         </Button>
                       ) : (
                         <Button
-                          onClick={() => onBlockUser(user)}
+                          onClick={() => handleBlockClick(user)}
                           className="hover:bg-destructive/10 hover:text-destructive"
                         >
                           Block
@@ -432,104 +548,116 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
         {/* Mobile Card View */}
         <div className="lg:hidden divide-y divide-border">
           {filteredUsers?.map((user) => (
-            <div key={user?.id} className="p-4">
+            <div key={user?.worker.id} className="p-4">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    {/* Removed duplicate key prop */}
                     <Icon
-                      key="color"
+                      key="arrow"
                       name="AArrowDown"
                       color="var(--color-primary)"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground truncate">
-                      {user?.name}
+                      {user?.worker.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      ID: {user?.id}
+                      ID: {user?.worker.id}
                     </p>
                   </div>
                 </div>
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                    user?.status !== "Active"
-                      ? "bg-success/10 text-success"
-                      : null
+                    user?.worker.status !== "ACTIVE"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-success/10 text-success"
                   }`}
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      user?.status !== "Active"
+                      user?.worker.status !== "ACTIVE"
                         ? "bg-destructive"
                         : "bg-success"
                     }`}
                   ></span>
-                  {user?.status !== "Active" ? "Blocked" : "Active"}
+                  {user?.worker.status !== "ACTIVE" ? "Blocked" : "Active"}
                 </span>
               </div>
 
               <div className="space-y-2 mb-3">
                 <div className="flex items-center gap-2 text-sm">
                   <Icon
-                    key="mail"
                     name="Mail"
                     size={14}
                     className="text-muted-foreground flex-shrink-0"
                   />
                   <span className="text-foreground truncate">
-                    {user?.email}
+                    {user?.worker.email}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Icon
-                    key="phone"
                     name="Phone"
                     size={14}
                     className="text-muted-foreground flex-shrink-0"
                   />
-                  <span className="text-foreground">{user?.phone}</span>
+                  <span className="text-foreground">
+                    {user?.worker.phone || "N/A"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Role:</span>
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.role)}`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user?.worker.job || "")}`}
                   >
-                    <Icon name="ArrowDown" key="Users" size={12} />
-                    {user?.role?.charAt(0)?.toUpperCase() +
-                      user?.role?.slice(1)}
+                    {/* Removed duplicate key prop */}
+                    <Icon name="ArrowDown" size={12} />
+                    {user?.worker.job
+                      ? user.worker.job.charAt(0).toUpperCase() +
+                        user.worker.job.slice(1).toLowerCase()
+                      : "N/A"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Site:</span>
+                  <span className="text-muted-foreground">Wage Rating:</span>
                   <span className="font-medium text-foreground">
-                    {user?.sites || "Not assigned"}
+                    {user?.worker.wageRating || "N/A"}
                   </span>
                 </div>
               </div>
 
-              {user?.status !== "Active" ? (
-                <Button onClick={() => onUnblockUser(user)}>
-                  Unblock User
-                </Button>
-              ) : (
-                <Button onClick={() => onBlockUser(user)}>Block User</Button>
-              )}
+              <div className="flex gap-2">
+                {user?.worker.status !== "ACTIVE" ? (
+                  <Button
+                    onClick={() => handleUnBlock(user.worker.id)}
+                    className="flex-1"
+                  >
+                    Unblock User
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => handleBlockClick(user)}
+                    className="flex-1"
+                  >
+                    Block User
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </div>
-
         {filteredUsers?.length === 0 && (
           <div className="p-8 md:p-12 text-center">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
               <Icon
-                key="users"
                 name="Users"
                 size={32}
                 color="var(--color-muted-foreground)"
               />
             </div>
-            <h4 className="text-lg font-semibold text-foreground mb-2">
+            <h4 className="text-lg font-bold text-foreground mb-2">
               No Users Found
             </h4>
             <p className="text-sm text-muted-foreground">
@@ -538,8 +666,6 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
           </div>
         )}
       </div>
-
-      {/* Create User Modal */}
       {/* Create User Modal */}
       {showCreateModal && (
         <>
@@ -562,7 +688,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth"
                     disabled={loading} // Disable when loading
                   >
-                    <Icon key="x" name="X" size={20} />
+                    <Icon name="X" size={20} />
                   </button>
                 </div>
               </div>
@@ -570,7 +696,9 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
               <div className="p-6 space-y-4">
                 {/* Disable all inputs when loading */}
                 <Input
-                  label="name"
+                  id="user-name"
+                  name="name"
+                  label="Name"
                   type="text"
                   placeholder="Enter full name"
                   value={newUser?.name}
@@ -580,9 +708,10 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   required
                   disabled={loading}
                 />
-
                 <Input
-                  label="email"
+                  id="user-email"
+                  name="email"
+                  label="Email"
                   type="email"
                   placeholder="Enter email address"
                   value={newUser?.email}
@@ -592,10 +721,11 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   required
                   disabled={loading}
                 />
-
                 <Input
+                  id="user-password"
+                  name="password"
                   type="password"
-                  label="password"
+                  label="Password"
                   placeholder="Enter password"
                   value={newUser?.password}
                   onChange={(e) =>
@@ -603,9 +733,10 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   }
                   disabled={loading}
                 />
-
                 <Input
-                  label="phone"
+                  id="user-phone"
+                  name="phone"
+                  label="Phone"
                   type="tel"
                   placeholder="Enter phone number"
                   value={newUser?.phone}
@@ -615,14 +746,15 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   required
                   disabled={loading}
                 />
-
                 <div className="flex flex-row w-full gap-0">
                   <div className="flex-4">
                     <Input
+                      id="user-job"
+                      name="job"
                       label="Job"
                       disabled={loading}
                       type="text"
-                      placeholder="Select the Job "
+                      placeholder="Select the Job"
                       value={newUser?.job}
                       onChange={(e) =>
                         setNewUser({ ...newUser, job: e?.target?.value })
@@ -633,6 +765,8 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
 
                   <div className="flex-2">
                     <Select
+                      id="user-job-select"
+                      name="jobSelect"
                       label=""
                       options={roleOptions}
                       value={newUser?.job}
@@ -644,8 +778,9 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                     />
                   </div>
                 </div>
-
                 <Input
+                  id="user-wage-rating"
+                  name="wageRating"
                   label="Wage Rating"
                   type="number"
                   placeholder="Enter the wage rating"
@@ -657,9 +792,10 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   required
                   disabled={loading}
                 />
-
                 <Input
-                  label="image"
+                  id="user-image"
+                  name="image"
+                  label="Image"
                   type="file"
                   accept="image/*"
                   placeholder="Upload profile image"
@@ -686,8 +822,8 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
             </div>
           </div>
 
-          {loading && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          {loading && !showBlockModal && (
+            <div className="fixed inset-0 z-[30] flex items-center justify-center bg-black/50 backdrop-blur-sm">
               <div className="bg-white rounded-lg p-6 shadow-xl">
                 <Loading message="Creating user..." />
               </div>
@@ -695,7 +831,6 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
           )}
         </>
       )}
-
       {/* ================= EMAIL VERIFICATION MODAL ================= */}
       {emailVerification && (
         <>
@@ -717,7 +852,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   onClick={() => setEmailVerification(false)}
                   className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth"
                 >
-                  <Icon key="x" name="X" size={20} />
+                  <Icon name="X" size={20} />
                 </button>
               </div>
 
@@ -771,9 +906,136 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
             </div>
           </div>
           {loading && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[30] flex items-center justify-center bg-black/50 backdrop-blur-sm">
               <div className="bg-white rounded-lg p-6 shadow-xl">
                 <Loading message="Submitting..." />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      {loading && (
+        <div className="fixed inset-0 z-[30] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg p-6 shadow-xl">
+            <Loading message="Processing..." />
+          </div>
+        </div>
+      )}{" "}
+      {/* Block User Modal */}
+      {showBlockModal && selectedUser && (
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-modal"
+            onClick={() => setShowBlockModal(false)}
+          />
+
+          {/* Modal container */}
+          <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
+            <div className="bg-card rounded-xl shadow-elevation-5 w-full max-w-md max-h-[90vh] overflow-y-auto border-2 border-gray-400 shadow-2xl shadow-red-500/50">
+              <div className="p-6 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-foreground">
+                    Block User
+                  </h3>
+                  <button
+                    onClick={() => setShowBlockModal(false)}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-muted transition-smooth"
+                    disabled={loading}
+                  >
+                    <Icon name="X" size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* User Information */}
+                <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center">
+                      <Icon
+                        name="User"
+                        size={24}
+                        color="var(--color-destructive)"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {selectedUser.worker.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedUser.worker.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Warning Message */}
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <Icon
+                      name="AlertTriangle"
+                      size={18}
+                      color="var(--color-destructive)"
+                      className="mt-0.5"
+                    />
+                    <p className="text-sm text-destructive">
+                      This action will deactivate the user account. The user
+                      will not be able to access the system until unblocked.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Deactivation Reason */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-foreground">
+                    Deactivation Reason{" "}
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <textarea
+                    id="deactivation-reason"
+                    name="deactivationReason"
+                    rows={4}
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-destructive/50 bg-background text-foreground"
+                    placeholder="Please provide a reason for deactivating this user (e.g., policy violation, performance issues, etc.)"
+                    value={deactivationReason}
+                    onChange={(e) => {
+                      setDeactivationReason(e.target.value);
+                    }}
+                    disabled={loading}
+                  />
+                  {deactivationReasonError && (
+                    <p className="text-sm text-destructive">
+                      {deactivationReasonError}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Required</p>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-border flex gap-3">
+                <Button
+                  onClick={() => setShowBlockModal(false)}
+                  disabled={loading}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmBlock}
+                  disabled={loading}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  {loading ? "Blocking..." : "Block User"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {loading && (
+            <div className="fixed inset-0 z-[30] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-white rounded-lg p-6 shadow-xl">
+                <Loading message="Blocking user..." />
               </div>
             </div>
           )}

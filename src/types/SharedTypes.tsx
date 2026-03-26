@@ -75,6 +75,7 @@ export interface SiteInfoResponse {
   message?: string;
   success?: boolean;
   workEntry?: WorkEntry;
+  data?: any;
 }
 
 export type UserRole = "OWNER" | "FOREMAN" | "WORKER" | "LABORER";
@@ -153,6 +154,8 @@ export interface SiteWorker {
   worker?: User;
 }
 
+export type EntryStatus = "PAID" | "NOT_PAID" | "PENDING";
+
 export interface WorkEntry {
   id?: string;
   workerId: string;
@@ -161,6 +164,9 @@ export interface WorkEntry {
   hours?: number;
   overtime?: number;
   notes?: string;
+  totalHours?: number;
+  amount?: number;
+  status?: EntryStatus;
 
   createdAt?: Date;
 
@@ -249,4 +255,55 @@ export interface SiteAttendanceInfoResponse {
   status?: string;
   message?: string;
   presentWorkers?: WorkEntry[];
+}
+
+export type ActiveWorker = {
+  worker: {
+    id: string;
+    email: string;
+    name: string;
+    phone?: string | null;
+    role: UserRole;
+    job: Job;
+    wageRating: number;
+    imageUrl?: string | null;
+    status?: string | null;
+  };
+  assignedAt: Date;
+};
+
+export interface WorkerPaymentData {
+  worker: {
+    id: string;
+    name: string;
+    email: string;
+    wageRating: number;
+    role: string;
+    job: string;
+    imageUrl: string;
+    phone?: string;
+  };
+  site: {
+    id: string;
+    name: string;
+  };
+  period: {
+    startDate: string;
+    endDate: string;
+  };
+  calculation: {
+    formula: string;
+    wageRating: number;
+    ratePerHour: number;
+  };
+  summary: {
+    totalRegularHours: number;
+    totalOvertimeHours: number;
+    totalHours: number;
+    totalAmount: number;
+  };
+  metadata: {
+    entryCount: number;
+  };
+  entries: WorkEntry[];
 }

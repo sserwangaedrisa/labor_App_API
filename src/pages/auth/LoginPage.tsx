@@ -70,7 +70,6 @@ const Login: React.FC = () => {
         if (response.status === "success") {
           console.log("Password reset OTP sent successfully");
           toast.success(response.message);
-
           setVerificationData({
             ...verificationData,
             userId: response.user?.id,
@@ -83,7 +82,6 @@ const Login: React.FC = () => {
           console.log("Failed to send password reset OTP");
           toast.error(response.message);
         }
-
         return;
       }
 
@@ -106,7 +104,6 @@ const Login: React.FC = () => {
           setNewPassword(true);
         } else if (response.status === "expired") {
           console.log("OTP expired");
-
           setVerificationData({ ...verificationData, otp: "" });
           toast.error(response.message);
           setMsg("OTP expired, please request a new one");
@@ -117,7 +114,6 @@ const Login: React.FC = () => {
           console.log("Email verification failed");
           toast.error(response.message);
         }
-
         return;
       }
 

@@ -52,12 +52,26 @@ const ForemanDashboard: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<SharedTypes.User | null>();
   const [showAttendanceModal, setShowAttendanceModal] =
     useState<boolean>(false);
+
+  const [siteId, setSiteId] = useState<string>("");
   const [currentUserWorkEntry, setCurrentUserWorkEntry] =
     useState<SharedTypes.WorkEntry | null>(null);
 
   const [currentSettings, setCurrentSettings] =
     useState<SharedTypes.SiteSettings | null>(null);
   const [showUserModal, setShowUserModal] = useState<boolean>(false);
+  const [userModalSearchQuery, setUserModalSearchQuery] = useState<{
+    workerId: string;
+    siteId: string;
+    startDate: Date;
+    endDate: Date;
+  }>({
+    workerId: selectedUser ? selectedUser.id : "",
+    siteId: siteId || "",
+    startDate: new Date(),
+    endDate: new Date(),
+  });
+
   const [msg, setMsg] = useState<string>("");
   const [isErr, setIsErr] = useState<boolean>(false);
   const [verificationData, setVerificationData] = useState<{
@@ -67,6 +81,13 @@ const ForemanDashboard: React.FC = () => {
   const [verificationResponse, setVerificationResponse] =
     useState<VerifyAccountResponse | null>(null);
   const [resendOtp, setResendOtp] = useState<boolean>(false);
+  const [siteAssignedWorkers, setSiteAssignedWorkers] = useState<
+    number | string
+  >(0);
+  const [siteActiveWorkers, setSiteActiveWorkers] = useState<
+    SharedTypes.ActiveWorker[]
+  >([]);
+
   const [siteWorkers, setSiteWorkers] = useState<SharedTypes.User[]>([]);
   const [workers, setWorkersDetatil] = useState<Worker[]>([]);
   const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
@@ -124,7 +145,6 @@ const ForemanDashboard: React.FC = () => {
 
           if (siteInfo.site?.workers) {
             setSiteInfo(siteInfo.site);
-            // setSiteWorkers(siteInfo.site?.workers);
             setSiteWorkers(
               siteInfo?.site?.workers
                 ?.filter((w) => w.worker)
@@ -132,6 +152,7 @@ const ForemanDashboard: React.FC = () => {
             );
           } else {
             console.log("No workers data in site info");
+            toast.error("no workers found for this site");
           }
 
           return siteInfo;
@@ -139,8 +160,48 @@ const ForemanDashboard: React.FC = () => {
           console.log(error);
         }
       };
-
+    let siteID = "";
     fetchSiteInfo();
+    if (currentUser?.foremanSites?.length) {
+      const foremanSites = currentUser.foremanSites as { id: string }[];
+      siteID = foremanSites[0].id;
+      console.log("sites: ", siteID);
+      setSiteId(siteID);
+    }
+
+    const gettingUsers = async () => {
+      try {
+        const response: unknown = await authorizePostRequest(
+          "users/allSiteWorkers",
+          { siteId: siteID },
+        );
+
+        if (!response) {
+          console.log("no users found");
+          toast.error("no users found for this site");
+          return;
+        }
+
+        const res = response as {
+          success: boolean;
+          data: any;
+          message: string;
+          count: number | string;
+        };
+
+        if (!res.success) {
+          console.log(res.message);
+          toast.error(res.message);
+          return;
+        }
+
+        setSiteActiveWorkers(res.data);
+        setSiteAssignedWorkers(res.count);
+      } catch (error) {
+        console.log("error while getting site workers", error);
+      }
+    };
+    gettingUsers();
   }, [currentUser]);
 
   // setting the workers for the given search query
@@ -209,6 +270,22 @@ const ForemanDashboard: React.FC = () => {
   }, [showAttendanceModal, siteInfo, currentDate]);
 
   // setting current date for work entries
+
+  // setting seacrh query for the selected user modal
+
+  useEffect(() => {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    if (!selectedUser) return;
+    setUserModalSearchQuery({
+      workerId: selectedUser?.id,
+      endDate: new Date(),
+      siteId: siteId,
+      startDate: startOfMonth,
+    });
+  }, [selectedUser, siteId]);
+
   const handleDateChange = (date: Date) => {
     setCurrentDate(date);
   };
@@ -451,12 +528,52 @@ const ForemanDashboard: React.FC = () => {
     }
   };
 
-  const handleBlockUser = (user: User) => {
+  const handleBlockUser = async (
+    userId: string,
+    deactivationReason: string,
+  ): Promise<boolean> => {
     console.log("Blocking user:", user);
+    try {
+      const response = await authorizePostRequest<SharedTypes.SiteInfoResponse>(
+        "users/blockUser",
+        { userId, deactivationReason },
+      );
+      if (!response.success) {
+        console.log(response?.message || "action incomplete: blocking user");
+        toast.error(response?.message || "failed to block the user");
+        return false;
+      }
+
+      console.log("userblocked successfully");
+      toast.success("user blocked successfully");
+
+      return true;
+    } catch (error) {
+      console.log("error while blocking user");
+      toast.error("Failed to block the user");
+      return false;
+    }
   };
 
-  const handleUnblockUser = (user: User) => {
-    console.log("Unblocking user:", user);
+  const handleUnblockUser = async (userId: string): Promise<boolean> => {
+    try {
+      const response = await authorizePostRequest<SharedTypes.SiteInfoResponse>(
+        "users/unblockUser",
+        { userId },
+      );
+      if (!response.success) {
+        console.log(response.message || "Failed the unblock user: ");
+        toast.error(response.message || "Failed to unblock user");
+        return false;
+      }
+      console.log("user unblocked successfully");
+      toast.success("user unblocked successfully");
+      return true;
+    } catch (error) {
+      console.log("error while unblocking the user: ", error);
+      toast.error("Failed to unblock the user");
+      return false;
+    }
   };
 
   const handleExportPDF = () => {
@@ -803,22 +920,6 @@ const ForemanDashboard: React.FC = () => {
                             }
                             currentDate={currentDate}
                             recordAttendance={handleRecordAttendance}
-                            // currentWorkEntry={
-                            //   siteInfo?.workEntries?.find((entry) => {
-                            //     const entryDate = new Date(entry.date);
-                            //     const currentDateTime = new Date(currentDate);
-                            //     return (
-                            //       entryDate.toDateString() ===
-                            //         currentDateTime.toDateString() &&
-                            //       entry.workerId === worker.id
-                            //     );
-                            //   }) || {
-                            //     workerId: worker.id as string,
-                            //     id: "1",
-                            //     date: currentDate,
-                            //     siteId: "siteID",
-                            //   }
-                            // }
                             currentyWorkEntryId={worker.currentWorkEntryId}
                             key={worker?.id}
                             user={userForWorker}
@@ -877,9 +978,10 @@ const ForemanDashboard: React.FC = () => {
           {showUserModal && selectedUser && (
             <WorkerModal
               isOpen={showUserModal}
-              worker={selectedUser}
+              searchQuery={userModalSearchQuery}
               onClose={() => {
                 setShowUserModal(false);
+                setSelectedUser(null);
               }}
             />
           )}
@@ -887,7 +989,7 @@ const ForemanDashboard: React.FC = () => {
 
         <div>
           <UserManagementPanel
-            users={siteWorkers}
+            propsUsers={siteActiveWorkers}
             verificationData={verificationData}
             resendOtp={resendOtp}
             verificationResponse={verificationResponse}
@@ -900,13 +1002,13 @@ const ForemanDashboard: React.FC = () => {
           />
         </div>
 
-        {showUserModal && selectedUser && (
+        {/* {showUserModal && selectedUser && (
           <WorkerModal
             worker={selectedUser}
             isOpen={showUserModal}
             onClose={() => setShowUserModal(false)}
           />
-        )}
+        )} */}
       </LoadingBoundary>
     </RoleGuard>
   );
