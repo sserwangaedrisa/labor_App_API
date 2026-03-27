@@ -17,9 +17,15 @@ import {
   AlertCircle,
 } from "lucide-react";
 import Icon from "../../../components/ui/AppIconl";
-import type { WorkEntry, WorkerPaymentData } from "../../../types/SharedTypes";
+import ConfirmationModal from "../../../components/ui/Confirmation";
+import type {
+  SiteInfoResponse,
+  WorkEntry,
+  WorkerPaymentData,
+} from "../../../types/SharedTypes";
 import toast from "react-hot-toast";
 import authorizePostRequest from "../../../api/authorizePostRequest";
+import Loading from "../../../components/ui/Loading";
 
 interface SearchObject {
   startDate: Date;
@@ -46,8 +52,15 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
   onClose,
 }) => {
   const [worker, setWorker] = useState<WorkerPaymentData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [showLaborCard, setShowLaborCard] = useState(false);
+
+  // payment request states
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
+  const [paymentRequestConfirmation, setPaymentRequestConfirmation] =
+    useState<boolean>(false);
+
+  // loading effect
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Use refs to track request state
   const isFetchingRef = useRef(false);
@@ -164,7 +177,61 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
     };
   }, [isOpen, requestKey, searchQuery, worker]);
 
-  // Memoize formatters to prevent recreation on each render
+  // setting the initial entries for payments request. ( all entries within the selected date range)
+  useEffect(() => {
+    if (!worker || worker?.entries.length <= 0) {
+      return;
+    }
+    setSelectedEntries(worker.entries.map((entry) => entry.id as string));
+  }, [worker?.entries]);
+
+  const setIntialPaymentsEntries = () => {
+    if (!worker || worker?.entries.length <= 0) {
+      return;
+    }
+    setSelectedEntries(worker.entries.map((entry) => entry.id as string));
+  };
+
+  // making the payment request
+  const makePaymentRequest = async (): Promise<boolean> => {
+    if (selectedEntries.length <= 0) {
+      console.log("No entries selected for the payment");
+      toast.error("No entries selected for the payment");
+      return false;
+    }
+    setIsLoading(true);
+    try {
+      const workerId = worker?.worker.id;
+      const siteId = worker?.site.id;
+      const request: SiteInfoResponse = await authorizePostRequest(
+        "payments/worker",
+        {
+          entryIds: selectedEntries,
+          siteId,
+          workerId,
+        },
+      );
+
+      if (!request.success || !request) {
+        console.log(request.message || "Error while making payment request");
+        toast.error("Failed to make the payment request");
+        setPaymentRequestConfirmation(false);
+        return false;
+      }
+
+      console.log("Payment request made successfully");
+
+      toast.success("Payment request made successfully");
+      return true;
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to make the payment request");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formatDate = useCallback((dateString: string) => {
     try {
       return format(new Date(dateString), "MMM dd, yyyy");
@@ -193,7 +260,7 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
   return (
     <>
       <div
-        className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
+        className="reltive fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
         onClick={onClose}
       >
         <div
@@ -362,17 +429,38 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
               >
                 Show Labor Card
               </button>
+              <button
+                onClick={() => setPaymentRequestConfirmation(true)}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-orange-500 hover:from-orange-700 hover:to-pink-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                make Payment Request
+              </button>
             </div>
           </div>
         </div>
+
+        {paymentRequestConfirmation && (
+          <ConfirmationModal
+            onCancel={() => setPaymentRequestConfirmation(false)}
+            onConfirm={makePaymentRequest}
+            title="Payment Request"
+          />
+        )}
+
+        {isLoading && <Loading message="Proccessing payment request" />}
       </div>
 
       {/* Labor Card Modal */}
       {showLaborCard && (
         <LaborCard
+          makePaymentRequestFc={makePaymentRequest}
+          setSelectedEntries={setSelectedEntries}
           isOpen={showLaborCard}
           workerData={worker}
-          onClose={() => setShowLaborCard(false)}
+          onClose={() => {
+            setShowLaborCard(false);
+            setIntialPaymentsEntries();
+          }}
         />
       )}
     </>

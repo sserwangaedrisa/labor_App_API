@@ -1,6 +1,11 @@
-// LaborCard.tsx
+// LaborCard.tsx - Fixed Version
+
 import React, { useState, useEffect } from "react";
-import type { WorkEntry, WorkerPaymentData } from "../../types/SharedTypes";
+import type {
+  WorkEntry,
+  WorkerPaymentData,
+  SiteInfoResponse,
+} from "../../types/SharedTypes";
 
 import {
   Calendar,
@@ -19,7 +24,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  icons,
 } from "lucide-react";
 import {
   format,
@@ -35,57 +39,14 @@ import {
 } from "date-fns";
 import Image from "./AppImage";
 import toast from "react-hot-toast";
-import authorizePostRequest from "../../api/authorizePostRequest";
-
-// interface WorkEntry {
-//   id: string;
-//   date: string;
-//   hours: number;
-//   overtime: number;
-//   totalHours: number;
-//   amount: number;
-//   status: string;
-//   notes?: string;
-// }
-
-// interface WorkerPaymentData {
-//   worker: {
-//     id: string;
-//     name: string;
-//     email: string;
-//     phone?: string;
-//     imageUrl?: string;
-//     job?: string;
-//     role?: string;
-//   };
-//   site: {
-//     id: string;
-//     name: string;
-//     location?: string;
-//   };
-//   period: {
-//     startDate: string;
-//     endDate: string;
-//   };
-//   entries: WorkEntry[];
-//   summary: {
-//     totalRegularHours: number;
-//     totalOvertimeHours: number;
-//     totalHours: number;
-//     totalAmount: number;
-//   };
-//   calculation: {
-//     ratePerHour: number;
-//     wageRating: number;
-//     formula: string;
-//   };
-//   metadata: {
-//     entryCount: number;
-//   };
-// }
+import { useAuth } from "../../app/providers";
+import ConfirmationModal from "./Confirmation";
+import Loading from "./Loading";
 
 interface LaborCardProps {
+  setSelectedEntries: React.Dispatch<React.SetStateAction<string[]>>;
   isOpen: boolean;
+  makePaymentRequestFc: () => Promise<boolean>;
   workerData: WorkerPaymentData | null;
   onClose: () => void;
 }
@@ -93,23 +54,38 @@ interface LaborCardProps {
 const LaborCard: React.FC<LaborCardProps> = ({
   isOpen,
   workerData,
+  makePaymentRequestFc,
+  setSelectedEntries,
   onClose,
 }) => {
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<WorkEntry | null>(null);
 
+  // Payment states - FIXED: Use state for selected entries
+  const [selectedLaborCardPayments, setSelectedLaborCardPayments] = useState<
+    string[]
+  >([]);
+  const [workEntrySelection, setWorkEntrySelection] = useState<boolean>(false);
+
+  // confirmation
+  const [paymentRequestConfirmation, setPaymentRequestConfirmation] =
+    useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // set user context
+  const { user } = useAuth();
+
   if (!isOpen || !workerData) return null;
 
   // Get all days in the current month view (including previous/next month days for grid)
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Start from Monday
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 }); // End on Sunday
+  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
 
-  // Create a map of work entries by date for quick lookup
   const entriesByDate = new Map<string, WorkEntry>();
   workerData.entries.forEach((entry) => {
     const dateKey = format(new Date(entry.date), "yyyy-MM-dd");
@@ -122,18 +98,16 @@ const LaborCard: React.FC<LaborCardProps> = ({
     return entriesByDate.get(dateKey) || null;
   };
 
-  // Get status for a specific date
-  const getDayStatus = (date: Date): "ABSENT" | "PRESENT" | "OUT" => {
+  // Get status for a specific date - FIXED: Check if entry ID is in selectedLaborCardPayments
+  const getDayStatus = (date: Date): "ABSENT" | "PRESENT" | "SELECTED" => {
     const entry = getEntryForDate(date);
     if (!entry) {
       return "ABSENT";
     }
-    // Checking if the date is within the worker's period
-    const periodStart = new Date(workerData.period.startDate);
-    const periodEnd = new Date(workerData.period.endDate);
 
-    if (date > periodEnd || date < periodStart) {
-      return "OUT";
+    //  Check if this entry ID is in the selectedLaborCardPayments array
+    if (selectedLaborCardPayments.includes(entry.id as string)) {
+      return "SELECTED";
     }
     return "PRESENT";
   };
@@ -143,8 +117,50 @@ const LaborCard: React.FC<LaborCardProps> = ({
     return `${hours.toFixed(1)}h`;
   };
 
-  // Get status color and icon
-  const getStatusStyle = (status: "ABSENT" | "PRESENT" | "OUT") => {
+  //  Function to toggle entry selection
+  const toggleEntrySelection = (entryId: string) => {
+    setSelectedLaborCardPayments((prev) => {
+      if (prev.includes(entryId)) {
+        const newSelection = prev.filter((id) => id !== entryId);
+        setSelectedEntries(newSelection);
+        return newSelection;
+      } else {
+        const newSelection = [...prev, entryId];
+        setSelectedEntries(newSelection);
+        return newSelection;
+      }
+    });
+  };
+
+  const clearSelections = () => {
+    setSelectedLaborCardPayments([]);
+    setSelectedEntries([]);
+  };
+
+  const makePaymentRequest = async () => {
+    try {
+      if (selectedLaborCardPayments.length <= 0) {
+        toast.error("No work entries selected");
+        return;
+      }
+
+      setIsLoading(true);
+      const paymentReq = await makePaymentRequestFc();
+
+      if (paymentReq) {
+        clearSelections();
+        setWorkEntrySelection(false);
+      }
+    } catch (error) {
+      console.error("Payment request error:", error);
+    } finally {
+      setIsLoading(false);
+      setPaymentRequestConfirmation(false);
+    }
+  };
+
+  // Get status color and icon - FIXED: Added SELECTED style
+  const getStatusStyle = (status: "ABSENT" | "PRESENT" | "SELECTED") => {
     switch (status) {
       case "PRESENT":
         return {
@@ -153,12 +169,12 @@ const LaborCard: React.FC<LaborCardProps> = ({
           icon: <CheckCircle className="w-4 h-4 text-green-500" />,
           label: "Present",
         };
-
-      case "OUT":
+      case "SELECTED":
         return {
-          bgColor: "bg-blue-50 border-red-200 ",
-          textColor: "text-red-700",
-          label: "",
+          bgColor: "bg-blue-500 border-blue-600", // Changed to blue for selected
+          textColor: "text-white",
+          icon: <CheckCircle className="w-4 h-4 text-white" />,
+          label: "Selected",
         };
       case "ABSENT":
         return {
@@ -169,7 +185,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         };
       default:
         return {
-          bgColor: "bg-gray-500 border-gray-200 hover:bg-gray-100",
+          bgColor: "bg-gray-50 border-gray-200 hover:bg-gray-100",
           textColor: "text-gray-500",
           icon: <AlertCircle className="w-4 h-4 text-gray-400" />,
           label: "No Data",
@@ -184,6 +200,8 @@ const LaborCard: React.FC<LaborCardProps> = ({
         return "bg-green-500";
       case "PENDING":
         return "bg-yellow-500";
+      case "REVIEW":
+        return "bg-blue-500";
       case "NOT_PAID":
         return "bg-red-500";
       default:
@@ -217,8 +235,20 @@ const LaborCard: React.FC<LaborCardProps> = ({
   // Handle day click
   const handleDayClick = (date: Date) => {
     const entry = getEntryForDate(date);
-    setSelectedDate(date);
-    setSelectedEntry(entry);
+
+    if (!workEntrySelection && entry) {
+      setSelectedDate(date);
+      setSelectedEntry(entry);
+    } else if (
+      (workEntrySelection && entry?.status === "PAID") ||
+      (workEntrySelection && entry?.status === "PENDING")
+    ) {
+      console.log(`Selected entry under ${entry.status}`);
+      toast.error(`Selected entry under ${entry.status}`);
+      return;
+    } else if (workEntrySelection && entry) {
+      toggleEntrySelection(entry.id as string);
+    }
   };
 
   // Print functionality
@@ -229,6 +259,11 @@ const LaborCard: React.FC<LaborCardProps> = ({
   // Download as PDF (using browser print to PDF)
   const handleDownload = () => {
     window.print();
+  };
+
+  const cancelSelectionMode = () => {
+    setWorkEntrySelection(false);
+    clearSelections();
   };
 
   const monthSummary = {
@@ -271,6 +306,12 @@ const LaborCard: React.FC<LaborCardProps> = ({
                   {workerData.site.name} •{" "}
                   {format(new Date(workerData.period.startDate), "MMM yyyy")}
                 </p>
+                {workEntrySelection && (
+                  <p className="text-yellow-200 text-sm mt-1">
+                    Selection Mode: {selectedLaborCardPayments.length} entries
+                    selected
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex gap-2 print:hidden">
@@ -327,6 +368,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
               </div>
             </div>
           </div>
+
           {/* Month Navigation */}
           <div className="flex items-center justify-between print:hidden">
             <button
@@ -353,6 +395,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
               <ChevronRight className="w-5 h-5" />
             </button>
           </div>
+
           {/* Month Summary Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center">
@@ -395,8 +438,9 @@ const LaborCard: React.FC<LaborCardProps> = ({
               <p className="text-xs text-purple-700 font-medium">Earnings</p>
             </div>
           </div>
+
           {/* Calendar Grid */}
-          <div>
+          <div className="relative">
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-2 mb-2">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
@@ -424,10 +468,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
                     onClick={() => isCurrentMonth && handleDayClick(day)}
                     className={`
                       min-h-[100px] p-2 rounded-lg border transition-all cursor-pointer
-                      ${!isCurrentMonth && "opacity-20"}
-                      ${isSelected ? "ring-2 ring-blue-500 shadow-lg" : ""}
-                      ${statusStyle.bgColor || "bg-gray-50"}
-                      ${isCurrentMonth ? "hover:shadow-md" : "cursor-default"}
+                      ${!isCurrentMonth && "opacity-30"}
+                      ${isSelected && !workEntrySelection ? "ring-2 ring-blue-500 shadow-lg" : ""}
+                      ${statusStyle.bgColor}
+                      ${workEntrySelection && isCurrentMonth && entry ? "hover:scale-105 hover:shadow-md" : ""}
                     `}
                   >
                     <div className="flex justify-between items-start mb-1">
@@ -439,7 +483,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
                       >
                         {format(day, "d")}
                       </span>
-                      {isCurrentMonth && (
+                      {isCurrentMonth && entry && (
                         <div className="print:hidden">{statusStyle.icon}</div>
                       )}
 
@@ -469,12 +513,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
                             </span>
                           </div>
                         )}
-                        {/* <div className="flex justify-between items-center text-green-600">
-                          <span className="text-xs">Amount:</span>
-                          <span className="font-semibold">
-                            ${entry?.amount?.toFixed(2)}
-                          </span>
-                        </div> */}
                       </div>
                     )}
 
@@ -493,14 +531,56 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 );
               })}
             </div>
+
+            {/* Loading Overlay */}
+            {isLoading && (
+              <Loading
+                transparent
+                message="Making payment request..."
+                overlay={true}
+              />
+            )}
           </div>
+
+          {/* FIXED: Button section - Selection Mode Controls */}
+          <div className="flex gap-3">
+            {!workEntrySelection && user?.role !== "LABORER" && (
+              <button
+                onClick={() => setWorkEntrySelection(true)}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Start Payment Selection
+              </button>
+            )}
+
+            {workEntrySelection && (
+              <>
+                <button
+                  onClick={cancelSelectionMode}
+                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200"
+                >
+                  Cancel Selection
+                </button>
+
+                {selectedLaborCardPayments.length > 0 && (
+                  <button
+                    onClick={() => setPaymentRequestConfirmation(true)}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Submit Request ({selectedLaborCardPayments.length})
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
           {/* Selected Day Details */}
-          {selectedDate && selectedEntry && (
+          {selectedDate && selectedEntry && !workEntrySelection && (
             <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 print:bg-gray-50">
               <h4 className="font-semibold text-gray-800 mb-3">
                 Details for {format(selectedDate, "EEEE, MMMM d, yyyy")}
               </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-gray-600">Regular Hours</p>
                   <p className="text-lg font-bold text-gray-800">
@@ -519,13 +599,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
                     {formatHours(selectedEntry.totalHours || 0)}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-600">Amount Earned</p>
-                  <p className="text-lg font-bold text-green-600">
-                    $
-                    {selectedEntry.amount ? selectedEntry.amount.toFixed(2) : 0}
-                  </p>
-                </div>
               </div>
               {selectedEntry.notes && (
                 <div className="mt-3 pt-3 border-t border-blue-200">
@@ -535,12 +608,31 @@ const LaborCard: React.FC<LaborCardProps> = ({
               )}
             </div>
           )}
+
+          {/* Confirmation Modal */}
+          {paymentRequestConfirmation && (
+            <ConfirmationModal
+              title="Payment Request"
+              onConfirm={makePaymentRequest}
+              onCancel={() => setPaymentRequestConfirmation(false)}
+              description={`Are you sure you want to submit payment request for ${selectedLaborCardPayments.length} work entry/entries? This action cannot be undone.`}
+              confirmButtonText="Submit Request"
+              danger={false}
+            />
+          )}
+
           {/* Legend */}
           <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-200 print:hidden">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
               <span className="text-xs text-gray-600">
                 Present (with entry)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-500 rounded"></div>
+              <span className="text-xs text-white bg-blue-500 px-2 py-0.5 rounded">
+                Selected for Payment
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -568,9 +660,15 @@ const LaborCard: React.FC<LaborCardProps> = ({
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
                   <span className="text-xs text-gray-600">Not Paid</span>
                 </div>
+                {(user?.role === "FOREMAN" || user?.role === "OWNER") && (
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-xs text-gray-600">Under Review</span>
+                  </div>
+                )}
               </div>
             </div>
-          </div>{" "}
+          </div>
         </div>
       </div>
     </div>
