@@ -38,8 +38,9 @@ export interface Worker {
   hoursToday: number;
   wageRate: number;
   lastUpdated: string;
-  staus?: string;
+  status?: string;
   workEntry?: WorkEntry;
+  isActive?: boolean;
 }
 
 export type NotificationType = "info" | "warning" | "success";
@@ -268,6 +269,7 @@ export type ActiveWorker = {
     wageRating: number;
     imageUrl?: string | null;
     status?: string | null;
+    isActive?: boolean;
   };
   assignedAt: Date;
 };

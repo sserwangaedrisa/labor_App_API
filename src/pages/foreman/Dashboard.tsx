@@ -27,7 +27,7 @@ import type {
 } from "../../types/SharedTypes";
 import * as SharedTypes from "../../types/SharedTypes";
 import authorizePostRequest from "../../api/authorizePostRequest";
-import { s } from "framer-motion/client";
+import { div, s } from "framer-motion/client";
 import { Settings } from "lucide-react";
 
 // TYPES
@@ -56,6 +56,8 @@ const ForemanDashboard: React.FC = () => {
   const [siteId, setSiteId] = useState<string>("");
   const [currentUserWorkEntry, setCurrentUserWorkEntry] =
     useState<SharedTypes.WorkEntry | null>(null);
+  const [showPaymentRequestCard, setShowPaymentRequestCard] =
+    useState<boolean>(false);
 
   const [currentSettings, setCurrentSettings] =
     useState<SharedTypes.SiteSettings | null>(null);
@@ -165,7 +167,6 @@ const ForemanDashboard: React.FC = () => {
     if (currentUser?.foremanSites?.length) {
       const foremanSites = currentUser.foremanSites as { id: string }[];
       siteID = foremanSites[0].id;
-      console.log("sites: ", siteID);
       setSiteId(siteID);
     }
 
@@ -217,7 +218,6 @@ const ForemanDashboard: React.FC = () => {
     handleWorkerManagementSearch();
   }, [searchQuery, workers]);
 
-  // getting the attendance of the selected day
   useEffect(() => {
     const fetchAttendance = async () => {
       const res =
@@ -233,33 +233,37 @@ const ForemanDashboard: React.FC = () => {
 
       const presentWorkers = res.presentWorkers;
 
-      if (siteInfo?.workers) {
-        const updatedWorkers = siteInfo.workers.map(({ worker }) => {
-          const workerId = worker?.id ?? "";
-          const workEntry = presentWorkers.find(
-            (entry) => entry.workerId === worker?.id,
-          );
-          const currentWorkEntryId = workEntry?.id;
-          const timeWorkedToday = workEntry?.hours;
-          const overtime = workEntry?.overtime;
-          return {
-            id: workerId,
-            name: worker?.name ?? "",
-            avatar: worker?.imageUrl ?? "",
-            avatarAlt: worker?.name ?? "",
-            role: worker?.job ?? "WORKER",
-            todayStatus: currentWorkEntryId ? "present" : "absent",
-            currentWorkEntryId: currentWorkEntryId ?? "",
-            hoursToday:
-              timeWorkedToday && overtime ? timeWorkedToday + overtime : 0,
-            wageRate: worker?.wageRating ?? 0,
-            lastUpdated: new Date().toISOString(),
-            workEntry,
-          };
-        });
-
-        setWorkersDetatil(updatedWorkers);
-        setFilteredWorkers(updatedWorkers);
+      if (siteActiveWorkers.length > 0) {
+        const updatedWorkers = siteActiveWorkers
+          .map(({ worker }) => {
+            if (worker?.status !== "ACTIVE" || !worker?.isActive) {
+              return null;
+            }
+            const workerId = worker?.id ?? "";
+            const workEntry = presentWorkers.find(
+              (entry) => entry.workerId === worker?.id,
+            );
+            const currentWorkEntryId = workEntry?.id;
+            const timeWorkedToday = workEntry?.hours;
+            const overtime = workEntry?.overtime;
+            return {
+              id: workerId,
+              name: worker?.name ?? "",
+              avatar: worker?.imageUrl ?? "",
+              avatarAlt: worker?.name ?? "",
+              role: worker?.job ?? "WORKER",
+              todayStatus: currentWorkEntryId ? "present" : "absent",
+              currentWorkEntryId: currentWorkEntryId ?? "",
+              hoursToday:
+                timeWorkedToday && overtime ? timeWorkedToday + overtime : 0,
+              wageRate: worker?.wageRating ?? 0,
+              lastUpdated: new Date().toISOString(),
+              workEntry,
+            };
+          })
+          .filter((worker) => worker !== null);
+        setWorkersDetatil(updatedWorkers as Worker[]);
+        setFilteredWorkers(updatedWorkers as Worker[]);
         console.log("updated list got");
       }
     };
@@ -268,8 +272,6 @@ const ForemanDashboard: React.FC = () => {
       fetchAttendance();
     }
   }, [showAttendanceModal, siteInfo, currentDate]);
-
-  // setting current date for work entries
 
   // setting seacrh query for the selected user modal
 
@@ -532,42 +534,122 @@ const ForemanDashboard: React.FC = () => {
     userId: string,
     deactivationReason: string,
   ): Promise<boolean> => {
-    console.log("Blocking user:", user);
+    console.log("Blocking user:", userId);
     try {
       const response = await authorizePostRequest<SharedTypes.SiteInfoResponse>(
         "users/blockUser",
         { userId, deactivationReason },
       );
+
       if (!response.success) {
         console.log(response?.message || "action incomplete: blocking user");
         toast.error(response?.message || "failed to block the user");
         return false;
       }
 
-      console.log("userblocked successfully");
-      toast.success("user blocked successfully");
+      console.log("user blocked successfully");
+      toast.success("User blocked successfully");
+
+      setSiteActiveWorkers((prevActiveWorkers) =>
+        prevActiveWorkers.map((item) =>
+          item.worker.id === userId
+            ? {
+                ...item,
+                worker: { ...item.worker, status: "BLOCKED", isActive: false },
+              }
+            : item,
+        ),
+      );
+
+      // Removing the user from the main workers list
+      setWorkersDetatil((prevWorkers) =>
+        prevWorkers.filter((worker) => worker.id !== userId),
+      );
+
+      // Removing the user from the filtered list
+      setFilteredWorkers((prevFiltered) =>
+        prevFiltered.filter((worker) => worker.id !== userId),
+      );
 
       return true;
     } catch (error) {
-      console.log("error while blocking user");
+      console.log("error while blocking user:", error);
       toast.error("Failed to block the user");
       return false;
     }
   };
 
+  // unblocking the user and refreshing the list of the filtered workers
   const handleUnblockUser = async (userId: string): Promise<boolean> => {
     try {
       const response = await authorizePostRequest<SharedTypes.SiteInfoResponse>(
         "users/unblockUser",
         { userId },
       );
+
       if (!response.success) {
-        console.log(response.message || "Failed the unblock user: ");
+        console.log(response.message || "Failed to unblock user: ");
         toast.error(response.message || "Failed to unblock user");
         return false;
       }
+
       console.log("user unblocked successfully");
-      toast.success("user unblocked successfully");
+      toast.success("User unblocked successfully");
+
+      setSiteActiveWorkers((prevActiveWorkers) =>
+        prevActiveWorkers.map((item) =>
+          item.worker.id === userId
+            ? {
+                ...item,
+                worker: { ...item.worker, status: "ACTIVE", isActive: true },
+              }
+            : item,
+        ),
+      );
+
+      // Updating the main workers list
+      setWorkersDetatil((prevWorkers) =>
+        prevWorkers.map((worker) =>
+          worker.id === userId
+            ? { ...worker, status: "ACTIVE", isActive: true }
+            : worker,
+        ),
+      );
+
+      const unblockedUser = siteActiveWorkers?.find(
+        (item) => item.worker.id === userId,
+      )?.worker;
+
+      if (unblockedUser) {
+        setFilteredWorkers((prevFiltered) => {
+          const exists = prevFiltered.some((worker) => worker.id === userId);
+
+          if (exists) {
+            return prevFiltered.map((worker) =>
+              worker.id === userId
+                ? { ...worker, status: "ACTIVE", isActive: true }
+                : worker,
+            );
+          } else {
+            const newWorker: Worker = {
+              id: unblockedUser.id,
+              name: unblockedUser.name || "",
+              avatar: unblockedUser.imageUrl || "",
+              avatarAlt: unblockedUser.name || "",
+              role: unblockedUser.job || "WORKER",
+              todayStatus: "absent",
+              currentWorkEntryId: "",
+              hoursToday: 0,
+              wageRate: unblockedUser.wageRating || 0,
+              lastUpdated: new Date().toISOString(),
+              status: "ACTIVE",
+              isActive: true,
+            };
+
+            return [...prevFiltered, newWorker];
+          }
+        });
+      }
       return true;
     } catch (error) {
       console.log("error while unblocking the user: ", error);
@@ -575,6 +657,8 @@ const ForemanDashboard: React.FC = () => {
       return false;
     }
   };
+
+  console.log("filtered workers: ", filteredWorkers);
 
   const handleExportPDF = () => {
     try {
@@ -753,7 +837,7 @@ const ForemanDashboard: React.FC = () => {
               <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-6 md:mb-8">
                 <SiteOverviewCard
                   title="Total Workers"
-                  value={siteOverview?.totalWorkers}
+                  value={siteActiveWorkers.length}
                   subtitle="Assigned to site"
                   iconName="Users"
                   iconColor="var(--color-primary)"
@@ -797,15 +881,79 @@ const ForemanDashboard: React.FC = () => {
                     onSiteSettings={handleSiteSettings}
                   />
                 </div>
-                <div>
-                  <PaymentRequestCard
-                    pendingRequests={siteOverview?.pendingPayments}
-                    onSubmitRequest={handleSubmitPaymentRequest}
-                    onViewHistory={handleViewPaymentHistory}
-                  />
-                </div>
               </div>
 
+              {/* payment proccessing section */}
+              <div className="bg-card rounded-lg shadow-md border border-border overflow-hidden">
+                {/* Header with Toggle */}
+                <div
+                  className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-muted/20 transition-colors"
+                  onClick={() =>
+                    setShowPaymentRequestCard(!showPaymentRequestCard)
+                  }
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
+                      <Icon
+                        name="DollarSign"
+                        size={18}
+                        color="var(--color-primary)"
+                      />
+                    </div>
+                    <div>
+                      <h1 className="text-base font-semibold text-foreground">
+                        Payments
+                      </h1>
+                      <p className="text-xs text-muted-foreground">
+                        {siteOverview?.pendingPayments === 0
+                          ? "No pending requests"
+                          : `${siteOverview?.pendingPayments || 0} pending request${siteOverview?.pendingPayments !== 1 ? "s" : ""}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {siteOverview?.pendingPayments > 0 && (
+                      <div className="bg-warning/15 rounded-full px-2.5 py-0.5">
+                        <span className="text-xs font-medium text-warning">
+                          {siteOverview.pendingPayments}
+                        </span>
+                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-1"
+                      onClick={() => {
+                        setShowPaymentRequestCard(!showPaymentRequestCard);
+                      }}
+                    >
+                      <Icon
+                        name={
+                          showPaymentRequestCard ? "ChevronUp" : "ChevronDown"
+                        }
+                        size={20}
+                      />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                {showPaymentRequestCard && (
+                  <div className="px-5 pb-5 animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="border-t border-border pt-4">
+                      <PaymentRequestCard
+                        pendingRequests={siteOverview?.pendingPayments}
+                        onViewHistory={handleViewPaymentHistory}
+                        siteId={siteId}
+                        onPaymentSuccess={() => {
+                          setShowPaymentRequestCard(false);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
               {/* worker management */}
 
               <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
@@ -816,7 +964,7 @@ const ForemanDashboard: React.FC = () => {
                         Worker Management
                       </h2>
                       <p className="caption text-muted-foreground text-sm">
-                        {workers?.length} workers assigned to your site
+                        {workers?.length} Active workers assigned to your site
                       </p>
                     </div>
                     <Button
@@ -900,37 +1048,56 @@ const ForemanDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-card divide-y divide-border">
-                      {filteredWorkers?.map((worker) => {
-                        const userForWorker = siteInfo?.workers?.find(
-                          (w) => w.workerId === worker.id,
-                        )?.worker;
-                        // siteActiveWorkers.map((worker) ={}
-                        return (
-                          <WorkerTableRow
-                            deleteAttendance={deleteAttendance}
-                            siteSettings={
-                              currentSettings || {
-                                id: "1",
-                                siteId: "",
-                                createdAt: currentDate,
-                                updatedAt: currentDate,
-                                baseHourlyRate: 0,
-                                maxDailyHours: 0,
-                                overtimeRate: 0,
+                      {filteredWorkers.length > 0 ? (
+                        filteredWorkers.map((worker) => {
+                          // ✅ Skip if worker or worker.id is undefined/null/empty
+                          if (
+                            !worker?.id ||
+                            (worker.id as string).length === 0
+                          ) {
+                            return null; // Return null, not undefined
+                          }
+
+                          const userForWorker = siteActiveWorkers.find(
+                            (w) => w.worker.id === worker.id, // worker.id is already a string
+                          )?.worker;
+
+                          return (
+                            <WorkerTableRow
+                              deleteAttendance={deleteAttendance}
+                              siteSettings={
+                                currentSettings || {
+                                  id: "1",
+                                  siteId: "",
+                                  createdAt: currentDate,
+                                  updatedAt: currentDate,
+                                  baseHourlyRate: 0,
+                                  maxDailyHours: 0,
+                                  overtimeRate: 0,
+                                }
                               }
-                            }
-                            currentDate={currentDate}
-                            recordAttendance={handleRecordAttendance}
-                            currentyWorkEntryId={worker.currentWorkEntryId}
-                            key={worker?.id}
-                            user={userForWorker}
-                            worker={worker}
-                            onRecordAttendance={handleRecordAttendanced}
-                            onViewUserDetails={handleViewUserDetails}
-                          />
-                        );
-                      })}
-                    </tbody>
+                              currentDate={currentDate}
+                              recordAttendance={handleRecordAttendance}
+                              currentyWorkEntryId={worker.currentWorkEntryId}
+                              key={worker.id}
+                              user={userForWorker as User}
+                              worker={worker}
+                              onRecordAttendance={handleRecordAttendanced}
+                              onViewUserDetails={handleViewUserDetails}
+                            />
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="text-center py-8 text-muted-foreground"
+                          >
+                            No workers found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>{" "}
                   </table>
                 </div>
 
