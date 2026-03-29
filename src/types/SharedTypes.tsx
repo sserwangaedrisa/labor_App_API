@@ -70,13 +70,23 @@ interface MonthClose {
   siteId: string;
 }
 
+export type SiteDetails = {
+  site_id: string;
+  site_name: string;
+  site_description: string | null;
+  site_location: string;
+  site_created_at: string; // ISO date string
+  singleworkerpayments: string[];
+  batchpayments: string[];
+};
+
 export interface SiteInfoResponse {
   status?: string;
   site?: Sited;
   message?: string;
   success?: boolean;
   workEntry?: WorkEntry;
-  data?: any;
+  data?: SiteDetails | any;
 }
 
 export type UserRole = "OWNER" | "FOREMAN" | "WORKER" | "LABORER";
@@ -123,7 +133,6 @@ export interface User {
 
   // options for the first state
   assignedSite?: string;
-  isBlocked: boolean;
 }
 
 export interface Sited {
@@ -266,10 +275,13 @@ export type ActiveWorker = {
     phone?: string | null;
     role: UserRole;
     job: Job;
+    createdAt: Date;
+    updatedAt: Date;
+    isBlocked?: boolean;
     wageRating: number;
     imageUrl?: string | null;
     status?: string | null;
-    isActive?: boolean;
+    isActive: boolean;
   };
   assignedAt: Date;
 };

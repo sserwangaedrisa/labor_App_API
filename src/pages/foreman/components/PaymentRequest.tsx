@@ -195,32 +195,36 @@ const PaymentRequestCard: React.FC<PaymentRequestCardProps> = ({
 
   const initiatePaymentRequest = async () => {
     setInitiatingPayment(true);
-
+    setLoading(true);
     try {
-      const response = await fetch("/api/initiate-payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          siteId,
-          startDate,
-          endDate,
-        }),
-      });
+      interface paymentRequestResponse {
+        success: boolean;
+        message?: string;
+        batchId?: string;
+      }
+      const data: paymentRequestResponse = await authorizePostRequest(
+        "payments/sitePaymentRequest",
+        { siteId, startDate, endDate },
+      );
 
-      const data = await response.json();
+      if (!data.success) {
+        console.log(data.message || "Failed to make the request");
+        toast.error(data.message || "Failed to make the reques");
+      }
 
       if (data.success) {
         setPaymentSuccess(true);
-        await fetchPaymentSummary();
 
         setTimeout(() => {
           setShowConfirmationModal(false);
           setPaymentSuccess(false);
         }, 2000);
+        toast.success(data.message || "Payment Request made successfully");
       } else {
         throw new Error(data.message || "Failed to initiate payment");
+        toast.error(
+          "Failed to make the payment reques for the above selected date",
+        );
       }
     } catch (err) {
       console.error("Error initiating payment:", err);
@@ -230,6 +234,7 @@ const PaymentRequestCard: React.FC<PaymentRequestCardProps> = ({
       setShowConfirmationModal(false);
     } finally {
       setInitiatingPayment(false);
+      setLoading(false);
     }
   };
 

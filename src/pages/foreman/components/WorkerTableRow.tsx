@@ -84,9 +84,6 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
   }, [siteSettings, currentDate]);
 
   const handleToggleAttendance = async () => {
-    console.log("button clicked for", worker.name);
-    console.log("current state:", { isPresent, currentAttendance });
-
     if (isToggling) return;
     setIsToggling(true);
 
@@ -109,11 +106,8 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
       }
       // If absent, create attendance
       else {
-        console.log("Creating attendance with data:", formData);
-
         const response = await recordAttendance(formData);
         if (!response.success) {
-          toast.error(response.message || "Failed to record attendance");
           return;
         }
 
@@ -121,7 +115,6 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
         if (response.workEntry) {
           setCurrentAttendance(response.workEntry);
           setIsPresent(true);
-          toast.success("Attendance recorded successfully");
         } else {
           toast.error("No work entry returned");
         }

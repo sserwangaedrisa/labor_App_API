@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../src/app/providers";
+import SiteHeader from "../../components/ui/SiteHeader";
 import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
 import RoleGuard from "../../components/ui/RoleGuard";
 import LoadingBoundary from "../../components/ui/LoadingBoundary";
@@ -45,7 +46,6 @@ interface VerifyAccountResponse {
 ======================= */
 
 const ForemanDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState<boolean>(false);
   const [selectedWorker, setSelectedWorker] =
     useState<SharedTypes.User | null>();
@@ -74,6 +74,8 @@ const ForemanDashboard: React.FC = () => {
     endDate: new Date(),
   });
 
+  // payment states
+
   const [msg, setMsg] = useState<string>("");
   const [isErr, setIsErr] = useState<boolean>(false);
   const [verificationData, setVerificationData] = useState<{
@@ -83,18 +85,18 @@ const ForemanDashboard: React.FC = () => {
   const [verificationResponse, setVerificationResponse] =
     useState<VerifyAccountResponse | null>(null);
   const [resendOtp, setResendOtp] = useState<boolean>(false);
-  const [siteAssignedWorkers, setSiteAssignedWorkers] = useState<
-    number | string
-  >(0);
   const [siteActiveWorkers, setSiteActiveWorkers] = useState<
     SharedTypes.ActiveWorker[]
   >([]);
 
-  const [siteWorkers, setSiteWorkers] = useState<SharedTypes.User[]>([]);
+  // present workers
+  const [PresentWorkers, setPresentWorker] = useState<number>(0);
+
+  // const [siteWorkers, setSiteWorkers] = useState<SharedTypes.User[]>([]);
   const [workers, setWorkersDetatil] = useState<Worker[]>([]);
   const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [siteInfo, setSiteInfo] = useState<SharedTypes.Sited>();
+  const [siteInfo, setSiteInfo] = useState<SharedTypes.SiteDetails>();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -132,29 +134,28 @@ const ForemanDashboard: React.FC = () => {
     const fetchSiteInfo =
       async (): Promise<SharedTypes.SiteInfoResponse | void> => {
         try {
+          if (!user?.foremanSites || user.foremanSites.length === 0) {
+            return;
+          }
           const siteInfo =
             await authorizePostRequest<SharedTypes.SiteInfoResponse>(
               "worker/siteDetails",
               {
                 foremanId: currentUser?.id,
+                siteId: user?.foremanSites[0].id,
               },
             );
 
-          if (!siteInfo) {
+          if (!siteInfo.success) {
             console.log("No site info received");
             return;
           }
 
-          if (siteInfo.site?.workers) {
-            setSiteInfo(siteInfo.site);
-            setSiteWorkers(
-              siteInfo?.site?.workers
-                ?.filter((w) => w.worker)
-                .map((w) => w.worker as SharedTypes.User),
-            );
+          if (siteInfo.data) {
+            setSiteInfo(siteInfo.data);
           } else {
-            console.log("No workers data in site info");
-            toast.error("no workers found for this site");
+            console.log("No site data in site");
+            toast.error("no site data found for this site");
           }
 
           return siteInfo;
@@ -162,6 +163,7 @@ const ForemanDashboard: React.FC = () => {
           console.log(error);
         }
       };
+
     let siteID = "";
     fetchSiteInfo();
     if (currentUser?.foremanSites?.length) {
@@ -197,7 +199,6 @@ const ForemanDashboard: React.FC = () => {
         }
 
         setSiteActiveWorkers(res.data);
-        setSiteAssignedWorkers(res.count);
       } catch (error) {
         console.log("error while getting site workers", error);
       }
@@ -224,7 +225,7 @@ const ForemanDashboard: React.FC = () => {
         await authorizePostRequest<SharedTypes.SiteAttendanceInfoResponse>(
           "attendance/todayAttendace",
           {
-            siteId: siteInfo?.id,
+            siteId,
             date: currentDate,
           },
         );
@@ -232,7 +233,7 @@ const ForemanDashboard: React.FC = () => {
       if (!res.presentWorkers) return;
 
       const presentWorkers = res.presentWorkers;
-
+      setPresentWorker(presentWorkers.length);
       if (siteActiveWorkers.length > 0) {
         const updatedWorkers = siteActiveWorkers
           .map(({ worker }) => {
@@ -263,15 +264,15 @@ const ForemanDashboard: React.FC = () => {
           })
           .filter((worker) => worker !== null);
         setWorkersDetatil(updatedWorkers as Worker[]);
+
         setFilteredWorkers(updatedWorkers as Worker[]);
-        console.log("updated list got");
       }
     };
 
-    if (siteInfo?.id && !showAttendanceModal) {
+    if (siteInfo && !showAttendanceModal) {
       fetchAttendance();
     }
-  }, [showAttendanceModal, siteInfo, currentDate]);
+  }, [showAttendanceModal, currentDate, siteActiveWorkers]);
 
   // setting seacrh query for the selected user modal
 
@@ -292,6 +293,29 @@ const ForemanDashboard: React.FC = () => {
     setCurrentDate(date);
   };
 
+  const syncWorkerAttendance = (
+    workerId: string,
+    workEntry: SharedTypes.WorkEntry | null,
+  ) => {
+    const updateWorker = (worker: Worker) => {
+      if (String(worker.id) !== workerId) {
+        return worker;
+      }
+
+      return {
+        ...worker,
+        workEntry: workEntry ?? undefined,
+        currentWorkEntryId: workEntry?.id ?? "",
+        todayStatus: workEntry ? "present" : "absent",
+        hoursToday: (workEntry?.hours ?? 0) + (workEntry?.overtime ?? 0),
+        lastUpdated: new Date().toISOString(),
+      };
+    };
+
+    setWorkersDetatil((prevWorkers) => prevWorkers.map(updateWorker));
+    setFilteredWorkers((prevWorkers) => prevWorkers.map(updateWorker));
+  };
+
   // Handle site settings
   const handleSettingsUpdate = (settings: SharedTypes.SiteSettings) => {
     setCurrentSettings(settings);
@@ -300,10 +324,10 @@ const ForemanDashboard: React.FC = () => {
 
   //initiation for  Recording the attendace for the worker with the details different from the site setting details .
   const handleRecordAttendanced = (worker: Worker): void => {
-    const selected = siteInfo?.workers?.find((w) => w.workerId === worker.id);
+    const selected = siteActiveWorkers?.find((w) => w.worker.id === worker.id);
 
     if (selected) {
-      setSelectedWorker(selected.worker);
+      setSelectedWorker(selected.worker as User);
     }
 
     setShowAttendanceModal(true);
@@ -324,7 +348,7 @@ const ForemanDashboard: React.FC = () => {
       const workEntryResponse =
         await authorizePostRequest<SharedTypes.SiteInfoResponse>(
           "attendance/record",
-          { ...attendanceData, siteId: siteInfo?.id ?? "" },
+          { ...attendanceData, siteId },
         );
 
       if (!workEntryResponse) {
@@ -658,8 +682,6 @@ const ForemanDashboard: React.FC = () => {
     }
   };
 
-  console.log("filtered workers: ", filteredWorkers);
-
   const handleExportPDF = () => {
     try {
       // Creating new PDF document
@@ -671,7 +693,7 @@ const ForemanDashboard: React.FC = () => {
 
       // Adding site info
       doc.setFontSize(12);
-      doc.text(`Site: ${siteInfo?.name || "N/A"}`, 14, 32);
+      doc.text(`Site: ${siteInfo?.site_name || "N/A"}`, 14, 32);
       doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 38);
       doc.text(`Total Workers: ${workers.length}`, 14, 44);
 
@@ -803,36 +825,9 @@ const ForemanDashboard: React.FC = () => {
         <div className="min-h-screen bg-background">
           <AuthenticatedHeader />
 
-          <main className="pt-[60px]">
-            <div className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-8 lg:px-8">
-              <div className="mb-6 md:mb-8">
-                <div className="flex items-center justify-between mb-2">
-                  <h1 className="text-2xl font-semibold text-foreground md:text-3xl lg:text-4xl">
-                    Foreman Dashboard
-                  </h1>
-                  <Button
-                    onClick={() => handleRecordAttendanced(workers?.[0])}
-                    className="hidden sm:inline-flex"
-                  >
-                    Record Attendance
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground md:text-base">
-                  {currentUser?.assignedSite} • Today:{" "}
-                  {new Date()?.toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-
-              <NotificationBanner
-                notifications={notifications}
-                onDismiss={handleDismissNotification}
-                onViewAll={handleViewAllNotifications}
-              />
+          <main className="pt-[20px]">
+            <div className=" px-4 py-6 md:px-2 md:py-8 lg:px-2 shadow shadow-xl shadow-gray-500">
+              <div>{siteInfo && <SiteHeader site={siteInfo} />}</div>
 
               <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-6 md:mb-8">
                 <SiteOverviewCard
@@ -845,20 +840,14 @@ const ForemanDashboard: React.FC = () => {
 
                 <SiteOverviewCard
                   title="Present Today"
-                  value={siteOverview?.presentToday}
-                  subtitle={`${siteOverview?.pendingAttendance} pending`}
+                  value={PresentWorkers}
                   iconName="UserCheck"
                   iconColor="var(--color-success)"
-                  trend={{
-                    value: "+3",
-                    label: "vs yesterday",
-                    isPositive: true,
-                  }}
                 />
 
                 <SiteOverviewCard
                   title="Total Hours"
-                  value={siteOverview?.totalHoursToday}
+                  value={2}
                   subtitle="Logged today"
                   iconName="Clock"
                   iconColor="var(--color-accent)"
@@ -905,9 +894,14 @@ const ForemanDashboard: React.FC = () => {
                         Payments
                       </h1>
                       <p className="text-xs text-muted-foreground">
-                        {siteOverview?.pendingPayments === 0
-                          ? "No pending requests"
-                          : `${siteOverview?.pendingPayments || 0} pending request${siteOverview?.pendingPayments !== 1 ? "s" : ""}`}
+                        {siteInfo?.batchpayments.length === 0
+                          ? "No pending batch payment requests"
+                          : `${siteInfo?.batchpayments.length || 0} batch pending request${siteInfo?.batchpayments.length !== 1 ? "s" : ""}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {siteInfo?.singleworkerpayments.length === 0
+                          ? "No pending batch payment requests"
+                          : `${siteInfo?.singleworkerpayments.length || 0} batch pending request${siteInfo?.singleworkerpayments.length !== 1 ? "s" : ""}`}
                       </p>
                     </div>
                   </div>
@@ -1008,15 +1002,12 @@ const ForemanDashboard: React.FC = () => {
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                     Site Configuration
                   </h1>
-                  {siteInfo?.id && (
+                  {siteInfo && (
                     <SiteSettingsComponent
                       handleSettingsUpdate={handleSettingsUpdate}
-                      siteID={siteInfo?.id}
+                      siteID={siteId}
                       initialDate={currentDate}
                       setCurrentDate={handleDateChange} // Pass the setter function
-                      onSettingsUpdate={(settings) => {
-                        console.log("Settings updated:");
-                      }}
                     />
                   )}
                 </div>
@@ -1097,7 +1088,7 @@ const ForemanDashboard: React.FC = () => {
                           </td>
                         </tr>
                       )}
-                    </tbody>{" "}
+                    </tbody>
                   </table>
                 </div>
 
