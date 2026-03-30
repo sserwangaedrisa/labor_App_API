@@ -46,7 +46,7 @@ const AuthenticatedHeader = () => {
   text-white backdrop-blur-md transition-all duration-300
   shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
     >
-      <div className="h-[80px] px-5 flex items-center justify-between lg:px-8">
+      <div className="h-[100px] px-5 flex items-center justify-between lg:px-8">
         <div className="flex items-center gap-6">
           <button
             onClick={() => navigate(dashboardPath)}
@@ -61,7 +61,7 @@ const AuthenticatedHeader = () => {
               <h1 className="text-lg font-semibold leading-none tracking-wide">
                 LaborTrack
               </h1>
-              <p className="text-xs text-white/70 mt-0.5">
+              <p className="text-xs text-white/70 mt-0">
                 Construction Management
               </p>
             </div>

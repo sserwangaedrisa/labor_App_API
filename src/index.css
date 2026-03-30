@@ -3,7 +3,7 @@
 @import "tailwindcss";
 
 html {
-  font-size: 16px;
+  font-size: 20px;
 }
 
 :root {
@@ -59,11 +59,13 @@ html {
 }
 
 #root {
-  width: 1126px;
+  /* width: 1126px; */
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
   border-inline: 1px solid var(--border);
+  background-color: #d1d1d4e1;
   min-height: 100svh;
   display: flex;
   flex-direction: column;

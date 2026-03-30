@@ -40,7 +40,7 @@ const SiteHeader: React.FC<Props> = ({ site }) => {
   const [firstName, ...rest] = formatSiteName(site.site_name).split(" ");
 
   return (
-    <div className="bg-slate-900 p-6 sm:p-8">
+    <div className="bg-slate-500 p-6 sm:p-8 shadow-[0_5px_5px_-2px_rgba(0,0,0,0.4)] mb-5">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Top */}
         <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider">
@@ -57,11 +57,9 @@ const SiteHeader: React.FC<Props> = ({ site }) => {
           </span>
         </div>
 
-        {/* Card */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-5">
-          {/* Title */}
+        <div className="bg-slate-600 border border-slate-600 rounded-xl p-6 space-y-5">
           <div>
-            <p className="text-xs font-mono text-amber-400 uppercase tracking-widest mb-2">
+            <p className="text-l font-mono text-amber-400 uppercase tracking-widest mb-2">
               Construction Site
             </p>
 
@@ -70,22 +68,19 @@ const SiteHeader: React.FC<Props> = ({ site }) => {
               <span className="text-amber-400">{rest.join(" ")}</span>
             </h1>
 
-            <p className="text-slate-400 text-sm mt-2 max-w-md">
+            <p className="text-slate-400  mt-2 max-w-md">
               {site.site_description}
             </p>
           </div>
-
           {/* Info */}
           <div className="flex flex-wrap gap-6 border-t border-slate-700 pt-4 text-sm">
             <div>
-              <p className="text-slate-500 text-xs font-mono uppercase">
-                Location
-              </p>
+              <p className="text-slate-500  font-mono uppercase">Location</p>
               <p className="text-white font-medium">{site.site_location}</p>
             </div>
 
             <div>
-              <p className="text-slate-500 text-xs font-mono uppercase">
+              <p className="text-slate-500 text-l font-mono uppercase">
                 Created
               </p>
               <p className="text-white font-medium">
@@ -94,7 +89,7 @@ const SiteHeader: React.FC<Props> = ({ site }) => {
             </div>
 
             <div>
-              <p className="text-slate-500 text-xs font-mono uppercase">
+              <p className="text-slate-500  font-mono uppercase">
                 Days Running
               </p>
               <p className="text-white font-medium">
@@ -103,11 +98,9 @@ const SiteHeader: React.FC<Props> = ({ site }) => {
             </div>
 
             <div>
-              <p className="text-slate-500 text-xs font-mono uppercase">
-                Site ID
-              </p>
+              <p className="text-slate-500  font-mono uppercase">Site ID</p>
               <div className="flex items-center gap-2">
-                <span className="text-slate-300 font-mono text-xs">
+                <span className="text-slate-300 font-mono">
                   {site.site_id.slice(0, 8)}…{site.site_id.slice(-5)}
                 </span>
                 <button

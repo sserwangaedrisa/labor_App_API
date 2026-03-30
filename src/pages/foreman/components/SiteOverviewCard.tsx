@@ -1,5 +1,5 @@
-import React from 'react';
-import Icon from '../../../components/ui/AppIconl';
+import React from "react";
+import Icon from "../../../components/ui/AppIconl";
 
 interface Trend {
   isPositive: boolean;
@@ -45,7 +45,7 @@ const SiteOverviewCard: React.FC<SiteOverviewCardProps> = ({
           style={{ backgroundColor: `${iconColor}20` }}
         >
           <Icon
-            name={iconName}
+            name="ActivitySquare"
             size={20}
             color={iconColor}
             className="md:w-6 md:h-6"
@@ -56,21 +56,21 @@ const SiteOverviewCard: React.FC<SiteOverviewCardProps> = ({
       {trend && (
         <div className="flex items-center gap-1 text-xs md:text-sm">
           <Icon
-            name={trend?.isPositive ? 'TrendingUp' : 'TrendingDown'}
+            name={trend?.isPositive ? "TrendingUp" : "TrendingDown"}
             size={14}
             color={
               trend?.isPositive
-                ? 'var(--color-success)'
-                : 'var(--color-destructive)'
+                ? "var(--color-success)"
+                : "var(--color-destructive)"
             }
             className="md:w-4 md:h-4"
           />
-          <span className={trend?.isPositive ? 'text-success' : 'text-destructive'}>
+          <span
+            className={trend?.isPositive ? "text-success" : "text-destructive"}
+          >
             {trend?.value}
           </span>
-          <span className="text-muted-foreground ml-1">
-            {trend?.label}
-          </span>
+          <span className="text-muted-foreground ml-1">{trend?.label}</span>
         </div>
       )}
     </div>

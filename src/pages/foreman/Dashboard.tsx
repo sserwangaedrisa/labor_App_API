@@ -28,6 +28,7 @@ import type {
 } from "../../types/SharedTypes";
 import * as SharedTypes from "../../types/SharedTypes";
 import authorizePostRequest from "../../api/authorizePostRequest";
+import SiteOverviewStats from "../../components/ui/SiteOverview";
 import { div, s } from "framer-motion/client";
 import { Settings } from "lucide-react";
 
@@ -828,37 +829,11 @@ const ForemanDashboard: React.FC = () => {
           <main className="pt-[20px]">
             <div className=" px-4 py-6 md:px-2 md:py-8 lg:px-2 shadow shadow-xl shadow-gray-500">
               <div>{siteInfo && <SiteHeader site={siteInfo} />}</div>
-
-              <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-6 md:mb-8">
-                <SiteOverviewCard
-                  title="Total Workers"
-                  value={siteActiveWorkers.length}
-                  subtitle="Assigned to site"
-                  iconName="Users"
-                  iconColor="var(--color-primary)"
-                />
-
-                <SiteOverviewCard
-                  title="Present Today"
-                  value={PresentWorkers}
-                  iconName="UserCheck"
-                  iconColor="var(--color-success)"
-                />
-
-                <SiteOverviewCard
-                  title="Total Hours"
-                  value={2}
-                  subtitle="Logged today"
-                  iconName="Clock"
-                  iconColor="var(--color-accent)"
-                />
-
-                <SiteOverviewCard
-                  title="Pending Payments"
-                  value={siteOverview?.pendingPayments}
-                  subtitle="Workers awaiting"
-                  iconName="DollarSign"
-                  iconColor="var(--color-warning)"
+              <div>
+                <SiteOverviewStats
+                  siteActiveWorkers={siteActiveWorkers.length}
+                  PresentWorkers={PresentWorkers}
+                  siteInfo={siteInfo}
                 />
               </div>
 

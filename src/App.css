@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 html {
-  font-size: 16px;
+  font-size: 20px;
 }
 .counter {
-  font-size: 16px;
+  font-size: 20px;
   padding: 5px 10px;
   border-radius: 5px;
   color: var(--accent);
