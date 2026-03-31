@@ -131,7 +131,7 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
     <tr className="border-b border-border hover:bg-muted/50 transition-smooth">
       <td className="px-4 py-3 md:px-6 md:py-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 md:w-12 md:h-12">
+          <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 ">
             <Image src={worker.avatar} alt={worker.avatarAlt} />
           </div>
           <div className="min-w-0">

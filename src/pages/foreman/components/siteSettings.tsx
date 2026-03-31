@@ -321,7 +321,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+    <div className="bg-gray-500/10 dark:bg-gray-800 rounded-xl shadow-md shadow-gray-600 p-6">
       {/* Header with Date Selection */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 md:mb-0">
@@ -341,7 +341,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
               id="date"
               value={format(selectedDate, "yyyy-MM-dd")}
               onChange={handleDateChange}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className="px-3 py-2 border border-white-300 dark:border-white-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
             />
           </div>
 
@@ -368,7 +368,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Overtime Rate (x)
+                  Overtime-Hours
                 </label>
                 <input
                   type="number"
@@ -379,13 +379,13 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
                   min="1"
                   max="3"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-white-300 dark:border-white-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Max Daily Hours
+                  Duty-Hours
                 </label>
                 <input
                   type="number"
@@ -396,23 +396,7 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
                   min="1"
                   max="24"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Base Hourly Rate ($)
-                </label>
-                <input
-                  type="number"
-                  name="baseHourlyRate"
-                  value={formData.baseHourlyRate}
-                  onChange={handleInputChange}
-                  step="0.5"
-                  min="0"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-white-300 dark:border-white-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
             </div>
@@ -436,30 +420,22 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
           </form>
         ) : (
           currentSettings && (
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-gray-500/10 dark:bg-gray-700 rounded-lg p-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Overtime Rate
+                    Overtime
                   </p>
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {currentSettings.overtimeRate}x
+                    {currentSettings.overtimeRate} hrs
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Max Daily Hours
+                    Duty Hours
                   </p>
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
                     {currentSettings.maxDailyHours} hrs
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Base Hourly Rate
-                  </p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    ${currentSettings.baseHourlyRate}/hr
                   </p>
                 </div>
                 <div>
@@ -555,13 +531,10 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
                     Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Overtime Rate
+                    Overtime
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Max Hours
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Base Rate
+                    Duty Hours
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Updated
@@ -585,9 +558,6 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {setting.maxDailyHours} hrs
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      ${setting.baseHourlyRate}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {formatDateTime(

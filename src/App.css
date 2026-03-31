@@ -4,7 +4,7 @@ html {
   font-size: 20px;
 }
 .counter {
-  font-size: 20px;
+  font-size: 16px;
   padding: 5px 10px;
   border-radius: 5px;
   color: var(--accent);

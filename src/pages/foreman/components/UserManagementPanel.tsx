@@ -359,10 +359,10 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       <div className="bg-card rounded-xl shadow-elevation-2 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
-            <h3 className="text-lg md:text-xl font-semibold text-foreground mb-1">
+            <h1 className="text-lg md:text-xl font-semibold text-foreground mb-1">
               User Management
-            </h3>
-            <p className="text-sm text-muted-foreground">
+            </h1>
+            <p className="text-lg text-muted-foreground">
               {filteredUsers?.length} user
               {filteredUsers?.length !== 1 ? "s" : ""} found
             </p>
@@ -372,7 +372,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
               toast("Create New User clicked");
               setShowCreateModal(true);
             }}
-            className="w-full lg:w-auto"
+            className="w-full lg:w-auto cursor-pointer text-lg bg-green-500/50 hover:bg-green-500/30"
           >
             Create New User
           </Button>
@@ -387,7 +387,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
               onChange={(e) => setSearchQuery(e?.target?.value)}
             />
           </div>
-          <div className="w-full md:w-48">
+          <div className="w-full md:w-48 ">
             {/* Fixed Select component usage */}
             <Select
               options={roleOptions}
@@ -399,30 +399,29 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
         </div>
       </div>
       {/* Users List */}
-      <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
+      <div className="bg-card  rounded-xl shadow-elevation-2 overflow-hidden">
         {/* Desktop Table View */}
-        {/* Desktop Table View */}
-        <div className="hidden lg:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto mb-10 mx-5 border rounded-lg bg-slate-300 ">
           <table className="w-full">
             <thead className="bg-muted/50 border-b border-border">
               <tr>
                 <th className="text-left px-6 py-4">
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-xl font-bold text-foreground">
                     User
                   </span>
                 </th>
                 <th className="text-left px-6 py-4">
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-xl font-bold text-foreground">
                     Contact
                   </span>
                 </th>
                 <th className="text-center px-6 py-4">
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-xl font-bold text-foreground">
                     Role
                   </span>
                 </th>
                 <th className="text-left px-6 py-4">
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-xl font-bold text-foreground">
                     Since
                   </span>
                 </th>
@@ -432,7 +431,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                   </span>
                 </th>
                 <th className="text-center px-6 py-4">
-                  <span className="text-sm font-bold text-foreground">
+                  <span className="text-xl font-bold text-foreground">
                     Actions
                   </span>
                 </th>
@@ -446,14 +445,13 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 md:w-12 md:h-12">
+                      <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 ">
                         <Image
                           src={user.worker?.imageUrl || undefined}
                           alt={user.worker?.name || "user"}
                         />
                       </div>
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        {/* Removed duplicate key prop */}
                         <Icon
                           key="arrowDown"
                           name="AArrowDown"
@@ -546,21 +544,26 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
         </div>
 
         {/* Mobile Card View */}
-        <div className="lg:hidden divide-y divide-border">
+        <div className="lg:hidden divide-y divide-border mb-10 mx-5">
           {filteredUsers?.map((user) => (
-            <div key={user?.worker.id} className="p-4">
+            <div
+              key={user?.worker.id}
+              className="p-4 bg-slate-300 mb-3 border rounded-lg "
+            >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    {/* Removed duplicate key prop */}
-                    <Icon
-                      key="arrow"
-                      name="AArrowDown"
-                      color="var(--color-primary)"
+                    <Icon key="arrow" name="AArrowDown" color="orange" />
+                  </div>
+                  <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 md:w-12 md:h-12">
+                    <Image
+                      src={user.worker?.imageUrl || undefined}
+                      alt={user.worker?.name || "user"}
                     />
                   </div>
+
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground truncate">
+                    <p className="font-bold text-foreground truncate text-xl">
                       {user?.worker.name}
                     </p>
                     <p className="text-xs text-muted-foreground">

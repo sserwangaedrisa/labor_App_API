@@ -41,7 +41,7 @@ const AuthenticatedHeader = () => {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-sticky 
+      className="fixed top-0 left-0 right-0 z-100 
   bg-gradient-to-r from-slate-900 via-slate-800 to-orange-400
   text-white backdrop-blur-md transition-all duration-300
   shadow-[0_8px_20px_rgba(0,0,0,0.35)]"

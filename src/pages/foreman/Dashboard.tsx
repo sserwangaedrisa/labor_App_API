@@ -821,13 +821,15 @@ const ForemanDashboard: React.FC = () => {
   };
 
   return (
-    <RoleGuard allowedRoles={["FOREMAN"]}>
+    <RoleGuard allowedRoles={["FOREMAN", "OWNER"]}>
       <LoadingBoundary loading={loading} fullScreen>
-        <div className="min-h-screen bg-background">
-          <AuthenticatedHeader />
+        <div className="min-h-screen bg-background relative">
+          <div className="z-100">
+            <AuthenticatedHeader />
+          </div>
 
-          <main className="pt-[20px]">
-            <div className=" px-4 py-6 md:px-2 md:py-8 lg:px-2 shadow shadow-xl shadow-gray-500">
+          <main className="pt-[20px] z-0">
+            <div className=" px-4 py-6 md:px-2 md:py-8 lg:px-2 shadow shadow-lg shadow-gray-500 rounded-lg">
               <div>{siteInfo && <SiteHeader site={siteInfo} />}</div>
               <div>
                 <SiteOverviewStats
@@ -837,25 +839,9 @@ const ForemanDashboard: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-6 mb-6 lg:grid-cols-3 md:mb-8">
-                <div className="lg:col-span-2">
-                  <QuickActionsPanel
-                    onBulkAttendance={handleBulkAttendance}
-                    onViewReports={handleViewReports}
-                    onSiteSettings={handleSiteSettings}
-                  />
-                </div>
-              </div>
-
               {/* payment proccessing section */}
-              <div className="bg-card rounded-lg shadow-md border border-border overflow-hidden">
-                {/* Header with Toggle */}
-                <div
-                  className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-muted/20 transition-colors"
-                  onClick={() =>
-                    setShowPaymentRequestCard(!showPaymentRequestCard)
-                  }
-                >
+              <div className="bg-card rounded-lg shadow-md shadow-gray-700 bg-slate-300 overflow-hidden mb-5">
+                <div className="px-5 py-4 flex items-center justify-between  hover:bg-muted/20 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
                       <Icon
@@ -865,34 +851,92 @@ const ForemanDashboard: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <h1 className="text-base font-semibold text-foreground">
+                      <h1 className="text-base text-slate-100 font-semibold text-slate-500">
                         Payments
                       </h1>
-                      <p className="text-xs text-muted-foreground">
-                        {siteInfo?.batchpayments.length === 0
-                          ? "No pending batch payment requests"
-                          : `${siteInfo?.batchpayments.length || 0} batch pending request${siteInfo?.batchpayments.length !== 1 ? "s" : ""}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {siteInfo?.singleworkerpayments.length === 0
-                          ? "No pending batch payment requests"
-                          : `${siteInfo?.singleworkerpayments.length || 0} batch pending request${siteInfo?.singleworkerpayments.length !== 1 ? "s" : ""}`}
-                      </p>
+                      <div
+                        // onClick={() => navigate('/payments?tab=batch')}
+                        className="group mb-2 flex items-center justify-between p-3 rounded-lg bg-slate-500/50 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer border border-transparent hover:border-primary/30"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                            <Icon name="Users" size={14} color="white" />
+                          </div>
+                          <span className="text-sm text-muted-foreground group-hover:text-slate-200 transition-colors">
+                            Batch Payments
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {siteInfo?.batchpayments?.length &&
+                          siteInfo?.batchpayments?.length > 0 ? (
+                            <>
+                              <span className="text-2xl font-semibold text-primary group-hover:text-primary/80 transition-colors">
+                                {siteInfo?.batchpayments.length}
+                              </span>
+                              <span className="text-xs text-muted-foreground group-hover:text-slate-300">
+                                pending
+                              </span>
+                              <Icon
+                                name="ChevronRight"
+                                size={16}
+                                color="var(--color-primary)"
+                                className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"
+                              />
+                            </>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              No pending requests
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div
+                        // onClick={() => navigate('/payments?tab=individual')}
+                        className="group flex items-center justify-between gap-2 p-3 rounded-lg bg-slate-500/50 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer border border-transparent hover:border-primary/30"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 rounded-lg bg-success/10 group-hover:bg-success/20 transition-colors">
+                            <Icon name="User" size={14} color="white" />
+                          </div>
+                          <span className="text-sm text-muted-foreground group-hover:text-slate-200 transition-colors">
+                            Individual Payments
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {siteInfo?.singleworkerpayments?.length &&
+                          siteInfo?.singleworkerpayments?.length > 0 ? (
+                            <>
+                              <span className="text-2xl font-semibold text-success group-hover:text-success/80 transition-colors">
+                                {siteInfo?.singleworkerpayments.length}
+                              </span>
+                              <span className=" text-muted-foreground group-hover:text-slate-300">
+                                pending
+                              </span>
+                              <Icon
+                                name="ChevronRight"
+                                size={16}
+                                color="var(--color-success)"
+                                className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"
+                              />
+                            </>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              No pending requests
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    {siteOverview?.pendingPayments > 0 && (
-                      <div className="bg-warning/15 rounded-full px-2.5 py-0.5">
-                        <span className="text-xs font-medium text-warning">
-                          {siteOverview.pendingPayments}
-                        </span>
-                      </div>
-                    )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="p-1"
+                      className="p-1 bg-orange-300"
                       onClick={() => {
                         setShowPaymentRequestCard(!showPaymentRequestCard);
                       }}
@@ -923,34 +967,69 @@ const ForemanDashboard: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              <div className="z-0">
+                <QuickActionsPanel
+                  onBulkAttendance={handleBulkAttendance}
+                  onViewReports={handleViewReports}
+                  onSiteSettings={handleSiteSettings}
+                />
+              </div>
+
+              {/* site settings  */}
+              <div className="container mx-auto px-4 py-8">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                  Site Configuration
+                </h1>
+                {siteInfo && (
+                  <SiteSettingsComponent
+                    handleSettingsUpdate={handleSettingsUpdate}
+                    siteID={siteId}
+                    initialDate={currentDate}
+                    setCurrentDate={handleDateChange} // Pass the setter function
+                  />
+                )}
+              </div>
+
               {/* worker management */}
 
-              <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
-                <div className="p-4 border-b border-border md:p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-80">
-                      <h2 className="text-lg font-semibold text-foreground md:text-xl">
-                        Worker Management
-                      </h2>
-                      <p className="caption text-muted-foreground text-sm">
-                        {workers?.length} Active workers assigned to your site
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleExportPDF}
-                      className="hidden md:inline-flex pr-auto"
-                    >
-                      Export pdf file
-                    </Button>
-                    <Button
-                      onClick={handleExportExcel}
-                      className="hidden md:inline-flex pr-auto"
-                    >
-                      Export Excel file
-                    </Button>
+              <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden ">
+                <div className="p-4  md:p-6">
+                  <div>
+                    <h1 className="text-4xl font-semibold text-foreground md:text-4xl">
+                      Worker Management
+                    </h1>
                   </div>
 
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex justify-start gap-4">
+                      <div>
+                        <p className="caption text-muted-foreground text-lg">
+                          {workers?.length} - Active workers
+                        </p>
+                      </div>
+                      <div>
+                        <p className="caption text-muted-foreground text-lg">
+                          {PresentWorkers} - Present Workers
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-4">
+                      <Button
+                        onClick={handleExportPDF}
+                        className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-200 hover:to-orange-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+                      >
+                        Export pdf file
+                      </Button>
+                      <Button
+                        onClick={handleExportExcel}
+                        className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-green-400 to-orange-300 hover:from-orange-200 hover:to-orange-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+                      >
+                        Export Excel file
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex-1 relative">
                       <Icon
                         key="search"
@@ -958,7 +1037,6 @@ const ForemanDashboard: React.FC = () => {
                         size={18}
                         className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                       />
-
                       <input
                         type="text"
                         placeholder="Search workers..."
@@ -968,52 +1046,39 @@ const ForemanDashboard: React.FC = () => {
                         }}
                       />
                     </div>
-                    <Button>Filter</Button>
+                    <div>
+                      <Button>Filter</Button>
+                    </div>
                   </div>
-                </div>
-
-                {/* site settings  */}
-                <div className="container mx-auto px-4 py-8">
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                    Site Configuration
-                  </h1>
-                  {siteInfo && (
-                    <SiteSettingsComponent
-                      handleSettingsUpdate={handleSettingsUpdate}
-                      siteID={siteId}
-                      initialDate={currentDate}
-                      setCurrentDate={handleDateChange} // Pass the setter function
-                    />
-                  )}
                 </div>
 
                 {/* Worker table */}
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto bg-slate-300 border border-gray-500  rounded-lg md:mx-4 md:mx-10 ">
                   <table className="w-full">
                     <thead className="bg-muted/50 border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
+                        <th className="px-4 py-3 text-left text-lg font-bold text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
                           WORKER
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
+                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
                           JOB
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
+                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
                           STATUS
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
+                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
                           TIME WORKED
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
+                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
                           RATE
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
+                        <th className="px-4 py-3 text-right text-lg font-bold  text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
                           ACTIONS
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-card divide-y divide-border">
+                    <tbody className="bg-card divide-y divide-border ">
                       {filteredWorkers.length > 0 ? (
                         filteredWorkers.map((worker) => {
                           // ✅ Skip if worker or worker.id is undefined/null/empty
@@ -1067,7 +1132,7 @@ const ForemanDashboard: React.FC = () => {
                   </table>
                 </div>
 
-                <div className="p-4 border-t border-border flex items-center justify-between md:p-6">
+                <div className="p-4  flex items-center justify-between md:p-6">
                   <p className="text-sm text-muted-foreground">
                     Showing {workers?.length} of {workers?.length} workers
                   </p>
