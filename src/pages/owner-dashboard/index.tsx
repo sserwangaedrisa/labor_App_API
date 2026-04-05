@@ -4,6 +4,7 @@ import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
 import RoleGuard from "../../components/ui/RoleGuard";
 import LoadingBoundary from "../../components/ui/LoadingBoundary";
 import MetricCard from "./components/MetricCard";
+import SiteModal from "./components/CreateSite";
 import SiteOverviewTable from "./components/SiteOverviewTable";
 import PaymentApprovalQueue from "./components/PaymentApprovalQueue";
 import UserManagementPanel from "./components/UserManagementPanel";
@@ -17,6 +18,9 @@ const OwnerDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  // create site modal state
+  const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
+  const [editingSite, setEditingSite] = useState<string | null>(null);
 
   const mockSites: Site[] = [
     {
@@ -181,6 +185,17 @@ const OwnerDashboard = () => {
         { name: "James Wilson", site: "Suburban Complex", hours: 220 },
       ],
     },
+  };
+
+  // creating site functions
+  const handleCreateSite = () => {
+    setEditingSite(null);
+    setIsSiteModalOpen(true);
+  };
+
+  const handleEditSite = (site) => {
+    setEditingSite(site);
+    setIsSiteModalOpen(true);
   };
 
   const handleViewSiteDetails = (site: Site) => {
@@ -352,12 +367,24 @@ const OwnerDashboard = () => {
                   Quick Actions
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <Button>Create New Site</Button>
+                  <button
+                    onClick={handleCreateSite}
+                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                  >
+                    Create New Site
+                  </button>
                   <Button>Add New User</Button>
                   <Button>Generate Report</Button>
                   <Button>System Settings</Button>
                 </div>
               </div>
+
+              {/* Site Modal */}
+              <SiteModal
+                isOpen={isSiteModalOpen}
+                onClose={() => setIsSiteModalOpen(false)}
+                siteId={editingSite ? editingSite : undefined}
+              />
             </div>
           </main>
         </div>

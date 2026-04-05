@@ -481,7 +481,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
                         ${!isCurrentMonth ? "text-gray-400" : statusStyle.textColor}
                       `}
                       >
-                        {format(day, "d")}
+                        {format(day, "dd")}
                       </span>
                       {isCurrentMonth && entry && (
                         <div className="print:hidden">{statusStyle.icon}</div>
@@ -490,7 +490,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
                       {entry && isCurrentMonth && (
                         <div className="mt-1">
                           <div
-                            className={`w-2 h-2 rounded-full ${getPaymentStatusColor(entry.status)}`}
+                            className={`w-3 h-3 rounded-full ${getPaymentStatusColor(entry.status)}`}
                             title={entry.status || "Unknown"}
                           />
                         </div>
@@ -542,7 +542,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
             )}
           </div>
 
-          {/* FIXED: Button section - Selection Mode Controls */}
           <div className="flex gap-3">
             {!workEntrySelection && user?.role !== "LABORER" && (
               <button

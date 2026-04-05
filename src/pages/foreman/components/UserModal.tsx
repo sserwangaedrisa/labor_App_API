@@ -126,7 +126,6 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
       isFetchingRef.current = true;
       lastRequestKeyRef.current = requestKey;
       setIsLoading(true);
-
       try {
         const response = await authorizePostRequest<workerRequestResponse>(
           "payments/workerPayment",
