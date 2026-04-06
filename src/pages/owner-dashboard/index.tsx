@@ -343,14 +343,7 @@ const OwnerDashboard = () => {
                   />
                 )}
 
-                {activeTab === "users" && (
-                  <UserManagementPanel
-                    users={mockUsers}
-                    onCreateUser={handleCreateUser}
-                    onBlockUser={handleBlockUser}
-                    onUnblockUser={handleUnblockUser}
-                  />
-                )}
+                {activeTab === "users" && <UserManagementPanel />}
 
                 {activeTab === "analytics" && (
                   <AnalyticsDashboard
