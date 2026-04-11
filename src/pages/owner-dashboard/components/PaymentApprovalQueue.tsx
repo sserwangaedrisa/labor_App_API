@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import { Checkbox } from "../../../components/ui/Checkbox";
+import authorizePost from "../../../api/authorizePost";
 import { toast } from "react-hot-toast"; // or your preferred toast library
 
 /* ================= TYPES ================= */
@@ -93,7 +94,7 @@ const paymentService = {
       ...(filters.search && { search: filters.search }),
     });
 
-    const response = await fetch(`${API_BASE}/payments?${params}`);
+    const response = await authorizePost(`payments?${params}`, {});
     if (!response.ok) throw new Error("Failed to fetch payments");
     return response.json();
   },
@@ -103,7 +104,7 @@ const paymentService = {
     const params = new URLSearchParams();
     if (siteId) params.append("siteId", siteId);
 
-    const response = await fetch(`${API_BASE}/payments/batches?${params}`);
+    const response = await authorizePost(`payments/batches?${params}`, {});
     if (!response.ok) throw new Error("Failed to fetch batches");
     const data = await response.json();
     return data.batches;
@@ -111,19 +112,17 @@ const paymentService = {
 
   // Approve a single payment
   approvePayment: async (paymentId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/payments/${paymentId}/approve`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const response = await authorizePost(
+      `${API_BASE}/payments/${paymentId}/approve`,
+      {},
+    );
     if (!response.ok) throw new Error("Failed to approve payment");
   },
 
   // Approve multiple payments (batch)
   approvePayments: async (paymentIds: string[]): Promise<void> => {
-    const response = await fetch(`${API_BASE}/payments/approve-batch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentIds }),
+    const response = await authorizePost(`payments/approve-batch`, {
+      paymentIds,
     });
     if (!response.ok) throw new Error("Failed to approve payments");
   },
@@ -134,9 +133,7 @@ const paymentService = {
     transactionReference?: string,
   ): Promise<void> => {
     const response = await fetch(`${API_BASE}/payments/${paymentId}/paid`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transactionReference }),
+      transactionReference,
     });
     if (!response.ok) throw new Error("Failed to mark payment as paid");
   },
