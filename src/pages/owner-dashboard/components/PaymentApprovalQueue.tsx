@@ -4,6 +4,7 @@ import Button from "../../../components/ui/Button";
 import { Checkbox } from "../../../components/ui/Checkbox";
 import authorizePost from "../../../api/authorizePost";
 import { toast } from "react-hot-toast"; // or your preferred toast library
+import { ca } from "date-fns/locale";
 
 /* ================= TYPES ================= */
 
@@ -23,7 +24,7 @@ interface PaymentData {
   overtimePay: number;
   totalAmount: number;
   status: PaymentStatus;
-  batchId: string | null;
+  batch_id: string | null;
   approvedAt: string | null;
   paidAt: string | null;
   createdAt: string;
@@ -79,7 +80,12 @@ const paymentService = {
     filters: Partial<FilterOptions> = {},
     sortField: SortField = "createdAt",
     sortOrder: SortOrder = "desc",
-  ): Promise<{ payments: PaymentData[]; pagination: PaginationInfo }> => {
+  ): Promise<{
+    success: boolean;
+    message: string;
+    payments: PaymentData[];
+    pagination: PaginationInfo;
+  }> => {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
@@ -95,8 +101,22 @@ const paymentService = {
     });
 
     const response = await authorizePost(`payments?${params}`, {});
-    if (!response.ok) throw new Error("Failed to fetch payments");
-    return response.json();
+    if (!response.success) {
+      throw new Error(response.message || "Failed to fetch payments");
+      toast.error(response.message || "Failed to load payments");
+      return {
+        success: false,
+        message: response.message || "Failed to fetch payments",
+        payments: [],
+        pagination: {
+          page: 1,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    return response;
   },
 
   // Get all batches for a site
@@ -104,19 +124,38 @@ const paymentService = {
     const params = new URLSearchParams();
     if (siteId) params.append("siteId", siteId);
 
-    const response = await authorizePost(`payments/batches?${params}`, {});
-    if (!response.ok) throw new Error("Failed to fetch batches");
-    const data = await response.json();
-    return data.batches;
+    const response: {
+      success: boolean;
+      message: string;
+      batches: BatchSummary[];
+    } = await authorizePost(`payments/batches?${params}`, {});
+    if (!response.success) {
+      throw new Error(response.message || "Failed to fetch batches");
+      toast.error(response.message || "Failed to load batches");
+      return [];
+    }
+    return response.batches;
   },
 
   // Approve a single payment
-  approvePayment: async (paymentId: string): Promise<void> => {
-    const response = await authorizePost(
-      `${API_BASE}/payments/${paymentId}/approve`,
-      {},
-    );
-    if (!response.ok) throw new Error("Failed to approve payment");
+  approvePayment: async (paymentId: string): Promise<boolean> => {
+    try {
+      const response: {
+        success: boolean;
+        message: string;
+      } = await authorizePost(`payments/${paymentId}/approve`, {});
+      if (!response.success) {
+        throw new Error("Failed to approve payment");
+        toast.error(response.message || "Failed to approve payment");
+        return false;
+      }
+      toast.success("Payment approved");
+      return true;
+    } catch (error) {
+      console.error("Error approving payment:", error);
+      toast.error("Failed to approve payment");
+      return false;
+    }
   },
 
   // Approve multiple payments (batch)
@@ -128,14 +167,17 @@ const paymentService = {
   },
 
   // Mark payment as paid
-  markAsPaid: async (
-    paymentId: string,
-    transactionReference?: string,
-  ): Promise<void> => {
-    const response = await fetch(`${API_BASE}/payments/${paymentId}/paid`, {
-      transactionReference,
-    });
-    if (!response.ok) throw new Error("Failed to mark payment as paid");
+  markAsPaid: async (paymentId: string): Promise<boolean> => {
+    const response: {
+      success: boolean;
+      message: string;
+    } = await authorizePost(`payments/${paymentId}/paid`, {});
+    if (!response.success) {
+      toast.error(response.message || "Failed to mark payment as paid");
+      throw new Error("Failed to mark payment as paid");
+      return false;
+    }
+    return true;
   },
 
   // Mark multiple payments as paid
@@ -175,18 +217,30 @@ const paymentService = {
   },
 
   // Get available sites for filtering
-  getSites: async (): Promise<{ id: string; name: string }[]> => {
-    const response = await fetch(`${API_BASE}/sites`);
-    if (!response.ok) throw new Error("Failed to fetch sites");
-    const data = await response.json();
-    return data.sites;
+  getSites: async (): Promise<
+    {
+      id: string;
+      name: string;
+    }[]
+  > => {
+    const response: {
+      success: boolean;
+      message: string;
+      sites: { id: string; name: string }[];
+    } = await authorizePost(`sites/allSitesIdsAndNames`, {});
+    if (!response.success) {
+      throw new Error("Failed to fetch sites");
+    }
+    if (response && response.sites && response.sites.length === 0) {
+      return [];
+    }
+    return response.sites;
   },
 };
 
 /* ================= COMPONENT ================= */
 
 const PaymentApprovalQueue: React.FC = () => {
-  // State
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [batches, setBatches] = useState<BatchSummary[]>([]);
   const [sites, setSites] = useState<{ id: string; name: string }[]>([]);
@@ -235,6 +289,10 @@ const PaymentApprovalQueue: React.FC = () => {
         sortField,
         sortOrder,
       );
+      if (!result.success) {
+        throw new Error(result.message || "Failed to fetch payments");
+        toast.error(result.message || "Failed to load payments");
+      }
       setPayments(result.payments);
       setPagination(result.pagination);
     } catch (error) {
@@ -265,7 +323,8 @@ const PaymentApprovalQueue: React.FC = () => {
   const fetchSites = useCallback(async () => {
     try {
       const result = await paymentService.getSites();
-      setSites(result);
+
+      result && result.length > 0 ? setSites(result) : setSites([]);
     } catch (error) {
       console.error("Error fetching sites:", error);
     }
@@ -347,8 +406,10 @@ const PaymentApprovalQueue: React.FC = () => {
   const handleApproveSingle = async (payment: PaymentData) => {
     setActionLoading(payment.id);
     try {
-      await paymentService.approvePayment(payment.id);
-      toast.success(`Approved payment for ${payment.workerName}`);
+      const response = await paymentService.approvePayment(payment.id);
+      if (response) {
+        toast.success(`Approved payment for ${payment.workerName}`);
+      }
       fetchPayments();
     } catch (error) {
       console.error("Error approving payment:", error);
@@ -362,9 +423,11 @@ const PaymentApprovalQueue: React.FC = () => {
     const transactionRef = prompt("Enter transaction reference (optional):");
     setActionLoading(payment.id);
     try {
-      await paymentService.markAsPaid(payment.id, transactionRef || undefined);
-      toast.success(`Marked payment for ${payment.workerName} as paid`);
-      fetchPayments();
+      const response = await paymentService.markAsPaid(payment.id);
+      if (response) {
+        toast.success(`Marked payment for ${payment.workerName} as paid`);
+        fetchPayments();
+      }
     } catch (error) {
       console.error("Error marking payment as paid:", error);
       toast.error("Failed to mark payment as paid");
@@ -657,7 +720,7 @@ const PaymentApprovalQueue: React.FC = () => {
                     Site
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-medium">
-                    Period
+                    CreatedAt
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-medium">
                     Hours
@@ -710,7 +773,7 @@ const PaymentApprovalQueue: React.FC = () => {
                         {payment.workerName}
                       </td>
                       <td className="px-4 py-3">{payment.siteName}</td>
-                      <td className="px-4 py-3">{`${payment.month}/${payment.year}`}</td>
+                      <td className="px-4 py-3">{`${payment.createdAt.split("T")[0]}`}</td>
                       <td className="px-4 py-3 text-right">
                         {payment.totalHours.toFixed(2)}
                       </td>
@@ -726,9 +789,9 @@ const PaymentApprovalQueue: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {payment.batchId ? (
+                        {payment.batch_id ? (
                           <span className="text-xs font-mono">
-                            {payment.batchId.slice(0, 8)}...
+                            {payment.batch_id.slice(0, 8)}...
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">

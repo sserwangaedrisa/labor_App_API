@@ -335,13 +335,7 @@ const OwnerDashboard = () => {
                   />
                 )}
 
-                {activeTab === "payments" && (
-                  <PaymentApprovalQueue
-                    payments={mockPayments}
-                    onApprove={handleApprovePayment}
-                    onReject={handleRejectPayment}
-                  />
-                )}
+                {activeTab === "payments" && <PaymentApprovalQueue />}
 
                 {activeTab === "users" && <UserManagementPanel />}
 
