@@ -159,11 +159,23 @@ const paymentService = {
   },
 
   // Approve multiple payments (batch)
-  approvePayments: async (paymentIds: string[]): Promise<void> => {
-    const response = await authorizePost(`payments/approve-batch`, {
-      paymentIds,
-    });
-    if (!response.ok) throw new Error("Failed to approve payments");
+  approveBatch: async (paymentIds: string[]): Promise<boolean> => {
+    try {
+      const response: {
+        success: boolean;
+        message: string;
+      } = await authorizePost(`payments/approve-batch`, { paymentIds });
+      if (!response.success) {
+        throw new Error("Failed to approve payments");
+        toast.error(response.message || "Failed to approve payments");
+      }
+      toast.success("Payments approved");
+      return true;
+    } catch (error) {
+      console.error("Error approving payments:", error);
+      toast.error("Failed to approve payments");
+      return false;
+    }
   },
 
   // Mark payment as paid
@@ -181,16 +193,20 @@ const paymentService = {
   },
 
   // Mark multiple payments as paid
-  markMultipleAsPaid: async (
-    paymentIds: string[],
-    transactionReference?: string,
-  ): Promise<void> => {
-    const response = await fetch(`${API_BASE}/payments/mark-paid-batch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentIds, transactionReference }),
-    });
-    if (!response.ok) throw new Error("Failed to mark payments as paid");
+  markMultipleAsPaid: async (paymentIds: string[]): Promise<boolean> => {
+    const response: {
+      success: boolean;
+      message: string;
+    } = await authorizePost(`payments/mark-paid-batch`, { paymentIds });
+
+    if (!response.success) {
+      toast.error(response.message || "Failed to mark payments as paid");
+      throw new Error("Failed to mark payments as paid");
+    }
+    if (response.success) {
+      return true;
+    }
+    return false;
   },
 
   // Send payment back for review
@@ -367,7 +383,7 @@ const PaymentApprovalQueue: React.FC = () => {
 
     setActionLoading("batch-approve");
     try {
-      await paymentService.approvePayments(selectedPayments);
+      await paymentService.approveBatch(selectedPayments);
       toast.success(`Approved ${selectedPayments.length} payments`);
       setSelectedPayments([]);
       fetchPayments();
@@ -385,14 +401,12 @@ const PaymentApprovalQueue: React.FC = () => {
       return;
     }
 
-    const transactionRef = prompt("Enter transaction reference (optional):");
-    setActionLoading("batch-paid");
+    setActionLoading("Approving a Batch");
     try {
-      await paymentService.markMultipleAsPaid(
-        selectedPayments,
-        transactionRef || undefined,
-      );
-      toast.success(`Marked ${selectedPayments.length} payments as paid`);
+      const results = await paymentService.markMultipleAsPaid(selectedPayments);
+      if (results) {
+        toast.success(`Marked ${selectedPayments.length} payments as paid`);
+      }
       setSelectedPayments([]);
       fetchPayments();
     } catch (error) {
