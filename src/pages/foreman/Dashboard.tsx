@@ -222,60 +222,66 @@ const ForemanDashboard: React.FC = () => {
 
   useEffect(() => {
     const fetchAttendance = async () => {
-      const res =
-        await authorizePostRequest<SharedTypes.SiteAttendanceInfoResponse>(
-          "attendance/todayAttendace",
-          {
-            siteId,
-            date: currentDate,
-          },
-        );
+      if (!siteId || siteActiveWorkers.length === 0) return;
 
-      if (!res.presentWorkers) return;
+      try {
+        const res =
+          await authorizePostRequest<SharedTypes.SiteAttendanceInfoResponse>(
+            "attendance/todayAttendace",
+            {
+              siteId,
+              date: currentDate,
+            },
+          );
 
-      const presentWorkers = res.presentWorkers;
-      setPresentWorker(presentWorkers.length);
-      if (siteActiveWorkers.length > 0) {
-        const updatedWorkers = siteActiveWorkers
+        const presentWorkers = res.presentWorkers || [];
+
+        setPresentWorker(presentWorkers.length);
+
+        const updatedWorkers: Worker[] = siteActiveWorkers
           .map(({ worker }) => {
-            if (worker?.status !== "ACTIVE" || !worker?.isActive) {
+            if (!worker || worker.status !== "ACTIVE" || !worker.isActive) {
               return null;
             }
-            const workerId = worker?.id ?? "";
+
             const workEntry = presentWorkers.find(
-              (entry) => entry.workerId === worker?.id,
+              (entry) => entry.workerId === worker.id,
             );
-            const currentWorkEntryId = workEntry?.id;
-            const timeWorkedToday = workEntry?.hours;
-            const overtime = workEntry?.overtime;
+
             return {
-              id: workerId,
-              name: worker?.name ?? "",
-              avatar: worker?.imageUrl ?? "",
-              avatarAlt: worker?.name ?? "",
-              role: worker?.job ?? "WORKER",
-              todayStatus: currentWorkEntryId ? "present" : "absent",
-              currentWorkEntryId: currentWorkEntryId ?? "",
-              hoursToday:
-                timeWorkedToday && overtime ? timeWorkedToday + overtime : 0,
-              wageRate: worker?.wageRating ?? 0,
+              id: worker.id,
+              name: worker.name ?? "",
+              avatar: worker.imageUrl ?? "",
+              avatarAlt: worker.name ?? "",
+              role: worker.job ?? "WORKER",
+              todayStatus: workEntry ? "present" : "absent",
+              currentWorkEntryId: workEntry?.id ?? "",
+              hoursToday: (workEntry?.hours ?? 0) + (workEntry?.overtime ?? 0),
+              wageRate: worker.wageRating ?? 0,
               lastUpdated: new Date().toISOString(),
-              workEntry,
+              workEntry: workEntry ?? undefined,
+              status: worker.status,
+              isActive: worker.isActive,
             };
           })
-          .filter((worker) => worker !== null);
-        setWorkersDetatil(updatedWorkers as Worker[]);
+          .filter(Boolean) as Worker[];
 
-        setFilteredWorkers(updatedWorkers as Worker[]);
+        setWorkersDetatil(updatedWorkers);
+
+        // Respect current search query after date changes
+        const filteredList = updatedWorkers.filter((w) =>
+          w.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        );
+
+        setFilteredWorkers(filteredList);
+      } catch (error) {
+        console.log("Error fetching attendance:", error);
+        toast.error("Failed to fetch attendance");
       }
     };
 
-    if (siteInfo && !showAttendanceModal) {
-      fetchAttendance();
-    }
-  }, [showAttendanceModal, currentDate, siteActiveWorkers]);
-
-  // setting seacrh query for the selected user modal
+    fetchAttendance();
+  }, [currentDate, siteId, siteActiveWorkers, searchQuery]);
 
   useEffect(() => {
     const startOfMonth = new Date();
@@ -317,13 +323,11 @@ const ForemanDashboard: React.FC = () => {
     setFilteredWorkers((prevWorkers) => prevWorkers.map(updateWorker));
   };
 
-  // Handle site settings
   const handleSettingsUpdate = (settings: SharedTypes.SiteSettings) => {
     setCurrentSettings(settings);
     console.log("Settings updated:");
   };
 
-  //initiation for  Recording the attendace for the worker with the details different from the site setting details .
   const handleRecordAttendanced = (worker: Worker): void => {
     const selected = siteActiveWorkers?.find((w) => w.worker.id === worker.id);
 

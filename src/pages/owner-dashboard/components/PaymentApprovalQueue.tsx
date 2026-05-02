@@ -3,6 +3,7 @@ import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import { Checkbox } from "../../../components/ui/Checkbox";
 import authorizePost from "../../../api/authorizePost";
+import Image from "../../../components/ui/AppImage";
 import { toast } from "react-hot-toast"; // or your preferred toast library
 import { ca } from "date-fns/locale";
 
@@ -28,6 +29,7 @@ interface PaymentData {
   approvedAt: string | null;
   paidAt: string | null;
   createdAt: string;
+  workerImage: string | null;
 }
 
 interface BatchSummary {
@@ -214,22 +216,22 @@ const paymentService = {
     paymentId: string,
     reviewNotes?: string,
   ): Promise<void> => {
-    const response = await fetch(`${API_BASE}/payments/${paymentId}/review`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reviewNotes }),
+    const response = await authorizePost(`/payments/${paymentId}/review`, {
+      reviewNotes,
     });
     if (!response.ok) throw new Error("Failed to send payment for review");
   },
 
-  // Reject payment
+  // Reject payment "sending the payment back to the foreman for review"
   rejectPayment: async (paymentId: string, reason?: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/payments/${paymentId}/reject`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason }),
+    const response = await authorizePost(`payments/${paymentId}/reject`, {
+      reason,
     });
-    if (!response.ok) throw new Error("Failed to reject payment");
+    if (!response.success) {
+      toast.error(response.message || "Failed to reject payment");
+      console.log("Failed to reject payment:", response.message);
+      throw new Error("Failed to reject payment");
+    }
   },
 
   // Get available sites for filtering
@@ -434,7 +436,6 @@ const PaymentApprovalQueue: React.FC = () => {
   };
 
   const handleMarkPaidSingle = async (payment: PaymentData) => {
-    const transactionRef = prompt("Enter transaction reference (optional):");
     setActionLoading(payment.id);
     try {
       const response = await paymentService.markAsPaid(payment.id);
@@ -727,6 +728,7 @@ const PaymentApprovalQueue: React.FC = () => {
                       }
                     />
                   </th>
+                  <th className="">Pic</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">
                     Worker
                   </th>
@@ -783,6 +785,16 @@ const PaymentApprovalQueue: React.FC = () => {
                           }
                         />
                       </td>
+                      <td className="px-4 py-3 ">
+                        <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0">
+                          <Image
+                            src={
+                              payment.workerImage ||
+                              "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                            }
+                          />
+                        </div>
+                      </td>
                       <td className="px-4 py-3 font-medium">
                         {payment.workerName}
                       </td>
@@ -815,7 +827,9 @@ const PaymentApprovalQueue: React.FC = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2 justify-center">
-                          {payment.status === "PENDING" && (
+                          {(payment.status === "PENDING" ||
+                            payment.status === "REJECTED" ||
+                            payment.status === "REVIEW") && (
                             <Button
                               onClick={() => handleApproveSingle(payment)}
                               disabled={actionLoading === payment.id}
@@ -826,7 +840,8 @@ const PaymentApprovalQueue: React.FC = () => {
                             </Button>
                           )}
                           {(payment.status === "PENDING" ||
-                            payment.status === "APPROVED") && (
+                            payment.status === "APPROVED" ||
+                            payment.status === "REJECTED") && (
                             <Button
                               onClick={() => handleMarkPaidSingle(payment)}
                               disabled={actionLoading === payment.id}
@@ -838,17 +853,6 @@ const PaymentApprovalQueue: React.FC = () => {
                           )}
                           {payment.status === "PENDING" && (
                             <>
-                              <Button
-                                onClick={() => {
-                                  setSelectedPaymentForReview(payment);
-                                  setShowReviewModal(true);
-                                }}
-                                disabled={actionLoading === payment.id}
-                                size="sm"
-                                variant="warning"
-                              >
-                                Review
-                              </Button>
                               <Button
                                 onClick={() => handleRejectSingle(payment)}
                                 disabled={actionLoading === payment.id}
@@ -881,6 +885,13 @@ const PaymentApprovalQueue: React.FC = () => {
                 <div key={payment.id} className="p-4 border-b border-border">
                   <div className="flex items-start justify-between mb-2">
                     <div>
+                      <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 md:w-12 md:h-12">
+                        <Image
+                          src={payment.workerImage || undefined}
+                          alt={payment.workerName || "user"}
+                        />
+                      </div>
+
                       <h4 className="font-semibold">{payment.workerName}</h4>
                       <p className="text-sm text-muted-foreground">
                         {payment.siteName}
@@ -1078,7 +1089,10 @@ const PaymentApprovalQueue: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center">
+                  <td
+                    colSpan={8}
+                    className="px-4 py-8 text-center text-orange-600"
+                  >
                     Loading...
                   </td>
                 </tr>
