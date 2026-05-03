@@ -4,6 +4,7 @@ import Button from "../../../components/ui/Button";
 import { Checkbox } from "../../../components/ui/Checkbox";
 import authorizePost from "../../../api/authorizePost";
 import Image from "../../../components/ui/AppImage";
+import ConfirmationModal from "../../../components/ui/Confirmation";
 import { toast } from "react-hot-toast"; // or your preferred toast library
 import { ca } from "date-fns/locale";
 
@@ -234,6 +235,17 @@ const paymentService = {
     }
   },
 
+  // Delete a payment
+  deletePayment: async (paymentId: string): Promise<boolean> => {
+    const response = await authorizePost(`payments/${paymentId}/delete`, {});
+    if (!response.success) {
+      toast.error(response.message || "Failed to delete payment");
+      console.log("Failed to delete payment:", response.message);
+      throw new Error("Failed to delete payment");
+    }
+    return true;
+  },
+
   // Get available sites for filtering
   getSites: async (): Promise<
     {
@@ -259,6 +271,10 @@ const paymentService = {
 /* ================= COMPONENT ================= */
 
 const PaymentApprovalQueue: React.FC = () => {
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [selectedPaymentToBeDeleted, setSelectedPaymentToBeDeleted] =
+    useState<PaymentData | null>(null);
+  const [confirmedActionFinished, setConfirmedActionFinished] = useState(false);
   const [payments, setPayments] = useState<PaymentData[]>([]);
   const [batches, setBatches] = useState<BatchSummary[]>([]);
   const [sites, setSites] = useState<{ id: string; name: string }[]>([]);
@@ -490,6 +506,47 @@ const PaymentApprovalQueue: React.FC = () => {
     }
   };
 
+  // Open confirmation modal for deleting a payment
+  const handleDeleteSingleConfirmation = (payment: PaymentData) => {
+    setSelectedPaymentToBeDeleted(payment);
+    setConfirmationOpen(true);
+  };
+
+  // Cancel payment deletion
+  const cancelPaymentDeletion = () => {
+    setSelectedPaymentToBeDeleted(null);
+    setConfirmationOpen(false);
+  };
+
+  //handle delete single payment
+  const handleDeleteSingle = async () => {
+    setActionLoading(selectedPaymentToBeDeleted?.id || null);
+    setConfirmedActionFinished(false);
+
+    try {
+      const response = await paymentService.deletePayment(
+        selectedPaymentToBeDeleted?.id || "",
+      );
+      if (response) {
+        toast.success(
+          `Deleted payment for ${selectedPaymentToBeDeleted?.workerName}`,
+        );
+        setActionLoading(null);
+        setConfirmedActionFinished(true);
+        setConfirmationOpen(false);
+        setSelectedPaymentToBeDeleted(null);
+      }
+      fetchPayments();
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+    } finally {
+      setActionLoading(null);
+      setConfirmedActionFinished(true);
+      setConfirmationOpen(false);
+      setSelectedPaymentToBeDeleted(null);
+    }
+  };
+
   const handleFilterChange = (key: keyof FilterOptions, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPagination((prev) => ({ ...prev, page: 1 })); // Reset to first page on filter change
@@ -707,7 +764,6 @@ const PaymentApprovalQueue: React.FC = () => {
               {sortField === "createdAt" && (sortOrder === "asc" ? "↑" : "↓")}
             </button>
           </div>
-
           {/* Table */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
@@ -861,6 +917,14 @@ const PaymentApprovalQueue: React.FC = () => {
                               >
                                 Reject
                               </Button>
+                              <div
+                                className="w-fit cursor-pointer text-red-600"
+                                onClick={() =>
+                                  handleDeleteSingleConfirmation(payment)
+                                }
+                              >
+                                <Icon name="Delete" size={32} />
+                              </div>
                             </>
                           )}
                         </div>
@@ -871,7 +935,6 @@ const PaymentApprovalQueue: React.FC = () => {
               </tbody>
             </table>
           </div>
-
           {/* Mobile Card View */}
           <div className="lg:hidden">
             {loading ? (
@@ -927,7 +990,9 @@ const PaymentApprovalQueue: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {payment.status === "PENDING" && (
+                    {(payment.status === "PENDING" ||
+                      payment.status === "REJECTED" ||
+                      payment.status === "REVIEW") && (
                       <Button
                         onClick={() => handleApproveSingle(payment)}
                         disabled={actionLoading === payment.id}
@@ -937,7 +1002,8 @@ const PaymentApprovalQueue: React.FC = () => {
                       </Button>
                     )}
                     {(payment.status === "PENDING" ||
-                      payment.status === "APPROVED") && (
+                      payment.status === "APPROVED" ||
+                      payment.status === "REVIEW") && (
                       <Button
                         onClick={() => handleMarkPaidSingle(payment)}
                         disabled={actionLoading === payment.id}
@@ -947,19 +1013,9 @@ const PaymentApprovalQueue: React.FC = () => {
                         Pay
                       </Button>
                     )}
-                    {payment.status === "PENDING" && (
+                    {(payment.status === "PENDING" ||
+                      payment.status === "REVIEW") && (
                       <>
-                        <Button
-                          onClick={() => {
-                            setSelectedPaymentForReview(payment);
-                            setShowReviewModal(true);
-                          }}
-                          disabled={actionLoading === payment.id}
-                          size="sm"
-                          variant="warning"
-                        >
-                          Review
-                        </Button>
                         <Button
                           onClick={() => handleRejectSingle(payment)}
                           disabled={actionLoading === payment.id}
@@ -970,12 +1026,28 @@ const PaymentApprovalQueue: React.FC = () => {
                         </Button>
                       </>
                     )}
+                    <div
+                      className="w-fit cursor-pointer text-red-600"
+                      onClick={() => handleDeleteSingleConfirmation(payment)}
+                    >
+                      <Icon name="Delete" key={payment.id} size={32} />
+                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-
+          {/* Delete Confirmation Modal */}
+          {confirmationOpen && selectedPaymentToBeDeleted && (
+            <ConfirmationModal
+              title={`Delete Payment for ${selectedPaymentToBeDeleted.workerName}`}
+              confirmButtonText="Delete"
+              onCancel={cancelPaymentDeletion}
+              onConfirm={handleDeleteSingle}
+              isLoading={actionLoading === selectedPaymentToBeDeleted?.id}
+              operationFinished={confirmedActionFinished}
+            />
+          )}
           {/* Pagination */}
           {pagination.totalPages > 1 && (
             <div className="px-4 py-3 border-t border-border flex flex-wrap items-center justify-between gap-3">
