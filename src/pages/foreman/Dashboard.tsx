@@ -417,10 +417,6 @@ const ForemanDashboard: React.FC = () => {
     }
   };
 
-  const handleSubmitPaymentRequest = (): void => {
-    console.log("Submit payment request for pending workers");
-  };
-
   const handleViewPaymentHistory = (): void => {
     console.log("View payment history");
   };
@@ -441,14 +437,6 @@ const ForemanDashboard: React.FC = () => {
 
   const handleSiteSettings = (): void => {
     console.log("Open site settings");
-  };
-
-  const handleDismissNotification = (id: string | number): void => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const handleViewAllNotifications = (): void => {
-    console.log("View all notifications");
   };
 
   const handleCreateUser = async (userData: FormData): Promise<boolean> => {
@@ -1085,7 +1073,6 @@ const ForemanDashboard: React.FC = () => {
                     <tbody className="bg-card divide-y divide-border ">
                       {filteredWorkers.length > 0 ? (
                         filteredWorkers.map((worker) => {
-                          // ✅ Skip if worker or worker.id is undefined/null/empty
                           if (
                             !worker?.id ||
                             (worker.id as string).length === 0

@@ -1,10 +1,11 @@
-// LaborCard.tsx - Fixed Version
-
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import type { Dispatch, SetStateAction } from "react";
+import authorizePostRequest from "../../api/authorizePostRequest";
 import type {
   WorkEntry,
   WorkerPaymentData,
   SiteInfoResponse,
+  workerPaymentRequestSearchObject,
 } from "../../types/SharedTypes";
 
 import {
@@ -23,7 +24,6 @@ import {
   Briefcase,
   Mail,
   Phone,
-  MapPin,
 } from "lucide-react";
 import {
   format,
@@ -31,8 +31,6 @@ import {
   endOfMonth,
   eachDayOfInterval,
   isSameMonth,
-  getDay,
-  addDays,
   startOfWeek,
   endOfWeek,
   isSameDay,
@@ -44,20 +42,35 @@ import ConfirmationModal from "./Confirmation";
 import Loading from "./Loading";
 
 interface LaborCardProps {
-  setSelectedEntries: React.Dispatch<React.SetStateAction<string[]>>;
+  siteId?: string | null;
+  workerId?: string | null;
   isOpen: boolean;
-  makePaymentRequestFc: () => Promise<boolean>;
-  workerData: WorkerPaymentData | null;
+  paymentID?: string;
+  workerPaymentInfo?: WorkerPaymentData | null;
+  makePaymentRequestFc?: () => Promise<boolean>;
+  setSelectedEntries?: Dispatch<SetStateAction<string[]>>;
   onClose: () => void;
+}
+
+interface workerRequestResponse {
+  data?: WorkerPaymentData;
+  success: boolean;
+  message: string;
 }
 
 const LaborCard: React.FC<LaborCardProps> = ({
   isOpen,
-  workerData,
-  makePaymentRequestFc,
-  setSelectedEntries,
+  paymentID,
+  workerPaymentInfo,
   onClose,
+  siteId,
+  workerId,
 }) => {
+  // Auth context
+  const { user } = useAuth();
+  const [workerData, setWorkerData] = useState<WorkerPaymentData | null>(
+    workerPaymentInfo || null,
+  );
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<WorkEntry | null>(null);
@@ -67,16 +80,225 @@ const LaborCard: React.FC<LaborCardProps> = ({
     string[]
   >([]);
   const [workEntrySelection, setWorkEntrySelection] = useState<boolean>(false);
+  const [selectedEntries, setSelectedEntries] = useState<string[]>([]); // For payments
 
   // confirmation
   const [paymentRequestConfirmation, setPaymentRequestConfirmation] =
     useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] =
+    useState<workerPaymentRequestSearchObject>({
+      siteId: siteId || "",
+      paymentId: paymentID || "",
+      workerId: workerId || "",
+      startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      endDate: new Date(
+        new Date().getFullYear(),
+        new Date().getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      ),
+    });
 
-  // set user context
-  const { user } = useAuth();
+  // Use refs to track request state
+  const isFetchingRef = useRef(false);
+  const lastRequestKeyRef = useRef<string>("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  if (!isOpen || !workerData) return null;
+  // Memoize the request key to prevent unnecessary recalculations
+  const requestKey = useMemo(() => {
+    if (!searchQuery.siteId || !searchQuery.workerId) return "";
+    return `${searchQuery.siteId}-${searchQuery.workerId}-${searchQuery.startDate?.toISOString().split("T")[0]}-${searchQuery.endDate?.toISOString().split("T")[0]}-${searchQuery.paymentId || ""}`;
+  }, [
+    searchQuery.siteId,
+    searchQuery.workerId,
+    searchQuery.startDate,
+    searchQuery.endDate,
+    searchQuery.paymentId,
+  ]);
+
+  const cleanup = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    isFetchingRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (workerPaymentInfo) {
+      setWorkerData(workerPaymentInfo);
+    }
+  }, [workerPaymentInfo]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      cleanup();
+      setWorkerData(null);
+    }
+  }, [isOpen, cleanup]);
+
+  useEffect(() => {
+    setSearchQuery({
+      siteId: siteId || "",
+      paymentId: paymentID || "",
+      workerId: workerId || "",
+      startDate: new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        1,
+      ),
+      endDate: new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      ),
+    });
+  }, [currentMonth, siteId, workerId, paymentID]);
+
+  // Getting the work Entries for the current selected month or paymentId
+  useEffect(() => {
+    if (!searchQuery.siteId?.length || !searchQuery.workerId?.length) return;
+
+    // Don't fetch if we're already fetching the same data
+    if (isFetchingRef.current && lastRequestKeyRef.current === requestKey) {
+      return;
+    }
+
+    // Don't fetch if we already have the data
+    if (workerData && lastRequestKeyRef.current === requestKey) {
+      return;
+    }
+
+    const fetchWorkerDetails = async () => {
+      // Cancel any ongoing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller
+      abortControllerRef.current = new AbortController();
+
+      isFetchingRef.current = true;
+      lastRequestKeyRef.current = requestKey;
+      setIsLoading(true);
+      try {
+        const response = await authorizePostRequest<workerRequestResponse>(
+          "payments/workerPayment",
+          searchQuery,
+        );
+
+        // Check if this request was aborted
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
+
+        if (!response || !response.success) {
+          toast.error(response?.message || "Failed to get the worker details");
+          if (workerData) {
+            setWorkerData({
+              ...workerData,
+              period: {
+                startDate: searchQuery.startDate.toISOString(),
+                endDate: searchQuery.endDate.toISOString(),
+              },
+              summary: {
+                totalRegularHours: 0,
+                totalOvertimeHours: 0,
+                totalHours: 0,
+                totalAmount: 0,
+              },
+              metadata: {
+                entryCount: 0,
+              },
+              entries: [],
+            });
+          } else {
+            setWorkerData(null);
+          }
+
+          return;
+        }
+
+        // Only update state if the request key still matches
+        if (lastRequestKeyRef.current === requestKey && response?.data) {
+          setWorkerData(response.data);
+        }
+      } catch (error: unknown) {
+        const requestError = error as { name?: string; code?: string };
+        if (
+          requestError.name === "AbortError" ||
+          requestError.code === "ERR_CANCELED"
+        ) {
+          return;
+        }
+        console.error("Error fetching worker details:", error);
+        toast.error("Failed to get workers details");
+        setWorkerData(null);
+      } finally {
+        // Only reset if this is still the current request
+        if (lastRequestKeyRef.current === requestKey) {
+          isFetchingRef.current = false;
+          setIsLoading(false);
+          abortControllerRef.current = null;
+        }
+      }
+    };
+
+    // Add a small delay to prevent rapid successive calls
+    timeoutRef.current = setTimeout(() => {
+      fetchWorkerDetails();
+    }, 100);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [isOpen, requestKey, searchQuery, workerData, currentMonth]);
+
+  if (!isOpen) return null;
+
+  if (!workerData) {
+    return (
+      <div
+        className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
+        onClick={onClose}
+      >
+        <div
+          className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isLoading ? (
+            <Loading message="Loading labor card..." />
+          ) : (
+            <div className="space-y-4 text-center">
+              <p className="text-sm text-gray-600">
+                Labor card details are not available for this payment.
+              </p>
+              <button
+                onClick={onClose}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Get all days in the current month view (including previous/next month days for grid)
   const monthStart = startOfMonth(currentMonth);
@@ -145,7 +367,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
       }
 
       setIsLoading(true);
-      const paymentReq = await makePaymentRequestFc();
+      const paymentReq = await makePaymentRequestCard();
 
       if (paymentReq) {
         clearSelections();
@@ -271,6 +493,46 @@ const LaborCard: React.FC<LaborCardProps> = ({
     totalHours: workerData.summary.totalHours,
     totalOvertime: workerData.summary.totalOvertimeHours,
     totalEarnings: workerData.summary.totalAmount,
+  };
+
+  // PAYMENT REQUEST LOGIC
+
+  // PAYMENT REQUEST FC
+  const makePaymentRequestCard = async (): Promise<boolean> => {
+    if (selectedEntries.length <= 0) {
+      console.log("No entries selected for the payment");
+      toast.error("No entries selected for the payment");
+      return false;
+    }
+    setIsLoading(true);
+    try {
+      const request: SiteInfoResponse = await authorizePostRequest(
+        "payments/worker",
+        {
+          entryIds: selectedEntries,
+          siteId,
+          workerId,
+        },
+      );
+
+      if (!request.success || !request) {
+        console.log(request.message || "Error while making payment request");
+        toast.error("Failed to make the payment request");
+        setPaymentRequestConfirmation(false);
+        return false;
+      }
+
+      console.log("Payment request made successfully");
+
+      toast.success("Payment request made successfully");
+      return true;
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to make the payment request");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

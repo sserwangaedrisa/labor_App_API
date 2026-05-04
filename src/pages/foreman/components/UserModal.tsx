@@ -1,8 +1,10 @@
 import React from "react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "../../../components/ui/AppImage";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import LaborCard from "../../../components/ui/LaborCard";
+import { useAuth } from "../../../app/providers";
+
 import {
   Calendar,
   DollarSign,
@@ -20,19 +22,13 @@ import Icon from "../../../components/ui/AppIconl";
 import ConfirmationModal from "../../../components/ui/Confirmation";
 import type {
   SiteInfoResponse,
+  workerPaymentRequestSearchObject,
   WorkEntry,
   WorkerPaymentData,
 } from "../../../types/SharedTypes";
 import toast from "react-hot-toast";
 import authorizePostRequest from "../../../api/authorizePostRequest";
 import Loading from "../../../components/ui/Loading";
-
-interface SearchObject {
-  startDate: Date;
-  siteId: string;
-  endDate: Date;
-  workerId: string;
-}
 
 interface workerRequestResponse {
   data?: WorkerPaymentData;
@@ -42,7 +38,7 @@ interface workerRequestResponse {
 
 interface WorkerModalProps {
   isOpen: boolean;
-  searchQuery: SearchObject;
+  searchQuery: workerPaymentRequestSearchObject;
   onClose: () => void;
 }
 
@@ -78,6 +74,9 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
     searchQuery.endDate,
   ]);
 
+  const { setSelectedWorkerPaymentData, setSelectedWorkerId, setSiteId } =
+    useAuth();
+
   // Cleanup function to cancel all pending operations
   const cleanup = useCallback(() => {
     if (abortControllerRef.current) {
@@ -94,9 +93,13 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
   useEffect(() => {
     if (!isOpen) {
       cleanup();
-      // Clear worker data when modal closes to free memory
       setWorker(null);
+      setSelectedWorkerPaymentData(null);
+      setSelectedWorkerId(null);
+      setSiteId(null);
     }
+    setSelectedWorkerId(searchQuery.workerId);
+    setSiteId(searchQuery.siteId);
   }, [isOpen, cleanup]);
 
   // Effect to fetch worker details
@@ -140,12 +143,14 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
         if (!response.success || !response) {
           toast.error(response.message || "Failed to get the worker details");
           setWorker(null);
+          setSelectedWorkerPaymentData(null);
           return;
         }
 
         // Only update state if the request key still matches
         if (lastRequestKeyRef.current === requestKey && response?.data) {
           setWorker(response.data);
+          setSelectedWorkerPaymentData(response.data);
         }
       } catch (error: any) {
         if (error.name === "AbortError" || error.code === "ERR_CANCELED") {
@@ -154,6 +159,7 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
         console.error("Error fetching worker details:", error);
         toast.error("Failed to get workers details");
         setWorker(null);
+        setSelectedWorkerPaymentData(null);
       } finally {
         // Only reset if this is still the current request
         if (lastRequestKeyRef.current === requestKey) {
@@ -455,7 +461,7 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
           makePaymentRequestFc={makePaymentRequest}
           setSelectedEntries={setSelectedEntries}
           isOpen={showLaborCard}
-          workerData={worker}
+          workerPaymentInfo={worker}
           onClose={() => {
             setShowLaborCard(false);
             setIntialPaymentsEntries();

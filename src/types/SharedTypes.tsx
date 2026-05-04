@@ -321,3 +321,11 @@ export interface WorkerPaymentData {
   };
   entries: WorkEntry[];
 }
+
+export interface workerPaymentRequestSearchObject {
+  paymentId?: string;
+  startDate: Date;
+  siteId: string;
+  endDate: Date;
+  workerId: string;
+}

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from "react";
+import type { WorkerPaymentData } from "../types/SharedTypes";
 
 import type { ReactNode } from "react";
 
@@ -33,6 +34,14 @@ interface AuthContextType {
   login: (user: User, tokens: Tokens) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  selectedWorkerPaymentData: WorkerPaymentData | null;
+  setSelectedWorkerPaymentData: React.Dispatch<
+    React.SetStateAction<WorkerPaymentData | null>
+  >;
+  siteId: string | null;
+  setSiteId: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedWorkerId: string | null;
+  setSelectedWorkerId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 // Create context
@@ -44,6 +53,10 @@ export const Providers = ({ children }: { children: ReactNode }) => {
     const storedUser = localStorage.getItem("user");
     return storedUser ? JSON.parse(storedUser) : null;
   });
+  const [selectedWorkerPaymentData, setSelectedWorkerPaymentData] =
+    useState<WorkerPaymentData | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
 
   const login = (u: User, tokens: Tokens) => {
     setUser(u);
@@ -64,7 +77,20 @@ export const Providers = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        isAuthenticated,
+        selectedWorkerPaymentData,
+        setSelectedWorkerPaymentData,
+        siteId,
+        setSiteId,
+        selectedWorkerId,
+        setSelectedWorkerId,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
