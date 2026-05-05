@@ -34,6 +34,7 @@ import {
   startOfWeek,
   endOfWeek,
   isSameDay,
+  set,
 } from "date-fns";
 import Image from "./AppImage";
 import toast from "react-hot-toast";
@@ -85,11 +86,12 @@ const LaborCard: React.FC<LaborCardProps> = ({
   // confirmation
   const [paymentRequestConfirmation, setPaymentRequestConfirmation] =
     useState<boolean>(false);
+  const [PAYMENTID, setPAYMENTID] = useState<string | null>(paymentID || null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] =
     useState<workerPaymentRequestSearchObject>({
       siteId: siteId || "",
-      paymentId: paymentID || "",
+      paymentId: PAYMENTID || "",
       workerId: workerId || "",
       startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
       endDate: new Date(
@@ -148,7 +150,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
   useEffect(() => {
     setSearchQuery({
       siteId: siteId || "",
-      paymentId: paymentID || "",
+      paymentId: PAYMENTID || "",
       workerId: workerId || "",
       startDate: new Date(
         currentMonth.getFullYear(),
@@ -165,7 +167,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         999,
       ),
     });
-  }, [currentMonth, siteId, workerId, paymentID]);
+  }, [currentMonth, siteId, workerId, PAYMENTID]);
 
   // Getting the work Entries for the current selected month or paymentId
   useEffect(() => {
@@ -234,6 +236,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         // Only update state if the request key still matches
         if (lastRequestKeyRef.current === requestKey && response?.data) {
           setWorkerData(response.data);
+          setCurrentMonth(new Date(response.data.period.startDate));
         }
       } catch (error: unknown) {
         const requestError = error as { name?: string; code?: string };
@@ -634,7 +637,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
           {/* Month Navigation */}
           <div className="flex items-center justify-between print:hidden">
             <button
-              onClick={previousMonth}
+              onClick={() => {
+                setPAYMENTID(null);
+                previousMonth();
+              }}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -644,14 +650,20 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 {format(currentMonth, "MMMM yyyy")}
               </h3>
               <button
-                onClick={goToCurrentMonth}
+                onClick={() => {
+                  setPAYMENTID(null);
+                  goToCurrentMonth();
+                }}
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
                 Today
               </button>
             </div>
             <button
-              onClick={nextMonth}
+              onClick={() => {
+                setPAYMENTID(null);
+                nextMonth();
+              }}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ChevronRight className="w-5 h-5" />
