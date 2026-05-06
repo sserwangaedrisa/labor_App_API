@@ -316,6 +316,50 @@ export interface WorkerPaymentData {
     totalHours: number;
     totalAmount: number;
   };
+  statusSummary?: {
+    PENDING: {
+      hours: number;
+      amount: number;
+      overtime: number;
+      count: number;
+      total: number;
+    };
+    APPROVED: {
+      hours: number;
+      amount: number;
+      overtime: number;
+      count: number;
+      total: number;
+    };
+    PAID: {
+      hours: number;
+      amount: number;
+      overtime: number;
+      count: number;
+      total: number;
+    };
+    REJECTED: {
+      hours: number;
+      amount: number;
+      overtime: number;
+      count: number;
+      total: number;
+    };
+    REVIEW: {
+      hours: number;
+      amount: number;
+      overtime: number;
+      count: number;
+      total: number;
+    };
+    NOT_PAID: {
+      hours: number;
+      amount: number;
+      overtime: number;
+      count: number;
+      total: number;
+    };
+  };
   metadata: {
     entryCount: number;
   };

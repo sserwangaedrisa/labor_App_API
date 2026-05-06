@@ -24,6 +24,7 @@ import {
   Briefcase,
   Mail,
   Phone,
+  Eye,
 } from "lucide-react";
 import {
   format,
@@ -34,7 +35,8 @@ import {
   startOfWeek,
   endOfWeek,
   isSameDay,
-  set,
+  isAfter,
+  startOfDay,
 } from "date-fns";
 import Image from "./AppImage";
 import toast from "react-hot-toast";
@@ -104,6 +106,14 @@ const LaborCard: React.FC<LaborCardProps> = ({
         999,
       ),
     });
+
+  // show statusSummary states:
+  const [showPAID, setShowPAID] = useState<boolean>(false);
+  const [showPENDING, setShowPENDING] = useState<boolean>(false);
+  const [showREJECTED, setShowREJECTED] = useState<boolean>(false);
+  const [showNOTPAID, setShowNOTPAID] = useState<boolean>(false);
+  const [showAPPROVED, setShowAPPROVED] = useState<boolean>(false);
+  const [showREVIEW, setShowREVIEW] = useState<boolean>(false);
 
   // Use refs to track request state
   const isFetchingRef = useRef(false);
@@ -221,6 +231,50 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 totalHours: 0,
                 totalAmount: 0,
               },
+              statusSummary: {
+                PENDING: {
+                  count: 0,
+                  hours: 0,
+                  overtime: 0,
+                  amount: 0,
+                  total: 0,
+                },
+                APPROVED: {
+                  count: 0,
+                  hours: 0,
+                  overtime: 0,
+                  amount: 0,
+                  total: 0,
+                },
+                PAID: {
+                  count: 0,
+                  hours: 0,
+                  overtime: 0,
+                  amount: 0,
+                  total: 0,
+                },
+                NOT_PAID: {
+                  count: 0,
+                  hours: 0,
+                  overtime: 0,
+                  amount: 0,
+                  total: 0,
+                },
+                REJECTED: {
+                  count: 0,
+                  hours: 0,
+                  overtime: 0,
+                  total: 0,
+                  amount: 0,
+                },
+                REVIEW: {
+                  count: 0,
+                  hours: 0,
+                  overtime: 0,
+                  total: 0,
+                  amount: 0,
+                },
+              },
               metadata: {
                 entryCount: 0,
               },
@@ -235,7 +289,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
 
         // Only update state if the request key still matches
         if (lastRequestKeyRef.current === requestKey && response?.data) {
-          setWorkerData(response.data);
+          setWorkerData(response.data || null);
           setCurrentMonth(new Date(response.data.period.startDate));
         }
       } catch (error: unknown) {
@@ -269,7 +323,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isOpen, requestKey, searchQuery, workerData, currentMonth]);
+  }, [isOpen, requestKey, searchQuery, workerData]);
 
   if (!isOpen) return null;
 
@@ -324,20 +378,23 @@ const LaborCard: React.FC<LaborCardProps> = ({
   };
 
   // Get status for a specific date - FIXED: Check if entry ID is in selectedLaborCardPayments
-  const getDayStatus = (date: Date): "ABSENT" | "PRESENT" | "SELECTED" => {
+  // Get status for a specific date
+  const getDayStatus = (
+    date: Date,
+  ): "ABSENT" | "PRESENT" | "SELECTED" | "FUTURE" => {
     const entry = getEntryForDate(date);
     if (!entry) {
+      const today = startOfDay(new Date());
+      if (isAfter(startOfDay(date), today)) {
+        return "FUTURE";
+      }
       return "ABSENT";
     }
-
-    //  Check if this entry ID is in the selectedLaborCardPayments array
     if (selectedLaborCardPayments.includes(entry.id as string)) {
       return "SELECTED";
     }
     return "PRESENT";
   };
-
-  // Format hours display
   const formatHours = (hours: number) => {
     return `${hours.toFixed(1)}h`;
   };
@@ -385,7 +442,9 @@ const LaborCard: React.FC<LaborCardProps> = ({
   };
 
   // Get status color and icon - FIXED: Added SELECTED style
-  const getStatusStyle = (status: "ABSENT" | "PRESENT" | "SELECTED") => {
+  const getStatusStyle = (
+    status: "ABSENT" | "PRESENT" | "SELECTED" | "FUTURE",
+  ) => {
     switch (status) {
       case "PRESENT":
         return {
@@ -396,7 +455,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         };
       case "SELECTED":
         return {
-          bgColor: "bg-blue-500 border-blue-600", // Changed to blue for selected
+          bgColor: "bg-blue-500 border-blue-600",
           textColor: "text-white",
           icon: <CheckCircle className="w-4 h-4 text-white" />,
           label: "Selected",
@@ -408,6 +467,13 @@ const LaborCard: React.FC<LaborCardProps> = ({
           icon: <XCircle className="w-4 h-4 text-red-500" />,
           label: "Absent",
         };
+      case "FUTURE":
+        return {
+          bgColor: "bg-gray-100 border-gray-200",
+          textColor: "text-gray-500",
+          icon: <AlertCircle className="w-4 h-4 text-gray-400" />,
+          label: "",
+        };
       default:
         return {
           bgColor: "bg-gray-50 border-gray-200 hover:bg-gray-100",
@@ -417,7 +483,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
         };
     }
   };
-
   // setting payment status badge
   const getPaymentStatusColor = (status?: string) => {
     switch (status?.toUpperCase()) {
@@ -425,6 +490,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
         return "bg-green-500";
       case "PENDING":
         return "bg-yellow-500";
+      case "APPROVED":
+        return "bg-green-900";
+      case "REJECTED":
+        return "bg-gray-500";
       case "REVIEW":
         return "bg-blue-500";
       case "NOT_PAID":
@@ -473,6 +542,52 @@ const LaborCard: React.FC<LaborCardProps> = ({
       return;
     } else if (workEntrySelection && entry) {
       toggleEntrySelection(entry.id as string);
+    }
+  };
+
+  // showing the status summary for the entries in the current month
+
+  // Funtion that returns a boolean to show the status summary for a specific status
+  const shouldShowStatusSummary = (status: string): boolean => {
+    switch (status) {
+      case "PAID":
+        return showPAID;
+      case "PENDING":
+        return showPENDING;
+      case "REJECTED":
+        return showREJECTED;
+      case "NOT_PAID":
+        return showNOTPAID;
+      case "APPROVED":
+        return showAPPROVED;
+      case "REVIEW":
+        return showREVIEW;
+      default:
+        return false;
+    }
+  };
+
+  // Function to toggle the status summary visibility
+  const toggleStatusSummary = (status: string) => {
+    switch (status) {
+      case "PAID":
+        setShowPAID(!showPAID);
+        break;
+      case "PENDING":
+        setShowPENDING(!showPENDING);
+        break;
+      case "REJECTED":
+        setShowREJECTED(!showREJECTED);
+        break;
+      case "NOT_PAID":
+        setShowNOTPAID(!showNOTPAID);
+        break;
+      case "APPROVED":
+        setShowAPPROVED(!showAPPROVED);
+        break;
+      case "REVIEW":
+        setShowREVIEW(!showREVIEW);
+        break;
     }
   };
 
@@ -713,9 +828,102 @@ const LaborCard: React.FC<LaborCardProps> = ({
             </div>
           </div>
 
+          {/* Entries status summaries  */}
+          {workerData.statusSummary &&
+            Object.keys(workerData.statusSummary).length > 0 && (
+              <div key={currentMonth.toISOString()} className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-800 border-l-4 border-blue-500 pl-3 mb-4">
+                  Payment Status Overview
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  {Object.entries(workerData.statusSummary).map(
+                    ([status, data]) => {
+                      const statusColor = getPaymentStatusColor(status);
+                      const statusLabel =
+                        status === "NOT_PAID"
+                          ? "Not Paid"
+                          : status.charAt(0) + status.slice(1).toLowerCase();
+
+                      return (
+                        <div
+                          key={status}
+                          className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+                        >
+                          <div className={`h-1.5 w-full ${statusColor}`} />
+                          <div className="p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-bold text-gray-800">
+                                {statusLabel}
+                              </h4>
+                              {shouldShowStatusSummary(status) ? (
+                                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                  {data.count} entry{data.count !== 1 && "s"}
+                                </span>
+                              ) : (
+                                <div
+                                  className="w-fit cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-800"
+                                  onClick={() => toggleStatusSummary(status)}
+                                >
+                                  <Eye name="Eye" size={16} />
+                                </div>
+                              )}
+                            </div>
+                            {shouldShowStatusSummary(status) ? (
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-500">
+                                    Regular Hours:
+                                  </span>
+                                  <span className="font-semibold text-gray-800">
+                                    {data.hours?.toFixed(1) || 0}h
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-500">
+                                    Overtime:
+                                  </span>
+                                  <span className="font-semibold text-orange-600">
+                                    {data.overtime?.toFixed(1) || 0}h
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-500">
+                                    Total Hours:
+                                  </span>
+                                  <span className="font-semibold text-gray-800">
+                                    {data.total?.toFixed(1) || 0}h
+                                  </span>
+                                </div>
+                                <div
+                                  className="flex justify-between items-center text-sm cursor-pointer w-fit text-red-300"
+                                  onClick={() => toggleStatusSummary(status)}
+                                >
+                                  <X name="X" size={32} />
+                                </div>
+                              </div>
+                            ) : null}
+                            <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+                              <span className="text-sm font-medium text-gray-600">
+                                Amount:
+                              </span>
+                              <span className="text-lg font-bold text-green-600">
+                                ${(data.amount || 0).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+            )}
+
           {/* Calendar Grid */}
           <div className="relative">
-            {/* Weekday Headers */}
+            <h1 className="text-xl font-semibold text-gray-400 mb-4">
+              Calendar
+            </h1>{" "}
             <div className="grid grid-cols-7 gap-2 mb-2">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
                 <div
@@ -726,12 +934,15 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 </div>
               ))}
             </div>
-
             {/* Calendar Days */}
             <div className="grid grid-cols-7 gap-2">
               {calendarDays.map((day, index) => {
                 const entry = getEntryForDate(day);
-                const status = getDayStatus(day);
+                const isFutureDate = isAfter(
+                  startOfDay(day),
+                  startOfDay(new Date()),
+                );
+                const status = getDayStatus(day); // now returns FUTURE for future absent days
                 const statusStyle = getStatusStyle(status);
                 const isCurrentMonth = isSameMonth(day, currentMonth);
                 const isSelected = selectedDate && isSameDay(day, selectedDate);
@@ -741,26 +952,22 @@ const LaborCard: React.FC<LaborCardProps> = ({
                     key={index}
                     onClick={() => isCurrentMonth && handleDayClick(day)}
                     className={`
-                      min-h-[100px] p-2 rounded-lg border transition-all cursor-pointer
-                      ${!isCurrentMonth && "opacity-30"}
-                      ${isSelected && !workEntrySelection ? "ring-2 ring-blue-500 shadow-lg" : ""}
-                      ${statusStyle.bgColor}
-                      ${workEntrySelection && isCurrentMonth && entry ? "hover:scale-105 hover:shadow-md" : ""}
-                    `}
+        min-h-[100px] p-2 rounded-lg border transition-all cursor-pointer
+        ${!isCurrentMonth && "opacity-30"}
+        ${isSelected && !workEntrySelection ? "ring-2 ring-blue-500 shadow-lg" : ""}
+        ${statusStyle.bgColor}
+        ${workEntrySelection && isCurrentMonth && entry ? "hover:scale-105 hover:shadow-md" : ""}
+      `}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <span
-                        className={`
-                        text-sm font-semibold
-                        ${!isCurrentMonth ? "text-gray-400" : statusStyle.textColor}
-                      `}
+                        className={`text-sm font-semibold ${!isCurrentMonth ? "text-gray-400" : statusStyle.textColor}`}
                       >
                         {format(day, "dd")}
                       </span>
                       {isCurrentMonth && entry && (
                         <div className="print:hidden">{statusStyle.icon}</div>
                       )}
-
                       {entry && isCurrentMonth && (
                         <div className="mt-1">
                           <div
@@ -791,11 +998,16 @@ const LaborCard: React.FC<LaborCardProps> = ({
                     )}
 
                     {!entry && isCurrentMonth && (
-                      <div className="mt-2 text-xs text-red-600 text-center">
-                        Absent
-                      </div>
+                      <>
+                        {isAfter(startOfDay(day), startOfDay(new Date())) ? (
+                          <div className="mt-2 text-xs text-gray-400 text-center"></div>
+                        ) : (
+                          <div className="mt-2 text-xs text-red-600 text-center">
+                            Absent
+                          </div>
+                        )}
+                      </>
                     )}
-
                     {!isCurrentMonth && (
                       <div className="mt-2 text-xs text-gray-400 text-center">
                         {format(day, "MMM")}
@@ -805,7 +1017,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 );
               })}
             </div>
-
             {/* Loading Overlay */}
             {isLoading && (
               <Loading
@@ -933,12 +1144,18 @@ const LaborCard: React.FC<LaborCardProps> = ({
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
                   <span className="text-xs text-gray-600">Not Paid</span>
                 </div>
-                {(user?.role === "FOREMAN" || user?.role === "OWNER") && (
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span className="text-xs text-gray-600">Under Review</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-green-900"></div>
+                  <span className="text-xs text-gray-600">Approved</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                  <span className="text-xs text-gray-600">Rejected</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-xs text-gray-600">Under Review</span>
+                </div>
               </div>
             </div>
           </div>
