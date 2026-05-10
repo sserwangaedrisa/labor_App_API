@@ -114,6 +114,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
   const [showNOTPAID, setShowNOTPAID] = useState<boolean>(false);
   const [showAPPROVED, setShowAPPROVED] = useState<boolean>(false);
   const [showREVIEW, setShowREVIEW] = useState<boolean>(false);
+  const [statusToUpdate, setStatusToUpdate] = useState<string>("");
 
   // Use refs to track request state
   const isFetchingRef = useRef(false);
@@ -183,7 +184,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
   useEffect(() => {
     if (!searchQuery.siteId?.length || !searchQuery.workerId?.length) return;
 
-    // Don't fetch if we're already fetching the same data
+    //  fetching if we're already fetching the same data
     if (isFetchingRef.current && lastRequestKeyRef.current === requestKey) {
       return;
     }
@@ -313,7 +314,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
       }
     };
 
-    // Add a small delay to prevent rapid successive calls
+    //  a small delay to prevent rapid successive calls
     timeoutRef.current = setTimeout(() => {
       fetchWorkerDetails();
     }, 100);
@@ -441,6 +442,28 @@ const LaborCard: React.FC<LaborCardProps> = ({
     }
   };
 
+  const updateEntryStatus = async () => {
+    try {
+      if (selectedLaborCardPayments.length <= 0) {
+        toast.error("No work entries selected");
+        return;
+      }
+
+      setIsLoading(true);
+      const paymentReq = await makeUpdateEntryStatusRequest();
+
+      if (paymentReq) {
+        clearSelections();
+        setWorkEntrySelection(false);
+      }
+    } catch (error) {
+      console.error("Payment request error:", error);
+    } finally {
+      setIsLoading(false);
+      setPaymentRequestConfirmation(false);
+    }
+  };
+
   // Get status color and icon - FIXED: Added SELECTED style
   const getStatusStyle = (
     status: "ABSENT" | "PRESENT" | "SELECTED" | "FUTURE",
@@ -533,10 +556,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
     if (!workEntrySelection && entry) {
       setSelectedDate(date);
       setSelectedEntry(entry);
-    } else if (
-      (workEntrySelection && entry?.status === "PAID") ||
-      (workEntrySelection && entry?.status === "PENDING")
-    ) {
+    } else if (workEntrySelection && entry?.status === "PAID") {
       console.log(`Selected entry under ${entry.status}`);
       toast.error(`Selected entry under ${entry.status}`);
       return;
@@ -544,8 +564,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
       toggleEntrySelection(entry.id as string);
     }
   };
-
-  // showing the status summary for the entries in the current month
 
   // Funtion that returns a boolean to show the status summary for a specific status
   const shouldShowStatusSummary = (status: string): boolean => {
@@ -647,6 +665,46 @@ const LaborCard: React.FC<LaborCardProps> = ({
     } catch (error) {
       console.log(error);
       toast.error("Failed to make the payment request");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // UPDATE ENTRY STATUS FC
+  const makeUpdateEntryStatusRequest = async (): Promise<boolean> => {
+    if (selectedEntries.length <= 0) {
+      console.log("No entries selected for the status update");
+      toast.error("No entries selected for the status update");
+      return false;
+    }
+    setIsLoading(true);
+    try {
+      const request: SiteInfoResponse = await authorizePostRequest(
+        `payments/updateWorkEntries/?${statusToUpdate}`,
+        {
+          entryIds: selectedEntries,
+          siteId,
+          workerId,
+        },
+      );
+
+      if (!request.success || !request) {
+        console.log(
+          request.message || "Error while making status update request",
+        );
+        toast.error("Failed to make the status update request");
+        setPaymentRequestConfirmation(false);
+        return false;
+      }
+
+      console.log("Status update request made successfully");
+
+      toast.success("Status update request made successfully");
+      return true;
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to make the status update request");
       return false;
     } finally {
       setIsLoading(false);
