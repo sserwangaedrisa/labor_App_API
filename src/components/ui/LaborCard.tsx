@@ -107,6 +107,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
       ),
     });
 
+  // change of workEntry status states
+  const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
+  const [selectedNewStatus, setSelectedNewStatus] = useState<string>("");
+
   // show statusSummary states:
   const [showPAID, setShowPAID] = useState<boolean>(false);
   const [showPENDING, setShowPENDING] = useState<boolean>(false);
@@ -116,9 +120,12 @@ const LaborCard: React.FC<LaborCardProps> = ({
   const [showREVIEW, setShowREVIEW] = useState<boolean>(false);
   const [statusToUpdate, setStatusToUpdate] = useState<string>("");
 
+  // Refresh key states
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+
   // Use refs to track request state
   const isFetchingRef = useRef(false);
-  const lastRequestKeyRef = useRef<string>("");
+  const lastFetchKeyRef = useRef<string>("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -133,6 +140,11 @@ const LaborCard: React.FC<LaborCardProps> = ({
     searchQuery.endDate,
     searchQuery.paymentId,
   ]);
+
+  // Memoize the fetch key to trigger useEffect when either requestKey or refreshTrigger changes
+  const fetchKey = useMemo(() => {
+    return `${requestKey}-${refreshTrigger}`;
+  }, [requestKey, refreshTrigger]);
 
   const cleanup = useCallback(() => {
     if (abortControllerRef.current) {
@@ -185,15 +197,13 @@ const LaborCard: React.FC<LaborCardProps> = ({
     if (!searchQuery.siteId?.length || !searchQuery.workerId?.length) return;
 
     //  fetching if we're already fetching the same data
-    if (isFetchingRef.current && lastRequestKeyRef.current === requestKey) {
+    if (isFetchingRef.current && lastFetchKeyRef.current === fetchKey) {
       return;
     }
-
     // Don't fetch if we already have the data
-    if (workerData && lastRequestKeyRef.current === requestKey) {
+    if (workerData && lastFetchKeyRef.current === fetchKey && !refreshTrigger) {
       return;
     }
-
     const fetchWorkerDetails = async () => {
       // Cancel any ongoing request
       if (abortControllerRef.current) {
@@ -204,7 +214,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
       abortControllerRef.current = new AbortController();
 
       isFetchingRef.current = true;
-      lastRequestKeyRef.current = requestKey;
+      lastFetchKeyRef.current = fetchKey;
       setIsLoading(true);
       try {
         const response = await authorizePostRequest<workerRequestResponse>(
@@ -289,7 +299,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         }
 
         // Only update state if the request key still matches
-        if (lastRequestKeyRef.current === requestKey && response?.data) {
+        if (lastFetchKeyRef.current === fetchKey && response?.data) {
           setWorkerData(response.data || null);
           setCurrentMonth(new Date(response.data.period.startDate));
         }
@@ -306,7 +316,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         setWorkerData(null);
       } finally {
         // Only reset if this is still the current request
-        if (lastRequestKeyRef.current === requestKey) {
+        if (lastFetchKeyRef.current === fetchKey) {
           isFetchingRef.current = false;
           setIsLoading(false);
           abortControllerRef.current = null;
@@ -324,7 +334,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isOpen, requestKey, searchQuery, workerData]);
+  }, [isOpen, fetchKey, searchQuery]);
 
   if (!isOpen) return null;
 
@@ -661,6 +671,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
       console.log("Payment request made successfully");
 
       toast.success("Payment request made successfully");
+      setRefreshTrigger((prev) => prev + 1);
       return true;
     } catch (error) {
       console.log(error);
@@ -669,6 +680,22 @@ const LaborCard: React.FC<LaborCardProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // STATUS UPDATE LOGIC
+  const handleStatusUpdate = async () => {
+    if (!selectedNewStatus) {
+      toast.error("Please select a status");
+      return;
+    }
+    if (selectedLaborCardPayments.length === 0) {
+      toast.error("No work entries selected");
+      return;
+    }
+    setStatusToUpdate(selectedNewStatus);
+    await updateEntryStatus();
+    setShowStatusModal(false);
+    setSelectedNewStatus("");
   };
 
   // UPDATE ENTRY STATUS FC
@@ -681,7 +708,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
     setIsLoading(true);
     try {
       const request: SiteInfoResponse = await authorizePostRequest(
-        `payments/updateWorkEntries/?${statusToUpdate}`,
+        `payments/updateWorkEntries/${selectedNewStatus}`,
         {
           entryIds: selectedEntries,
           siteId,
@@ -701,6 +728,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
       console.log("Status update request made successfully");
 
       toast.success("Status update request made successfully");
+      setRefreshTrigger((prev) => prev + 1);
       return true;
     } catch (error) {
       console.log(error);
@@ -1105,12 +1133,20 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 </button>
 
                 {selectedLaborCardPayments.length > 0 && (
-                  <button
-                    onClick={() => setPaymentRequestConfirmation(true)}
-                    className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    Submit Request ({selectedLaborCardPayments.length})
-                  </button>
+                  <>
+                    <button
+                      onClick={() => setPaymentRequestConfirmation(true)}
+                      className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                    >
+                      Submit Request ({selectedLaborCardPayments.length})
+                    </button>
+                    <button
+                      onClick={() => setShowStatusModal(true)}
+                      className="flex-1 bg-gradient-to-r from-yellow-600 to-red-600 hover:from-yellow-700 hover:to-red-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                    >
+                      Change Status ({selectedLaborCardPayments.length})
+                    </button>
+                  </>
                 )}
               </>
             )}
@@ -1161,6 +1197,78 @@ const LaborCard: React.FC<LaborCardProps> = ({
               confirmButtonText="Submit Request"
               danger={false}
             />
+          )}
+
+          {/* Status Update Modal */}
+          {showStatusModal && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4">
+              <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                  Change Entry Status
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Select new status for {selectedLaborCardPayments.length} work
+                  entry/entries:
+                </p>
+                <select
+                  value={selectedNewStatus}
+                  onChange={(e) => {
+                    setSelectedNewStatus(e.target.value);
+                  }}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-6"
+                >
+                  <option value="">-- Choose status --</option>
+
+                  {user?.role === "OWNER" && (
+                    <>
+                      <option value="PENDING">
+                        PENDING (make payment request)
+                      </option>
+
+                      <option value="APPROVED">
+                        APPROVE (Approve the entry)
+                      </option>
+
+                      <option value="REJECTED">
+                        REJECT (Reject the entry)
+                      </option>
+
+                      <option value="PAID">PAY (Mark as paid)</option>
+                    </>
+                  )}
+
+                  {user?.role === "FOREMAN" && (
+                    <>
+                      <option value="PENDING">
+                        PENDING (make payment request)
+                      </option>
+
+                      <option value="NOT_PAID">
+                        Reset Entry Status (Reset the entry)
+                      </option>
+
+                      <option value="REVIEW">
+                        REVIEW (sending for review by admin)
+                      </option>
+                    </>
+                  )}
+                </select>{" "}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowStatusModal(false)}
+                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStatusUpdate}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg"
+                  >
+                    Update Status
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Legend */}
