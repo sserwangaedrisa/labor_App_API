@@ -301,7 +301,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
         // Only update state if the request key still matches
         if (lastFetchKeyRef.current === fetchKey && response?.data) {
           setWorkerData(response.data || null);
-          setCurrentMonth(new Date(response.data.period.startDate));
+          // Only set currentMonth on initial load (when refreshTrigger is 0) to avoid triggering additional fetches
+          if (refreshTrigger === 0) {
+            setCurrentMonth(new Date(response.data.period.startDate));
+          }
         }
       } catch (error: unknown) {
         const requestError = error as { name?: string; code?: string };
