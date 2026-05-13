@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../src/app/providers";
 import SiteHeader from "../../components/ui/SiteHeader";
 import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
+import MultipleAttendanceRecord from "./components/MultipleAttendanceRecord";
 import RoleGuard from "../../components/ui/RoleGuard";
 import LoadingBoundary from "../../components/ui/LoadingBoundary";
 import Icon from "../../components/ui/AppIconl";
@@ -53,6 +54,9 @@ const ForemanDashboard: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<SharedTypes.User | null>();
   const [showAttendanceModal, setShowAttendanceModal] =
     useState<boolean>(false);
+  const [showBulkAttendanceModal, setShowBulkAttendanceModal] =
+    useState<boolean>(false);
+  const [attendanceRefreshKey, setAttendanceRefreshKey] = useState<number>(0);
 
   const [siteId, setSiteId] = useState<string>("");
   const [currentUserWorkEntry, setCurrentUserWorkEntry] =
@@ -281,7 +285,13 @@ const ForemanDashboard: React.FC = () => {
     };
 
     fetchAttendance();
-  }, [currentDate, siteId, siteActiveWorkers, searchQuery]);
+  }, [
+    currentDate,
+    siteId,
+    siteActiveWorkers,
+    searchQuery,
+    attendanceRefreshKey,
+  ]);
 
   useEffect(() => {
     const startOfMonth = new Date();
@@ -422,13 +432,7 @@ const ForemanDashboard: React.FC = () => {
   };
 
   const handleBulkAttendance = (): void => {
-    console.log("Open bulk attendance entry");
-    // try {
-    //   const response = await authorizePostRequest("");
-    // } catch (error) {
-    //   console.log("error while updating attendace");
-    //   toast.error("Error while recording the attendane");
-    // }
+    setShowBulkAttendanceModal(true);
   };
 
   const handleViewReports = (): void => {
@@ -1008,6 +1012,12 @@ const ForemanDashboard: React.FC = () => {
                     </div>
                     <div className="flex justify-end gap-4">
                       <Button
+                        onClick={handleBulkAttendance}
+                        className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-blue-300 hover:from-blue-200 hover:to-blue-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+                      >
+                        Record Bulk Attendance
+                      </Button>
+                      <Button
                         onClick={handleExportPDF}
                         className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-200 hover:to-orange-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
                       >
@@ -1150,6 +1160,7 @@ const ForemanDashboard: React.FC = () => {
             </div>
           </main>
 
+          {/* Attendance modal  */}
           {showAttendanceModal && selectedWorker && currentSettings && (
             <AttendanceModal
               worker={selectedWorker}
@@ -1164,6 +1175,15 @@ const ForemanDashboard: React.FC = () => {
               onSubmit={handleRecordAttendance}
             />
           )}
+
+          <MultipleAttendanceRecord
+            siteId={siteId}
+            isOpen={showBulkAttendanceModal}
+            onClose={() => setShowBulkAttendanceModal(false)}
+            onSuccess={() => {
+              setAttendanceRefreshKey((current) => current + 1);
+            }}
+          />
 
           {showUserModal && selectedUser && (
             <WorkerModal
