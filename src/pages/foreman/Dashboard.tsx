@@ -1178,6 +1178,8 @@ const ForemanDashboard: React.FC = () => {
 
           <MultipleAttendanceRecord
             siteId={siteId}
+            siteSettings={currentSettings || undefined}
+            currentDate={currentDate}
             isOpen={showBulkAttendanceModal}
             onClose={() => setShowBulkAttendanceModal(false)}
             onSuccess={() => {

@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from "react";
 import authorizePostRequest from "../../../api/authorizePostRequest";
 import toast from "react-hot-toast";
-
-type Worker = {
-  id: string;
-  name: string;
-  email: string;
-  identificationNumber?: string;
-};
+import type { ActiveWorker, SiteSettings } from "../../../types/SharedTypes";
 
 interface MultipleAttendanceRecordProps {
   siteId: string;
   isOpen: boolean;
+  siteSettings?: SiteSettings;
+  currentDate?: Date;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -21,11 +17,13 @@ const PAGE_SIZE = 20;
 const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
   siteId,
   isOpen,
+  siteSettings,
+  currentDate,
   onClose,
   onSuccess,
 }) => {
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [selectedWorkers, setSelectedWorkers] = useState<Worker[]>([]);
+  const [workers, setWorkers] = useState<ActiveWorker[]>([]);
+  const [selectedWorkers, setSelectedWorkers] = useState<ActiveWorker[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -33,15 +31,35 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [hours, setHours] = useState("8");
-  const [overtime, setOvertime] = useState("0");
+  const [hours, setHours] = useState(
+    siteSettings?.maxDailyHours.toString() || "10",
+  );
+  const [overtime, setOvertime] = useState(
+    siteSettings?.overtimeRate.toString() || "0",
+  );
   const [notes, setNotes] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<string>();
+
+  //  mode = 'add' (record attendance) or 'delete' (delete attendance)
+  const [mode, setMode] = useState<"add" | "delete">("add");
+  const [searchDate, setSearchDate] = useState<Date | null>();
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
+    if (currentDate) {
+      setDate(new Date(currentDate).toISOString().slice(0, 10));
+    } else {
+      setDate(new Date().toISOString().slice(0, 10));
     }
+
+    if (currentDate && isOpen && mode === "delete") {
+      setSearchDate(new Date(currentDate));
+    } else {
+      setSearchDate(null);
+    }
+  }, [currentDate, isOpen, mode]);
+
+  useEffect(() => {
+    if (!isOpen) return;
 
     const controller = new AbortController();
 
@@ -53,6 +71,7 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
         const params = new URLSearchParams({
           siteId,
           page: String(page),
+          date: mode === "delete" && date ? new Date(date).toISOString() : "",
           limit: String(PAGE_SIZE),
           search: searchTerm,
           sortBy: "name",
@@ -60,16 +79,12 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
         });
 
         const response: { success: boolean; data: any; message: string } =
-          await authorizePostRequest(
-            `/api/workers/search?${params.toString()}`,
-            {
-              signal: controller.signal,
-            },
-          );
+          await authorizePostRequest(`worker/search?${params.toString()}`, {
+            signal: controller.signal,
+          });
 
         if (!response.success) {
           toast.error(response.message || "Failed to load workers");
-          console.error(`Error fetching workers: ${response.message}`);
           throw new Error(`Failed to load workers: ${response.message}`);
         }
 
@@ -88,7 +103,6 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
-
         setFetchError(
           error instanceof Error ? error.message : "Unable to fetch workers",
         );
@@ -99,18 +113,18 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
 
     loadWorkers();
 
-    return () => {
-      controller.abort();
-    };
-  }, [siteId, page, searchTerm, isOpen]);
+    return () => controller.abort();
+  }, [siteId, page, searchTerm, isOpen, mode, date]);
 
-  const isSelected = (worker: Worker) =>
-    selectedWorkers.some((item) => item.id === worker.id);
+  console.log("searchDate:", searchDate);
 
-  const toggleWorkerSelection = (worker: Worker) => {
+  const isSelected = (worker: ActiveWorker) =>
+    selectedWorkers.some((item) => item.worker.id === worker.worker.id);
+
+  const toggleWorkerSelection = (worker: ActiveWorker) => {
     setSelectedWorkers((current) => {
-      if (current.some((item) => item.id === worker.id)) {
-        return current.filter((item) => item.id !== worker.id);
+      if (current.some((item) => item.worker.id === worker.worker.id)) {
+        return current.filter((item) => item.worker.id !== worker.worker.id);
       }
       return [...current, worker];
     });
@@ -118,7 +132,7 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
 
   const removeSelectedWorker = (workerId: string) => {
     setSelectedWorkers((current) =>
-      current.filter((item) => item.id !== workerId),
+      current.filter((item) => item.worker.id !== workerId),
     );
   };
 
@@ -131,11 +145,16 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
     setSubmitError(null);
 
     if (selectedWorkers.length === 0) {
-      setSubmitError("Please select at least one worker before submitting.");
+      setSubmitError(
+        mode === "add"
+          ? "Please select at least one worker before recording attendance."
+          : "Please select at least one worker whose attendance you want to delete.",
+      );
       return;
     }
 
-    if (isNaN(Number(hours)) || isNaN(Number(overtime))) {
+    // For add mode, validate hours/overtime
+    if (mode === "add" && (isNaN(Number(hours)) || isNaN(Number(overtime)))) {
       setSubmitError("Hours and overtime must be valid numbers.");
       return;
     }
@@ -143,55 +162,65 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
     setSubmitting(true);
 
     try {
-      const response: { success: boolean; data: any; message: string } =
-        await authorizePostRequest("/api/work-entries/bulk", {
-          method: "POST",
-          body: JSON.stringify({
-            workersIds: selectedWorkers.map((worker) => worker.id),
-            siteId,
-            hours,
-            overtime,
-            notes,
-            date,
-          }),
+      let response: { success: boolean; data: any; message: string };
+      if (mode === "add") {
+        response = await authorizePostRequest("attendance/bulk", {
+          workersIds: selectedWorkers.map((worker) => worker.worker.id),
+          siteId,
+          hours,
+          overtime,
+          notes,
+          date,
         });
+      } else {
+        response = await authorizePostRequest("attendance/deleteBulk", {
+          workersIds: selectedWorkers.map((worker) => worker.worker.id),
+          siteId,
+          date,
+        });
+      }
 
       if (!response.success) {
         const body = await response.data;
+        toast.error(response.message || `Failed to ${mode} attendance`);
         throw new Error(
-          body?.message || response.message || "Failed to submit attendance",
+          body?.message || response.message || `Failed to ${mode} attendance`,
         );
       }
+
+      toast.success(
+        response.message ||
+          `Successfully ${mode === "add" ? "recorded" : "deleted"} attendance for ${selectedWorkers.length} worker(s)`,
+      );
 
       setSelectedWorkers([]);
       setSearchTerm("");
       setPage(1);
       setNotes("");
-      setHours("8");
-      setOvertime("0");
+      setMode("add");
 
-      if (onSuccess) {
-        onSuccess();
-      }
+      if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : "Unable to submit attendance",
+        error instanceof Error ? error.message : `Unable to ${mode} attendance`,
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
         <div style={headerStyle}>
-          <h2 style={{ margin: 0 }}>Record Multiple Attendance</h2>
+          <h2 style={{ margin: 0 }}>
+            {mode === "add"
+              ? "Record Multiple Attendance"
+              : "Delete Multiple Attendance"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -199,6 +228,32 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
             aria-label="Close modal"
           >
             ×
+          </button>
+        </div>
+
+        {/* Mode toggle */}
+        <div style={modeToggleStyle}>
+          <button
+            type="button"
+            onClick={() => setMode("add")}
+            style={{
+              ...modeButtonStyle,
+              backgroundColor: mode === "add" ? "#2563eb" : "#e5e7eb",
+              color: mode === "add" ? "#fff" : "#111827",
+            }}
+          >
+            Record Attendance
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("delete")}
+            style={{
+              ...modeButtonStyle,
+              backgroundColor: mode === "delete" ? "#dc2626" : "#e5e7eb",
+              color: mode === "delete" ? "#fff" : "#111827",
+            }}
+          >
+            Delete Attendance
           </button>
         </div>
 
@@ -220,13 +275,13 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
               <span style={emptyStateStyle}>No workers selected yet.</span>
             ) : (
               selectedWorkers.map((worker) => (
-                <div key={worker.id} style={selectedItemStyle}>
+                <div key={worker.worker.id} style={selectedItemStyle}>
                   <span>
-                    {worker.name} ({worker.email})
+                    {worker.worker.name} ({worker.worker.email})
                   </span>
                   <button
                     type="button"
-                    onClick={() => removeSelectedWorker(worker.id)}
+                    onClick={() => removeSelectedWorker(worker.worker.id)}
                     style={removeButtonStyle}
                   >
                     Remove
@@ -247,7 +302,8 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
               <table style={tableStyle}>
                 <thead>
                   <tr>
-                    <th style={tableHeaderStyle} />
+                    <th style={tableHeaderStyle}></th>
+                    <th style={tableHeaderStyle}>Image</th>
                     <th style={tableHeaderStyle}>Name</th>
                     <th style={tableHeaderStyle}>Email</th>
                     <th style={tableHeaderStyle}>ID</th>
@@ -256,13 +312,13 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
                 <tbody>
                   {workers.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={emptyCellStyle}>
+                      <td colSpan={5} style={emptyCellStyle}>
                         No workers found.
                       </td>
                     </tr>
                   ) : (
                     workers.map((worker) => (
-                      <tr key={worker.id} style={tableRowStyle}>
+                      <tr key={worker.worker.id} style={tableRowStyle}>
                         <td style={tableCellStyle}>
                           <input
                             type="checkbox"
@@ -270,11 +326,22 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
                             onChange={() => toggleWorkerSelection(worker)}
                           />
                         </td>
-                        <td style={tableCellStyle}>{worker.name}</td>
-                        <td style={tableCellStyle}>{worker.email}</td>
                         <td style={tableCellStyle}>
-                          {worker.identificationNumber || worker.id}
+                          {worker.worker.imageUrl ? (
+                            <img
+                              src={worker.worker.imageUrl}
+                              alt={worker.worker.name}
+                              style={avatarStyle}
+                            />
+                          ) : (
+                            <div style={avatarPlaceholderStyle}>
+                              {worker.worker.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                         </td>
+                        <td style={tableCellStyle}>{worker.worker.name}</td>
+                        <td style={tableCellStyle}>{worker.worker.email}</td>
+                        <td style={tableCellStyle}>{worker.worker.id}</td>
                       </tr>
                     ))
                   )}
@@ -282,32 +349,41 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
               </table>
 
               <div style={paginationStyle}>
-                <button
-                  type="button"
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  disabled={page <= 1}
-                  style={paginationButtonStyle}
-                >
-                  Previous
-                </button>
-                <span>
+                {totalPages > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
+                    disabled={page <= 1}
+                    style={paginationButtonStyle}
+                    className="text-sm text-muted-foreground text-center text-blue-00"
+                  >
+                    {`< Previous`}
+                  </button>
+                )}
+                <span className="text-sm text-muted-foreground text-center text-blue-00">
                   Page {page} of {totalPages}
                 </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPage((current) => Math.min(totalPages, current + 1))
-                  }
-                  disabled={page >= totalPages}
-                  style={paginationButtonStyle}
-                >
-                  Next
-                </button>
+                {totalPages > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
+                    disabled={page >= totalPages}
+                    style={paginationButtonStyle}
+                    className="text-sm text-muted-foreground text-center text-blue-00"
+                  >
+                    {`Next >`}
+                  </button>
+                )}
               </div>
             </>
           )}
         </div>
 
+        {/* Show date picker always, but hide hours/overtime/notes in delete mode */}
         <div style={gridStyle}>
           <div style={formGroupStyle}>
             <label style={labelStyle}>Date</label>
@@ -318,53 +394,72 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
               style={inputStyle}
             />
           </div>
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Hours</label>
-            <input
-              type="number"
-              min="0"
-              step="0.25"
-              value={hours}
-              onChange={(event) => setHours(event.target.value)}
-              style={inputStyle}
-            />
-          </div>
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Overtime</label>
-            <input
-              type="number"
-              min="0"
-              step="0.25"
-              value={overtime}
-              onChange={(event) => setOvertime(event.target.value)}
-              style={inputStyle}
-            />
-          </div>
+          {mode === "add" && (
+            <>
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>Hours</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.25"
+                  value={hours}
+                  onChange={(event) => setHours(event.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div style={formGroupStyle}>
+                <label style={labelStyle}>Overtime</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.25"
+                  value={overtime}
+                  onChange={(event) => setOvertime(event.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </>
+          )}
         </div>
 
-        <div style={formRowStyle}>
-          <label style={labelStyle}>Notes</label>
-          <textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="Optional notes for this attendance record"
-            style={{ ...inputStyle, minHeight: 80, resize: "vertical" }}
-          />
-        </div>
+        {mode === "add" && (
+          <div style={formRowStyle}>
+            <label style={labelStyle}>Notes</label>
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Optional notes for this attendance record"
+              style={{ ...inputStyle, minHeight: 80, resize: "vertical" }}
+            />
+          </div>
+        )}
 
         {submitError && <p style={{ color: "red" }}>{submitError}</p>}
 
         <div style={actionsStyle}>
-          <button type="button" onClick={onClose} style={secondaryButtonStyle}>
+          <button
+            type="button"
+            onClick={() => (setMode("add"), onClose())}
+            style={secondaryButtonStyle}
+          >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSubmit}
-            style={primaryButtonStyle}
+            style={{
+              ...primaryButtonStyle,
+              backgroundColor: mode === "delete" ? "#dc2626" : "#2563eb",
+            }}
             disabled={submitting}
           >
-            {submitting ? "Recording..." : "Record Attendance"}
+            {submitting
+              ? mode === "add"
+                ? "Recording..."
+                : "Deleting..."
+              : mode === "add"
+                ? "Record Attendance"
+                : "Delete Attendance"}
           </button>
         </div>
       </div>
@@ -372,6 +467,7 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
   );
 };
 
+// Styles (unchanged except added avatar and mode toggle styles)
 const overlayStyle: React.CSSProperties = {
   position: "fixed",
   top: 0,
@@ -410,6 +506,25 @@ const closeButtonStyle: React.CSSProperties = {
   fontSize: 24,
   lineHeight: 1,
   cursor: "pointer",
+};
+
+const modeToggleStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 12,
+  marginBottom: 20,
+  borderBottom: "1px solid #e5e7eb",
+  paddingBottom: 12,
+};
+
+const modeButtonStyle: React.CSSProperties = {
+  flex: 1,
+  padding: "8px 12px",
+  borderRadius: 8,
+  border: "none",
+  fontSize: 14,
+  fontWeight: 600,
+  cursor: "pointer",
+  transition: "all 0.2s",
 };
 
 const formRowStyle: React.CSSProperties = {
@@ -534,7 +649,6 @@ const primaryButtonStyle: React.CSSProperties = {
   padding: "12px 18px",
   borderRadius: 8,
   border: "none",
-  backgroundColor: "#2563eb",
   color: "#fff",
   fontWeight: 600,
   cursor: "pointer",
@@ -551,6 +665,27 @@ const secondaryButtonStyle: React.CSSProperties = {
 
 const emptyStateStyle: React.CSSProperties = {
   color: "#6b7280",
+};
+
+const avatarStyle: React.CSSProperties = {
+  width: 40,
+  height: 40,
+  borderRadius: "50%",
+  objectFit: "cover",
+  backgroundColor: "#f3f4f6",
+};
+
+const avatarPlaceholderStyle: React.CSSProperties = {
+  width: 40,
+  height: 40,
+  borderRadius: "50%",
+  backgroundColor: "#d1d5db",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 16,
+  fontWeight: 600,
+  color: "#1f2937",
 };
 
 export default MultipleAttendanceRecord;
