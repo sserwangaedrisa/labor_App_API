@@ -982,7 +982,7 @@ const ForemanDashboard: React.FC = () => {
                     handleSettingsUpdate={handleSettingsUpdate}
                     siteID={siteId}
                     initialDate={currentDate}
-                    setCurrentDate={handleDateChange} // Pass the setter function
+                    setCurrentDate={handleDateChange} 
                   />
                 )}
               </div>
