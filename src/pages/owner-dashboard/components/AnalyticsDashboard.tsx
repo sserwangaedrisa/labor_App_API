@@ -257,7 +257,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  // Prepare chart data from companyReport or siteReport
+  //  chart data from companyReport or siteReport
   const getBreakdownData = () => {
     if (companyReport?.siteBreakdown) {
       return companyReport.siteBreakdown.map((site) => ({
