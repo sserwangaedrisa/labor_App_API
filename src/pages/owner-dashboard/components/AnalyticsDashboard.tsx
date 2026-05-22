@@ -152,18 +152,23 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const getMonthDateRange = useCallback((yearMonth: string) => {
     const [year, month] = yearMonth.split("-").map(Number);
     const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0); // last day of month
+    const endDate = new Date(year, month, 0);
     return {
-      startDate: startDate.toISOString().slice(0, 10),
-      endDate: endDate.toISOString().slice(0, 10),
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
     };
   }, []);
 
   // Fetch sites using the summaries endpoint (no date needed)
   const fetchSites = useCallback(async () => {
     if (role === "OWNER") {
+      const { startDate, endDate } = getMonthDateRange(selectedMonth);
+
       try {
-        const response = await authorizePost("report/summaries", {});
+        const response = await authorizePost("report/summaries", {
+          startDate: startDate,
+          endDate: endDate,
+        });
         const siteSummaries: SiteSummary[] = response.data;
         const siteList = siteSummaries.map((s) => ({
           id: s.siteId,
@@ -178,9 +183,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         toast.error("Could not load site list");
       }
     } else if (role === "FOREMAN" && userSiteId) {
-      // For foreman we still need site name, we can fetch from summaries or assume
       try {
-        const response = await authorizePost("report/summaries", {});
+        const { startDate, endDate } = getMonthDateRange(selectedMonth);
+
+        const response = await authorizePost("report/summaries", {
+          startDate: startDate,
+          endDate: endDate,
+        });
         const siteSummaries: SiteSummary[] = response.data;
         const mySite = siteSummaries.find((s) => s.siteId === userSiteId);
         if (mySite) {
@@ -262,9 +271,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     if (companyReport?.siteBreakdown) {
       return companyReport.siteBreakdown.map((site) => ({
         name: site.siteName,
-        hours: site.totalHours,
+        hours: site.totalHours + site.totalOvertime,
         workers: site.uniqueWorkers,
-        cost: site.totalHours * 20, // rough estimate; backend doesn't provide cost per hour
+        cost: site.totalHours * 10,
       }));
     }
     if (siteReport?.workerBreakdown) {
