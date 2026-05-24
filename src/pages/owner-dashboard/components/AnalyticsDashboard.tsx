@@ -106,11 +106,11 @@ interface WorkersSummaryResponse {
     sitesWorked: string[];
     workEntriesCount: number;
     paymentSummary: {
-      PAID: number;
-      PENDING: number;
-      APPROVED: number;
-      REVIEW: number;
-      REJECTED: number;
+      PAID: { count: number; amount: number };
+      PENDING: { count: number; amount: number };
+      APPROVED: { count: number; amount: number };
+      REVIEW: { count: number; amount: number };
+      REJECTED: { count: number; amount: number };
     };
   }>;
 }
@@ -279,9 +279,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     if (siteReport?.workerBreakdown) {
       return siteReport.workerBreakdown.map((w) => ({
         name: w.workerName,
-        hours: w.totalHours,
+        hours: w.totalHours + w.totalOvertime,
         entries: w.entriesCount,
-        cost: w.totalHours * 20,
+        cost: w.totalHours * 10,
       }));
     }
     return [];
@@ -531,6 +531,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     Worker
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Rating
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Hours
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -543,8 +546,19 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     Pending
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Review
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Rejected
+                  </th>
+
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Approved
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Overall Amount
+                  </th>
+
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Sites
                   </th>
@@ -556,6 +570,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">
                       {worker.workerName}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {worker.wageRating}
+                    </td>
+
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {worker.totalHours}
                     </td>
@@ -563,14 +581,32 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                       {worker.totalOvertime}
                     </td>
                     <td className="px-4 py-3 text-sm text-green-600">
-                      {worker.paymentSummary.PAID}
+                      {worker.paymentSummary.PAID.count} -
+                      {worker.paymentSummary.PAID.amount}
                     </td>
                     <td className="px-4 py-3 text-sm text-yellow-600">
-                      {worker.paymentSummary.PENDING}
+                      {worker.paymentSummary.PENDING.count} -
+                      {worker.paymentSummary.PENDING.amount}
                     </td>
                     <td className="px-4 py-3 text-sm text-blue-600">
-                      {worker.paymentSummary.APPROVED}
+                      {worker.paymentSummary.REVIEW.count} -
+                      {worker.paymentSummary.REVIEW.amount}
                     </td>
+                    <td className="px-4 py-3 text-sm text-red-600">
+                      {worker.paymentSummary.REJECTED.count} -
+                      {worker.paymentSummary.REJECTED.amount}
+                    </td>
+
+                    <td className="px-4 py-3 text-sm text-blue-600">
+                      {worker.paymentSummary.APPROVED.count} -
+                      {worker.paymentSummary.APPROVED.amount}
+                    </td>
+
+                    <td className="px-4 py-3 text-sm text-blue-600">
+                      {(worker.totalHours + worker.totalOvertime) *
+                        worker?.wageRating || 10}
+                    </td>
+
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {worker.sitesWorkedCount}
                     </td>
