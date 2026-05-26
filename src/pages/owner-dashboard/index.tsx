@@ -17,7 +17,7 @@ import type { Payment, Site, User, NewUser } from "../../types/SharedTypes";
 const OwnerDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("analytics");
   // create site modal state
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<string | null>(null);
@@ -235,10 +235,10 @@ const OwnerDashboard = () => {
   };
 
   const tabs = [
-    { id: "overview", label: "Site Overview", icon: "LayoutDashboard" },
+    { id: "analytics", label: "Analytics & Reports", icon: "BarChart3" },
+
     { id: "payments", label: "Payment Processing", icon: "DollarSign" },
     { id: "users", label: "User Management", icon: "Users" },
-    { id: "analytics", label: "Analytics & Reports", icon: "BarChart3" },
   ];
   return (
     <RoleGuard allowedRoles={["OWNER"]}>
@@ -327,25 +327,11 @@ const OwnerDashboard = () => {
 
               {/* Tab Content */}
               <div className="transition-smooth">
-                {activeTab === "overview" && (
-                  <SiteOverviewTable
-                    sites={mockSites}
-                    onViewDetails={handleViewSiteDetails}
-                    onManageWorkers={handleManageWorkers}
-                  />
-                )}
+                {activeTab === "analytics" && <AnalyticsDashboard />}
 
                 {activeTab === "payments" && <PaymentApprovalQueue />}
 
                 {activeTab === "users" && <UserManagementPanel />}
-
-                {activeTab === "analytics" && (
-                  <AnalyticsDashboard
-                    analyticsData={mockAnalytics}
-                    onExportPDF={handleExportPDF}
-                    onExportExcel={handleExportExcel}
-                  />
-                )}
               </div>
 
               {/* Quick Actions Footer */}

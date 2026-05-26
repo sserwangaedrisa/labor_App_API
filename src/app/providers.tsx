@@ -1,7 +1,8 @@
-import { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import type { WorkerPaymentData } from "../types/SharedTypes";
 
 import type { ReactNode } from "react";
+import { number } from "framer-motion";
 
 // Define types for your user object
 export type Role = "LABORER" | "FOREMAN" | "OWNER";
@@ -42,6 +43,26 @@ interface AuthContextType {
   setSiteId: React.Dispatch<React.SetStateAction<string | null>>;
   selectedWorkerId: string | null;
   setSelectedWorkerId: React.Dispatch<React.SetStateAction<string | null>>;
+  siteOrCampanyOverview: {
+    TotolPayments: number;
+    PendingPayments: number;
+    ApprovedPayments: number;
+    RejectedPayments: number;
+    PaidPayments: number;
+    ReviewPayments: number;
+    TotalWorkers: number;
+  };
+  setSiteOrCampanyOverview: React.Dispatch<
+    React.SetStateAction<{
+      TotolPayments: number;
+      PendingPayments: number;
+      ApprovedPayments: number;
+      RejectedPayments: number;
+      PaidPayments: number;
+      ReviewPayments: number;
+      TotalWorkers: number;
+    }>
+  >;
 }
 
 // Create context
@@ -57,6 +78,23 @@ export const Providers = ({ children }: { children: ReactNode }) => {
     useState<WorkerPaymentData | null>(null);
   const [siteId, setSiteId] = useState<string | null>(null);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
+  const [siteOrCampanyOverview, setSiteOrCampanyOverview] = useState<{
+    TotolPayments: number;
+    PendingPayments: number;
+    ApprovedPayments: number;
+    RejectedPayments: number;
+    PaidPayments: number;
+    ReviewPayments: number;
+    TotalWorkers: number;
+  }>({
+    TotolPayments: 0,
+    PendingPayments: 0,
+    ApprovedPayments: 0,
+    RejectedPayments: 0,
+    PaidPayments: 0,
+    ReviewPayments: 0,
+    TotalWorkers: 0,
+  });
 
   const login = (u: User, tokens: Tokens) => {
     setUser(u);
@@ -85,6 +123,8 @@ export const Providers = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         selectedWorkerPaymentData,
         setSelectedWorkerPaymentData,
+        setSiteOrCampanyOverview,
+        siteOrCampanyOverview,
         siteId,
         setSiteId,
         selectedWorkerId,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import Image from "../../../components/ui/AppImage";
 import {
   BarChart,
   Bar,
@@ -16,6 +17,10 @@ import {
   Clock,
   DollarSign,
   TrendingUp,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
 } from "lucide-react";
 import Button from "../../../components/ui/Button";
 import Select from "../../../components/ui/Select";
@@ -33,7 +38,6 @@ interface Site {
   location?: string;
 }
 
-// Matches GET /report/summaries response
 interface SiteSummary {
   siteId: string;
   siteName: string;
@@ -43,7 +47,6 @@ interface SiteSummary {
   workEntrySummary: Record<string, number>;
 }
 
-// Matches GET /report/company
 interface CompanyReport {
   dateRange: { startDate: string; endDate: string };
   summary: {
@@ -63,7 +66,6 @@ interface CompanyReport {
   }>;
 }
 
-// Matches GET /report/site/:siteId
 interface SiteReport {
   site: { id: string; name: string; location: string | null };
   dateRange: { startDate: string; endDate: string };
@@ -71,8 +73,13 @@ interface SiteReport {
     totalHours: number;
     totalOvertime: number;
     uniqueWorkers: number;
-    totalPaidAmount: number;
-    totalPendingAmount: number;
+    paymentBreakdown: {
+      paid: { count: number; amount: number };
+      approved: { count: number; amount: number };
+      pending: { count: number; amount: number };
+      rejected: { count: number; amount: number };
+      review: { count: number; amount: number };
+    };
   };
   workerBreakdown: Array<{
     workerId: string;
@@ -83,7 +90,6 @@ interface SiteReport {
   }>;
 }
 
-// Matches GET /report/workers-summary
 interface WorkersSummaryResponse {
   dateRange: { startDate: string; endDate: string };
   filters: { siteId: string | null };
@@ -101,6 +107,7 @@ interface WorkersSummaryResponse {
     workerPhone: string | null;
     wageRating: number | null;
     totalHours: number;
+    imageUrl: string | null;
     totalOvertime: number;
     sitesWorkedCount: number;
     sitesWorked: string[];
@@ -113,6 +120,12 @@ interface WorkersSummaryResponse {
       REJECTED: { count: number; amount: number };
     };
   }>;
+  pagination: {
+    currentPage: number;
+    itemsPerPage: number;
+    totalItems: number;
+    totalPages: number;
+  };
 }
 
 interface AnalyticsDashboardProps {
@@ -137,8 +150,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     userSiteId || "all",
   );
   const [sites, setSites] = useState<Site[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mainLoading, setMainLoading] = useState(true); // For KPIs & chart
+  const [tableLoading, setTableLoading] = useState(false); // For workers table
+
+  // Pagination & search state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Data states
   const [companyReport, setCompanyReport] = useState<CompanyReport | null>(
@@ -159,15 +178,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     };
   }, []);
 
-  // Fetch sites using the summaries endpoint (no date needed)
+  // Fetch sites using the summaries endpoint
   const fetchSites = useCallback(async () => {
     if (role === "OWNER") {
       const { startDate, endDate } = getMonthDateRange(selectedMonth);
-
       try {
         const response = await authorizePost("report/summaries", {
-          startDate: startDate,
-          endDate: endDate,
+          startDate,
+          endDate,
         });
         const siteSummaries: SiteSummary[] = response.data;
         const siteList = siteSummaries.map((s) => ({
@@ -185,10 +203,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     } else if (role === "FOREMAN" && userSiteId) {
       try {
         const { startDate, endDate } = getMonthDateRange(selectedMonth);
-
         const response = await authorizePost("report/summaries", {
-          startDate: startDate,
-          endDate: endDate,
+          startDate,
+          endDate,
         });
         const siteSummaries: SiteSummary[] = response.data;
         const mySite = siteSummaries.find((s) => s.siteId === userSiteId);
@@ -206,30 +223,20 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         console.error("Failed to fetch foreman site", err);
       }
     }
-  }, [role, userSiteId, selectedSiteId]);
+  }, [role, userSiteId, selectedSiteId, selectedMonth, getMonthDateRange]);
 
-  // Main data fetching
-  const fetchAnalytics = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  // Fetch main analytics (company/site report) - used for KPIs and charts
+  const fetchMainAnalytics = useCallback(async () => {
+    setMainLoading(true);
     const { startDate, endDate } = getMonthDateRange(selectedMonth);
     const queryParams = { startDate, endDate };
 
     try {
       if (role === "OWNER" && selectedSiteId === "all") {
-        // Company report
         const companyData = await authorizePost("report/company", queryParams);
         setCompanyReport(companyData);
         setSiteReport(null);
-
-        // Workers summary (all sites)
-        const workersData = await authorizePost(
-          "report/workers-summary",
-          queryParams,
-        );
-        setWorkersSummary(workersData);
       } else {
-        // Site-specific
         const siteId = role === "FOREMAN" ? userSiteId : selectedSiteId;
         if (siteId && siteId !== "all") {
           const siteData = await authorizePost(
@@ -238,35 +245,93 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           );
           setSiteReport(siteData);
           setCompanyReport(null);
-
-          const workersData = await authorizePost("report/workers-summary", {
-            ...queryParams,
-            siteId,
-          });
-          setWorkersSummary(workersData);
         } else if (role === "OWNER" && selectedSiteId === "all") {
-          // Already handled above
+          // already handled
         } else {
           throw new Error("No valid site selected");
         }
       }
     } catch (err: any) {
-      setError(err.message || "Failed to load analytics");
+      setError(err.message || "Failed to load main analytics");
       console.error(err);
     } finally {
-      setLoading(false);
+      setMainLoading(false);
     }
   }, [selectedMonth, selectedSiteId, role, userSiteId, getMonthDateRange]);
 
+  // Fetch workers summary (supports search, pagination)
+  const fetchWorkersSummary = useCallback(async () => {
+    setTableLoading(true);
+    const { startDate, endDate } = getMonthDateRange(selectedMonth);
+    const queryParams: any = { startDate, endDate, page, limit };
+
+    if (searchTerm) {
+      queryParams.search = searchTerm;
+    }
+
+    if (role === "OWNER" && selectedSiteId !== "all") {
+      queryParams.siteId = selectedSiteId;
+    } else if (role === "FOREMAN" && userSiteId) {
+      queryParams.siteId = userSiteId;
+    }
+
+    try {
+      const workersData = await authorizePost(
+        "report/workers-summary",
+        queryParams,
+      );
+      setWorkersSummary(workersData);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load workers data");
+      console.error(err);
+    } finally {
+      setTableLoading(false);
+    }
+  }, [
+    selectedMonth,
+    selectedSiteId,
+    role,
+    userSiteId,
+    page,
+    limit,
+    searchTerm,
+    getMonthDateRange,
+  ]);
+
+  // Combined load for initial or major changes (month/site)
+  const loadDashboardData = useCallback(async () => {
+    setError(null);
+    await fetchMainAnalytics();
+    await fetchWorkersSummary();
+  }, [fetchMainAnalytics, fetchWorkersSummary]);
+
+  // Fetch sites on month change
   useEffect(() => {
     fetchSites();
   }, [fetchSites]);
 
+  // Reload everything when month or site (for owner) changes
   useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
+    setPage(1);
+    loadDashboardData();
+  }, [loadDashboardData, selectedMonth, selectedSiteId]);
 
-  //  chart data from companyReport or siteReport
+  // Reload workers only when searchTerm, page, or limit changes
+  useEffect(() => {
+    if (!mainLoading) {
+      fetchWorkersSummary();
+    }
+  }, [searchTerm, page, limit]);
+
+  const formatReportStatus = (status: string) => {
+    return status
+      .toLowerCase()
+      .split("_")
+      .map((word) => word[0].toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Chart data from companyReport or siteReport
   const getBreakdownData = () => {
     if (companyReport?.siteBreakdown) {
       return companyReport.siteBreakdown.map((site) => ({
@@ -274,45 +339,77 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         hours: site.totalHours + site.totalOvertime,
         workers: site.uniqueWorkers,
         cost: site.totalHours * 10,
+        TotalHours: site.totalHours + site.totalOvertime,
       }));
     }
-    if (siteReport?.workerBreakdown) {
-      return siteReport.workerBreakdown.map((w) => ({
-        name: w.workerName,
-        hours: w.totalHours + w.totalOvertime,
-        entries: w.entriesCount,
-        cost: w.totalHours * 10,
-      }));
+
+    if (siteReport?.summary.paymentBreakdown) {
+      return Object.entries(siteReport.summary.paymentBreakdown).map(
+        ([status, breakdown]) => ({
+          name: formatReportStatus(status),
+          count: breakdown.count,
+          amount: breakdown.amount,
+        }),
+      );
     }
+
     return [];
   };
 
-  // Top workers from workersSummary
-  const getTopWorkers = () => {
-    if (workersSummary?.workers) {
-      return workersSummary.workers
-        .sort((a, b) => b.totalHours - a.totalHours)
-        .slice(0, 5)
-        .map((w) => ({
-          name: w.workerName,
-          hours: w.totalHours,
-          site: w.sitesWorkedCount > 1 ? "Multiple sites" : "Single site",
-        }));
-    }
-    return [];
+  // Top workers (client-side – based on currently loaded workers)
+  const getTopWorkersByHours = () => {
+    if (!workersSummary?.workers) return [];
+    return [...workersSummary.workers]
+      .sort((a, b) => b.totalHours - a.totalHours)
+      .slice(0, 5);
   };
 
-  // Metrics from current data
+  const getTopWorkersByCost = () => {
+    if (!workersSummary?.workers) return [];
+    return [...workersSummary.workers]
+      .sort((a, b) => {
+        const costA = Object.values(a.paymentSummary).reduce(
+          (sum, s) => sum + s.amount,
+          0,
+        );
+        const costB = Object.values(b.paymentSummary).reduce(
+          (sum, s) => sum + s.amount,
+          0,
+        );
+        return costB - costA;
+      })
+      .slice(0, 5);
+  };
+
+  // Metrics from current data (show placeholders when loading)
   const metrics = (() => {
-    const summary = companyReport?.summary || siteReport?.summary;
-    if (summary) {
+    if (mainLoading) {
+      return { totalCost: 0, totalHours: 0, avgDailyCost: 0, activeWorkers: 0 };
+    }
+    if (companyReport?.summary) {
+      const summary = companyReport.summary;
       return {
         totalCost: summary.totalPaidAmount + summary.totalPendingAmount,
         totalHours: summary.totalHours,
-        avgDailyCost: summary.totalPaidAmount / 30, // rough
+        avgDailyCost: summary.totalPaidAmount / 30,
         activeWorkers: summary.uniqueWorkers,
       };
     }
+
+    if (siteReport?.summary) {
+      const summary = siteReport.summary;
+      const totalAmount = Object.values(summary.paymentBreakdown).reduce(
+        (sum, status) => sum + status.amount,
+        0,
+      );
+      return {
+        totalCost: totalAmount,
+        totalHours: summary.totalHours,
+        avgDailyCost: totalAmount / 30,
+        activeWorkers: summary.uniqueWorkers,
+      };
+    }
+
     return { totalCost: 0, totalHours: 0, avgDailyCost: 0, activeWorkers: 0 };
   })();
 
@@ -329,20 +426,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     ];
   })();
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
         <p className="font-semibold">Error loading data</p>
         <p className="text-sm">{error}</p>
-        <Button onClick={fetchAnalytics} className="mt-4">
+        <Button onClick={loadDashboardData} className="mt-4">
           Retry
         </Button>
       </div>
@@ -354,14 +443,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {/* Header Controls */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-          <div>
+          <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <TrendingUp className="w-6 h-6 text-primary" />
               Analytics & Reports
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Workforce cost and productivity analysis
-            </p>
+            {mainLoading && (
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            )}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExportPDF}>
@@ -407,7 +496,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <DollarSign className="w-5 h-5 text-green-600" />
           </div>
           <h4 className="text-2xl font-bold text-gray-900 mt-2">
-            ${metrics.totalCost.toLocaleString()}
+            {mainLoading ? (
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400 inline" />
+            ) : (
+              `$${metrics.totalCost.toLocaleString()}`
+            )}
           </h4>
           <span className="text-xs text-gray-400">this period</span>
         </div>
@@ -420,7 +513,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <Clock className="w-5 h-5 text-blue-600" />
           </div>
           <h4 className="text-2xl font-bold text-gray-900 mt-2">
-            {metrics.totalHours.toLocaleString()} hrs
+            {mainLoading ? (
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400 inline" />
+            ) : (
+              `${metrics.totalHours.toLocaleString()} hrs`
+            )}
           </h4>
           <span className="text-xs text-gray-400">regular + overtime</span>
         </div>
@@ -431,7 +528,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <Calendar className="w-5 h-5 text-purple-600" />
           </div>
           <h4 className="text-2xl font-bold text-gray-900 mt-2">
-            ${metrics.avgDailyCost.toLocaleString()}
+            {mainLoading ? (
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400 inline" />
+            ) : (
+              `$${metrics.avgDailyCost.toLocaleString()}`
+            )}
           </h4>
           <span className="text-xs text-gray-400">based on 30 days</span>
         </div>
@@ -442,91 +543,216 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <Users className="w-5 h-5 text-orange-600" />
           </div>
           <h4 className="text-2xl font-bold text-gray-900 mt-2">
-            {metrics.activeWorkers}
+            {mainLoading ? (
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400 inline" />
+            ) : (
+              metrics.activeWorkers
+            )}
           </h4>
           <span className="text-xs text-gray-400">unique workers</span>
         </div>
       </div>
 
-      {/* Chart: Cost Breakdown */}
+      {/* Chart */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          {companyReport ? "Cost by Site" : "Cost by Worker"}
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={getBreakdownData()}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="name"
-              tick={{ fontSize: 12 }}
-              angle={-30}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis />
-            <Tooltip formatter={(value) => `$${value}`} />
-            <Legend />
-            <Bar dataKey="cost" fill="#3b82f6" name="Labor Cost (est.)" />
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">
+            {companyReport ? "Cost by Site" : "Payment Status Breakdown"}
+          </h3>
+          {mainLoading && (
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          )}
+        </div>
+        {mainLoading ? (
+          <div className="h-64 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={getBreakdownData()}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 12 }}
+                angle={-30}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis yAxisId="left" />
+              {siteReport && (
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={{ fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+              )}
+              <Tooltip
+                formatter={(value, name) => {
+                  if (name === "Count") return [value, name];
+                  return [`$${Number(value).toLocaleString()}`, name];
+                }}
+              />
+              <Legend />
+              {companyReport ? (
+                <Bar dataKey="cost" fill="#3b82f6" name="Labor Cost (est.)" />
+              ) : (
+                <>
+                  <Bar
+                    yAxisId="left"
+                    dataKey="amount"
+                    fill="#3b82f6"
+                    name="Amount"
+                  />
+                  <Bar
+                    yAxisId="right"
+                    dataKey="count"
+                    fill="#10b981"
+                    name="Count"
+                  />
+                </>
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      {/* Top Workers Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Top Workers by Hours
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Name
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Site
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Hours
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {getTopWorkers().map((worker, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {worker.name}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {worker.site}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">
-                    {worker.hours} hrs
-                  </td>
-                </tr>
+      {/* Top Workers Sections - show spinners while tableLoading */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Top by Hours */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">
+              ⏱️ Top Workers by Hours
+            </h3>
+            {tableLoading && (
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            )}
+          </div>
+          {getTopWorkersByHours().length === 0 ? (
+            <p className="text-gray-400 text-center py-4">No data available</p>
+          ) : (
+            <div className="space-y-3">
+              {getTopWorkersByHours().map((worker, idx) => (
+                <div
+                  key={worker.workerId}
+                  className="flex items-center justify-between border-b pb-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+                      <Image
+                        src={worker.imageUrl || ""}
+                        alt={worker.workerName}
+                        width={32}
+                        height={32}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {worker.workerName}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {worker.totalHours} hrs
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold text-blue-600">
+                    #{idx + 1}
+                  </div>
+                </div>
               ))}
-              {getTopWorkers().length === 0 && (
-                <tr>
-                  <td colSpan={3} className="text-center text-gray-400 py-6">
-                    No data available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+          )}
+        </div>
+
+        {/* Top by Cost */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">
+              💰 Top Workers by Cost
+            </h3>
+            {tableLoading && (
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            )}
+          </div>
+          {getTopWorkersByCost().length === 0 ? (
+            <p className="text-gray-400 text-center py-4">No data available</p>
+          ) : (
+            <div className="space-y-3">
+              {getTopWorkersByCost().map((worker, idx) => {
+                const totalCost = Object.values(worker.paymentSummary).reduce(
+                  (sum, s) => sum + s.amount,
+                  0,
+                );
+                return (
+                  <div
+                    key={worker.workerId}
+                    className="flex items-center justify-between border-b pb-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+                        <Image
+                          src={worker.imageUrl || ""}
+                          alt={worker.workerName}
+                          width={32}
+                          height={32}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {worker.workerName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          ${totalCost.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-green-600">
+                      #{idx + 1}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Worker Summary Table (Detailed) */}
-      {workersSummary && workersSummary.workers.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Worker Summary
-          </h3>
+      {/* Worker Summary Table with Search & Pagination */}
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Worker Summary
+            </h3>
+            {tableLoading && (
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            )}
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, email, or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-primary focus:border-primary"
+              style={{ cursor: tableLoading ? "progress" : "auto" }}
+            />
+          </div>
+        </div>
+        {workersSummary && workersSummary.workers.length > 0 && (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    Avatar
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Worker
                   </th>
@@ -551,72 +777,143 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Rejected
                   </th>
-
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Approved
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Overall Amount
                   </th>
-
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Sites
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {workersSummary.workers.map((worker) => (
-                  <tr key={worker.workerId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {worker.workerName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {worker.wageRating}
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {worker.totalHours}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {worker.totalOvertime}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-green-600">
-                      {worker.paymentSummary.PAID.count} -
-                      {worker.paymentSummary.PAID.amount}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-yellow-600">
-                      {worker.paymentSummary.PENDING.count} -
-                      {worker.paymentSummary.PENDING.amount}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-blue-600">
-                      {worker.paymentSummary.REVIEW.count} -
-                      {worker.paymentSummary.REVIEW.amount}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-red-600">
-                      {worker.paymentSummary.REJECTED.count} -
-                      {worker.paymentSummary.REJECTED.amount}
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-blue-600">
-                      {worker.paymentSummary.APPROVED.count} -
-                      {worker.paymentSummary.APPROVED.amount}
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-blue-600">
-                      {(worker.totalHours + worker.totalOvertime) *
-                        worker?.wageRating || 10}
-                    </td>
-
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {worker.sitesWorkedCount}
+                {workersSummary.workers.map((worker) => {
+                  const totalCost = Object.values(worker.paymentSummary).reduce(
+                    (sum, s) => sum + s.amount,
+                    0,
+                  );
+                  return (
+                    <tr key={worker.workerId} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <div className="w-10 h-10 rounded-full overflow-hidden">
+                          <Image
+                            src={worker.imageUrl || ""}
+                            alt={worker.workerName}
+                            width={40}
+                            height={40}
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {worker.workerName}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {worker.wageRating ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {worker.totalHours}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {worker.totalOvertime}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-green-600">
+                        {worker.paymentSummary.PAID.count} / $
+                        {worker.paymentSummary.PAID.amount}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-yellow-600">
+                        {worker.paymentSummary.PENDING.count} / $
+                        {worker.paymentSummary.PENDING.amount}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-blue-600">
+                        {worker.paymentSummary.REVIEW.count} / $
+                        {worker.paymentSummary.REVIEW.amount}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-red-600">
+                        {worker.paymentSummary.REJECTED.count} / $
+                        {worker.paymentSummary.REJECTED.amount}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-blue-600">
+                        {worker.paymentSummary.APPROVED.count} / $
+                        {worker.paymentSummary.APPROVED.amount}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-blue-600">
+                        ${totalCost.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {worker.sitesWorkedCount}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {workersSummary.workers.length === 0 && (
+                  <tr>
+                    <td colSpan={12} className="text-center text-gray-400 py-6">
+                      No workers match your search
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
+        )}
+        {/* Pagination Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Rows per page:</span>
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+              className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+              disabled={tableLoading}
+            >
+              {[5, 10, 20, 50].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600">
+              Page {workersSummary ? workersSummary.pagination.currentPage : 1}{" "}
+              of {workersSummary ? workersSummary.pagination.totalPages : 1}
+            </span>
+            <div className="flex gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || tableLoading}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPage((p) =>
+                    Math.min(
+                      workersSummary ? workersSummary.pagination.totalPages : 1,
+                      p + 1,
+                    ),
+                  )
+                }
+                disabled={
+                  page === workersSummary?.pagination.totalPages || tableLoading
+                }
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
