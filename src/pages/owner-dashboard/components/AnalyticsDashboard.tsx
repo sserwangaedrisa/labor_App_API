@@ -47,15 +47,35 @@ interface SiteSummary {
   workEntrySummary: Record<string, number>;
 }
 
-interface CompanyReport {
+export interface CompanyReport {
+  success: boolean;
+  message: string;
   dateRange: { startDate: string; endDate: string };
   summary: {
     totalHours: number;
     totalOvertime: number;
     uniqueWorkers: number;
     uniqueSites: number;
-    totalPaidAmount: number;
-    totalPendingAmount: number;
+    totalPaidAmount: {
+      count: number;
+      amount: number;
+    };
+    totalApprovedAmount: {
+      count: number;
+      amount: number;
+    };
+    totalRejectedAmount: {
+      count: number;
+      amount: number;
+    };
+    totalPendingAmount: {
+      count: number;
+      amount: number;
+    };
+    totalReviewAmount: {
+      count: number;
+      amount: number;
+    };
   };
   siteBreakdown: Array<{
     siteId: string;
@@ -66,7 +86,9 @@ interface CompanyReport {
   }>;
 }
 
-interface SiteReport {
+export interface SiteReport {
+  success: boolean;
+  message: string;
   site: { id: string; name: string; location: string | null };
   dateRange: { startDate: string; endDate: string };
   summary: {
@@ -91,6 +113,8 @@ interface SiteReport {
 }
 
 interface WorkersSummaryResponse {
+  success: boolean;
+  message: string;
   dateRange: { startDate: string; endDate: string };
   filters: { siteId: string | null };
   overallTotals: {
@@ -130,14 +154,24 @@ interface WorkersSummaryResponse {
 
 interface AnalyticsDashboardProps {
   initialSiteId?: string;
+  getSiteReport?: (
+    queryParams: { startDate: string; endDate: string },
+    siteId: string,
+  ) => Promise<SiteReport | undefined>;
+  getCompanyReport?: (queryParams: {
+    startDate: string;
+    endDate: string;
+  }) => Promise<CompanyReport | undefined>;
 }
 
 /* ================= COMPONENT ================= */
 
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   initialSiteId,
+  getCompanyReport,
+  getSiteReport,
 }) => {
-  const { user } = useAuth();
+  const { user, setSiteOrCampanyOverview, siteOrCampanyOverview } = useAuth();
   const role = user?.role as Role;
   const userSiteId = user?.siteId || initialSiteId;
 
@@ -232,21 +266,40 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     const queryParams = { startDate, endDate };
 
     try {
-      if (role === "OWNER" && selectedSiteId === "all") {
-        const companyData = await authorizePost("report/company", queryParams);
-        setCompanyReport(companyData);
+      if (role === "OWNER" && selectedSiteId === "all" && getCompanyReport) {
+        const companyData = await getCompanyReport(queryParams);
+        setCompanyReport(companyData ? companyData : null);
         setSiteReport(null);
+        // setSiteOrCampanyOverview((prev) => ({
+        //   ...prev,
+        //   PendingPayments: companyData.summary.totalPendingAmount,
+        //   PaidPayments: companyData.summary.totalPaidAmount,
+        //   ApprovedPayments: companyData.summary.totalApprovedAmount,
+        //   RejectedPayments: companyData.summary.totalRejectedAmount,
+        //   ReviewPayments: companyData.summary.totalReviewAmount,
+        //   TotalWorkers: companyData.summary.uniqueWorkers,
+        //   TotalNumberOfSites: companyData.summary.uniqueSites,
+        //   TotalHours:
+        //     companyData.summary.totalHours + companyData.summary.totalOvertime,
+        // }));
       } else {
         const siteId = role === "FOREMAN" ? userSiteId : selectedSiteId;
-        if (siteId && siteId !== "all") {
-          const siteData = await authorizePost(
-            `report/site/${siteId}`,
-            queryParams,
-          );
-          setSiteReport(siteData);
+        if (siteId && siteId !== "all" && getSiteReport) {
+          const siteData = await getSiteReport(queryParams, selectedSiteId);
+          setSiteReport(siteData ? siteData : null);
           setCompanyReport(null);
+          // setSiteOrCampanyOverview((prev) => ({
+          //   ...prev,
+          //   PendingPayments: siteData.summary.paymentBreakdown.pending,
+          //   PaidPayments: siteData.summary.paymentBreakdown.paid,
+          //   ApprovedPayments: siteData.summary.paymentBreakdown.approved,
+          //   RejectedPayments: siteData.summary.paymentBreakdown.rejected,
+          //   ReviewPayments: siteData.summary.paymentBreakdown.review,
+          //   TotalWorkers: siteData.summary.uniqueWorkers,
+          //   TotalHours:
+          //     siteData.summary.totalHours + siteData.summary.totalOvertime,
+          // }));
         } else if (role === "OWNER" && selectedSiteId === "all") {
-          // already handled
         } else {
           throw new Error("No valid site selected");
         }
@@ -389,7 +442,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     if (companyReport?.summary) {
       const summary = companyReport.summary;
       return {
-        totalCost: summary.totalPaidAmount + summary.totalPendingAmount,
+        totalPaymentsCost:
+          summary.totalPaidAmount.amount +
+          summary.totalPendingAmount.amount +
+          summary.totalApprovedAmount.amount +
+          summary.totalRejectedAmount.amount +
+          summary.totalReviewAmount.amount,
         totalHours: summary.totalHours,
         avgDailyCost: summary.totalPaidAmount / 30,
         activeWorkers: summary.uniqueWorkers,
@@ -499,7 +557,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             {mainLoading ? (
               <Loader2 className="w-6 h-6 animate-spin text-gray-400 inline" />
             ) : (
-              `$${metrics.totalCost.toLocaleString()}`
+              `$${metrics ? metrics?.totalCost?.toLocaleString() : 0}`
             )}
           </h4>
           <span className="text-xs text-gray-400">this period</span>

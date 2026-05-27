@@ -11,8 +11,14 @@ import UserManagementPanel from "./components/UserManagementPanel";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import Icon from "../../components/ui/AppIconl";
 import Button from "../../components/ui/Button";
-// import type { User } from '../../app/providers';
+import { useAuth } from "../../app/providers";
+import authorizePost from "../../api/authorizePost";
+import type {
+  SiteReport,
+  CompanyReport,
+} from "./components/AnalyticsDashboard";
 import type { Payment, Site, User, NewUser } from "../../types/SharedTypes";
+import toast from "react-hot-toast";
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
@@ -22,170 +28,123 @@ const OwnerDashboard = () => {
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<string | null>(null);
 
-  const mockSites: Site[] = [
-    {
-      id: "site-001",
-      name: "Downtown Plaza Construction",
-      location: "123 Main Street, Downtown",
-      activeWorkers: 45,
-      dailyCost: 12500,
-      pendingPayments: 38750,
-      status: "Active",
-    },
-    {
-      id: "site-002",
-      name: "Riverside Towers Project",
-      location: "456 River Road, Riverside",
-      activeWorkers: 32,
-      dailyCost: 9800,
-      pendingPayments: 29400,
-      status: "Active",
-    },
-    {
-      id: "site-003",
-      name: "Industrial Park Development",
-      location: "789 Industrial Ave, West Side",
-      activeWorkers: 28,
-      dailyCost: 8400,
-      pendingPayments: 16800,
-      status: "Active",
-    },
-    {
-      id: "site-004",
-      name: "Suburban Housing Complex",
-      location: "321 Suburban Lane, North District",
-      activeWorkers: 18,
-      dailyCost: 5600,
-      pendingPayments: 11200,
-      status: "Inactive",
-    },
-  ];
+  // overview states
+  const [siteOrCampanyOverview, setSiteOrCampanyOverview] = useState<{
+    TotolPayments: { count: number; amount: number };
+    PendingPayments: { count: number; amount: number };
+    ApprovedPayments: { count: number; amount: number };
+    RejectedPayments: { count: number; amount: number };
+    PaidPayments: { count: number; amount: number };
+    ReviewPayments: { count: number; amount: number };
+    TotalNumberOfSites: number;
+    TotalWorkers: number;
+    TotalHours: number;
+  }>({
+    TotolPayments: { count: 0, amount: 0 },
+    PendingPayments: { count: 0, amount: 0 },
+    ApprovedPayments: { count: 0, amount: 0 },
+    RejectedPayments: { count: 0, amount: 0 },
+    PaidPayments: { count: 0, amount: 0 },
+    ReviewPayments: { count: 0, amount: 0 },
+    TotalNumberOfSites: 0,
+    TotalWorkers: 0,
+    TotalHours: 0,
+  });
 
-  const mockPayments: Payment[] = [
-    {
-      id: "pay-001",
-      workerId: "LAB001",
-      workerName: "Michael Rodriguez",
-      siteName: "Downtown Plaza Construction",
-      period: "01/20/2026 - 01/26/2026",
-      amount: 1750,
-      status: "Pending",
-    },
-    {
-      id: "pay-002",
-      workerId: "LAB002",
-      workerName: "Sarah Johnson",
-      siteName: "Riverside Towers Project",
-      period: "01/20/2026 - 01/26/2026",
-      amount: 1680,
-      status: "Pending",
-    },
-    {
-      id: "pay-003",
-      workerId: "LAB003",
-      workerName: "David Chen",
-      siteName: "Industrial Park Development",
-      period: "01/20/2026 - 01/26/2026",
-      amount: 1820,
-      status: "Unpaid",
-    },
-    {
-      id: "pay-004",
-      workerId: "LAB004",
-      workerName: "Maria Garcia",
-      siteName: "Downtown Plaza Construction",
-      period: "01/20/2026 - 01/26/2026",
-      amount: 1540,
-      status: "Pending",
-    },
-    {
-      id: "pay-005",
-      workerId: "LAB005",
-      workerName: "James Wilson",
-      siteName: "Suburban Housing Complex",
-      period: "01/20/2026 - 01/26/2026",
-      amount: 1400,
-      status: "Unpaid",
-    },
-  ];
-
-  const mockUsers: User[] = [
-    {
-      id: "LAB001",
-      name: "Michael Rodriguez",
-      email: "michael.rodriguez@email.com",
-      phone: "+1 (555) 123-4567",
-      role: "laborer",
-      assignedSite: "Downtown Plaza Construction",
-      isBlocked: false,
-    },
-    {
-      id: "LAB002",
-      name: "Sarah Johnson",
-      email: "sarah.johnson@email.com",
-      phone: "+1 (555) 234-5678",
-      role: "laborer",
-      assignedSite: "Riverside Towers Project",
-      isBlocked: false,
-    },
-    {
-      id: "FOR001",
-      name: "David Chen",
-      email: "david.chen@email.com",
-      phone: "+1 (555) 345-6789",
-      role: "foreman",
-      assignedSite: "Industrial Park Development",
-      isBlocked: false,
-    },
-    {
-      id: "LAB003",
-      name: "Maria Garcia",
-      email: "maria.garcia@email.com",
-      phone: "+1 (555) 456-7890",
-      role: "laborer",
-      assignedSite: "Downtown Plaza Construction",
-      isBlocked: true,
-    },
-    {
-      id: "FOR002",
-      name: "James Wilson",
-      email: "james.wilson@email.com",
-      phone: "+1 (555) 567-8901",
-      role: "foreman",
-      assignedSite: "Riverside Towers Project",
-      isBlocked: false,
-    },
-  ];
-
-  const mockAnalytics = {
-    monthly: {
-      totalCost: 456800,
-      totalHours: 18272,
-      avgDailyCost: 15227,
-      activeWorkers: 123,
-      siteBreakdown: [
-        { name: "Downtown Plaza Construction", cost: 187500, workers: 45 },
-        { name: "Riverside Towers Project", cost: 147000, workers: 32 },
-        { name: "Industrial Park Development", cost: 84000, workers: 28 },
-        { name: "Suburban Housing Complex", cost: 38300, workers: 18 },
-      ],
-      monthlyTrend: [
-        { month: "Jul", cost: 398500 },
-        { month: "Aug", cost: 412300 },
-        { month: "Sep", cost: 435600 },
-        { month: "Oct", cost: 428900 },
-        { month: "Nov", cost: 445200 },
-        { month: "Dec", cost: 456800 },
-      ],
-      topWorkers: [
-        { name: "Michael Rodriguez", site: "Downtown Plaza", hours: 248 },
-        { name: "Sarah Johnson", site: "Riverside Towers", hours: 242 },
-        { name: "David Chen", site: "Industrial Park", hours: 236 },
-        { name: "Maria Garcia", site: "Downtown Plaza", hours: 228 },
-        { name: "James Wilson", site: "Suburban Complex", hours: 220 },
-      ],
-    },
+  const getCompany_report = async (queryParams: {
+    startDate: string;
+    endDate: string;
+  }): Promise<CompanyReport | undefined> => {
+    try {
+      const companyData: CompanyReport = await authorizePost(
+        "report/company",
+        queryParams,
+      );
+      if (!companyData.success) {
+        console.log(
+          companyData.message || "Failed to get the Overview information",
+        );
+        toast.error(
+          companyData.message || "Failed to get the Overview information",
+        );
+        setSiteOrCampanyOverview({
+          TotolPayments: { count: 0, amount: 0 },
+          PendingPayments: { count: 0, amount: 0 },
+          ApprovedPayments: { count: 0, amount: 0 },
+          RejectedPayments: { count: 0, amount: 0 },
+          PaidPayments: { count: 0, amount: 0 },
+          ReviewPayments: { count: 0, amount: 0 },
+          TotalNumberOfSites: 0,
+          TotalWorkers: 0,
+          TotalHours: 0,
+        });
+        return companyData;
+      }
+      setSiteOrCampanyOverview((prev) => ({
+        ...prev,
+        PendingPayments: companyData.summary.totalPendingAmount,
+        PaidPayments: companyData.summary.totalPaidAmount,
+        ApprovedPayments: companyData.summary.totalApprovedAmount,
+        RejectedPayments: companyData.summary.totalRejectedAmount,
+        ReviewPayments: companyData.summary.totalReviewAmount,
+        TotalWorkers: companyData.summary.uniqueWorkers,
+        TotalNumberOfSites: companyData.summary.uniqueSites,
+        TotalHours:
+          companyData.summary.totalHours + companyData.summary.totalOvertime,
+      }));
+      return companyData;
+    } catch (error) {
+      console.log(error);
+      toast.error("An error occured during company overview update");
+    }
   };
+
+  const getSite_report = async (
+    queryParams: { startDate: string; endDate: string },
+    siteId: string,
+  ): Promise<SiteReport | undefined> => {
+    try {
+      const siteData: SiteReport = await authorizePost(
+        `report/site/${siteId}`,
+        queryParams,
+      );
+      if (!siteData.success) {
+        setSiteOrCampanyOverview({
+          TotolPayments: { count: 0, amount: 0 },
+          PendingPayments: { count: 0, amount: 0 },
+          ApprovedPayments: { count: 0, amount: 0 },
+          RejectedPayments: { count: 0, amount: 0 },
+          PaidPayments: { count: 0, amount: 0 },
+          ReviewPayments: { count: 0, amount: 0 },
+          TotalNumberOfSites: 0,
+          TotalWorkers: 0,
+          TotalHours: 0,
+        });
+        console.log(siteData.message || "Failed to Fetch site data");
+        toast.error(siteData.message || "Failed to Fetch site data");
+        return siteData;
+      }
+      setSiteOrCampanyOverview((prev) => ({
+        ...prev,
+        PendingPayments: siteData.summary.paymentBreakdown.pending,
+        PaidPayments: siteData.summary.paymentBreakdown.paid,
+        ApprovedPayments: siteData.summary.paymentBreakdown.approved,
+        RejectedPayments: siteData.summary.paymentBreakdown.rejected,
+        ReviewPayments: siteData.summary.paymentBreakdown.review,
+        TotalWorkers: siteData.summary.uniqueWorkers,
+        TotalHours:
+          siteData.summary.totalHours + siteData.summary.totalOvertime,
+      }));
+
+      return siteData;
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to fetch site data");
+    }
+  };
+
+  // context states
+  // const { user, setSiteOrCampanyOverview, siteOrCampanyOverview } = useAuth();
 
   // creating site functions
   const handleCreateSite = () => {
@@ -236,7 +195,6 @@ const OwnerDashboard = () => {
 
   const tabs = [
     { id: "analytics", label: "Analytics & Reports", icon: "BarChart3" },
-
     { id: "payments", label: "Payment Processing", icon: "DollarSign" },
     { id: "users", label: "User Management", icon: "Users" },
   ];
@@ -262,16 +220,21 @@ const OwnerDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
                 <MetricCard
                   title="Total Active Workers"
-                  value="123"
+                  value={siteOrCampanyOverview.TotalWorkers}
                   iconName="Users"
-                  trend="up"
-                  trendValue="+15"
+                  iconBgColor="bg-primary/10"
+                  iconColor="var(--color-primary)"
+                />
+                <MetricCard
+                  title="Total Number of sites"
+                  value={siteOrCampanyOverview.TotalNumberOfSites}
+                  iconName="Users"
                   iconBgColor="bg-primary/10"
                   iconColor="var(--color-primary)"
                 />
                 <MetricCard
                   title="Pending Payments"
-                  value="$96,150"
+                  value={`${siteOrCampanyOverview.PendingPayments.amount} / ${siteOrCampanyOverview.PendingPayments.count}`}
                   iconName="Clock"
                   trend="down"
                   trendValue="-8.2%"
@@ -288,9 +251,36 @@ const OwnerDashboard = () => {
                   iconColor="var(--color-success)"
                 />
                 <MetricCard
-                  title="System Alerts"
-                  value="7"
-                  iconName="AlertCircle"
+                  title="Total-Paid Ammount"
+                  value={`${siteOrCampanyOverview.PaidPayments.amount} / ${siteOrCampanyOverview.PaidPayments.count}`}
+                  iconName="Tick"
+                  trend={undefined}
+                  trendValue={undefined}
+                  iconBgColor="bg-destructive/10"
+                  iconColor="var(--color-destructive)"
+                />
+                <MetricCard
+                  title="Total-Rejected Ammount"
+                  value={`${siteOrCampanyOverview.RejectedPayments.amount} / ${siteOrCampanyOverview.RejectedPayments.count}`}
+                  iconName="Tick"
+                  trend={undefined}
+                  trendValue={undefined}
+                  iconBgColor="bg-destructive/10"
+                  iconColor="var(--color-destructive)"
+                />
+                <MetricCard
+                  title="Total-Reviewed Ammount"
+                  value={`${siteOrCampanyOverview.ReviewPayments.amount} / ${siteOrCampanyOverview.ReviewPayments.count}`}
+                  iconName="Tick"
+                  trend={undefined}
+                  trendValue={undefined}
+                  iconBgColor="bg-destructive/10"
+                  iconColor="var(--color-destructive)"
+                />
+                <MetricCard
+                  title="Total-Approved Ammount"
+                  value={`${siteOrCampanyOverview.ApprovedPayments.amount} / ${siteOrCampanyOverview.ApprovedPayments.count}`}
+                  iconName="Tick"
                   trend={undefined}
                   trendValue={undefined}
                   iconBgColor="bg-destructive/10"
@@ -327,7 +317,12 @@ const OwnerDashboard = () => {
 
               {/* Tab Content */}
               <div className="transition-smooth">
-                {activeTab === "analytics" && <AnalyticsDashboard />}
+                {activeTab === "analytics" && (
+                  <AnalyticsDashboard
+                    getCompanyReport={getCompany_report}
+                    getSiteReport={getSite_report}
+                  />
+                )}
 
                 {activeTab === "payments" && <PaymentApprovalQueue />}
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -11,6 +11,9 @@ import RoleGuard from "../../components/ui/RoleGuard";
 import LoadingBoundary from "../../components/ui/LoadingBoundary";
 import Icon from "../../components/ui/AppIconl";
 import Button from "../../components/ui/Button";
+import AnalyticsDashboard, {
+  type SiteReport,
+} from "../owner-dashboard/components/AnalyticsDashboard";
 import SiteOverviewCard from "./components/SiteOverviewCard";
 import WorkerTableRow from "./components/WorkerTableRow";
 import AttendanceModal from "./components/AttendanceModal";
@@ -63,6 +66,7 @@ const ForemanDashboard: React.FC = () => {
     useState<SharedTypes.WorkEntry | null>(null);
   const [showPaymentRequestCard, setShowPaymentRequestCard] =
     useState<boolean>(false);
+  const [showReports, setShowReports] = useState<boolean>(false);
 
   const [currentSettings, setCurrentSettings] =
     useState<SharedTypes.SiteSettings | null>(null);
@@ -391,6 +395,7 @@ const ForemanDashboard: React.FC = () => {
       setCurrentUserWorkEntry(
         workEntryResponse.workEntry ? workEntryResponse.workEntry : null,
       );
+      setAttendanceRefreshKey((current) => current + 1);
       setShowAttendanceModal(false);
       setSelectedWorker(null);
       return workEntryResponse;
@@ -435,8 +440,41 @@ const ForemanDashboard: React.FC = () => {
     setShowBulkAttendanceModal(true);
   };
 
+  const getSiteReport = async (
+    queryParams: { startDate: string; endDate: string },
+    siteId: string,
+  ): Promise<SiteReport | undefined> => {
+    if (!siteId) {
+      toast.error("Unable to load report: site not selected.");
+      return undefined;
+    }
+
+    try {
+      const report = await authorizePostRequest<SiteReport>(
+        `report/site/${siteId}`,
+        queryParams,
+      );
+
+      if (!report?.success) {
+        toast.error(report?.message || "Failed to fetch site report.");
+        return undefined;
+      }
+
+      return report;
+    } catch (error: any) {
+      console.error("Failed to load site report", error);
+      toast.error(error?.message || "Failed to fetch site report.");
+      return undefined;
+    }
+  };
+
   const handleViewReports = (): void => {
-    console.log("View site reports");
+    if (!siteId) {
+      toast.error("Site data is still loading. Please wait.");
+      return;
+    }
+
+    setShowReports((current) => !current);
   };
 
   const handleSiteSettings = (): void => {
@@ -972,6 +1010,15 @@ const ForemanDashboard: React.FC = () => {
                 />
               </div>
 
+              {showReports && (
+                <div className="mt-8">
+                  <AnalyticsDashboard
+                    initialSiteId={siteId}
+                    getSiteReport={getSiteReport}
+                  />
+                </div>
+              )}
+
               {/* site settings  */}
               <div className="container mx-auto px-4 py-8">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -982,7 +1029,7 @@ const ForemanDashboard: React.FC = () => {
                     handleSettingsUpdate={handleSettingsUpdate}
                     siteID={siteId}
                     initialDate={currentDate}
-                    setCurrentDate={handleDateChange} 
+                    setCurrentDate={handleDateChange}
                   />
                 )}
               </div>

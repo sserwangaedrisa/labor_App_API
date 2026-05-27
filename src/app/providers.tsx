@@ -44,23 +44,27 @@ interface AuthContextType {
   selectedWorkerId: string | null;
   setSelectedWorkerId: React.Dispatch<React.SetStateAction<string | null>>;
   siteOrCampanyOverview: {
-    TotolPayments: number;
-    PendingPayments: number;
-    ApprovedPayments: number;
-    RejectedPayments: number;
-    PaidPayments: number;
-    ReviewPayments: number;
+    TotolPayments: { count: number; amount: number };
+    PendingPayments: { count: number; amount: number };
+    ApprovedPayments: { count: number; amount: number };
+    RejectedPayments: { count: number; amount: number };
+    PaidPayments: { count: number; amount: number };
+    ReviewPayments: { count: number; amount: number };
+    TotalNumberOfSites: number;
     TotalWorkers: number;
+    TotalHours: number;
   };
   setSiteOrCampanyOverview: React.Dispatch<
     React.SetStateAction<{
-      TotolPayments: number;
-      PendingPayments: number;
-      ApprovedPayments: number;
-      RejectedPayments: number;
-      PaidPayments: number;
-      ReviewPayments: number;
+      TotolPayments: { count: number; amount: number };
+      PendingPayments: { count: number; amount: number };
+      ApprovedPayments: { count: number; amount: number };
+      RejectedPayments: { count: number; amount: number };
+      PaidPayments: { count: number; amount: number };
+      ReviewPayments: { count: number; amount: number };
+      TotalNumberOfSites: number;
       TotalWorkers: number;
+      TotalHours: number;
     }>
   >;
 }
@@ -79,21 +83,25 @@ export const Providers = ({ children }: { children: ReactNode }) => {
   const [siteId, setSiteId] = useState<string | null>(null);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [siteOrCampanyOverview, setSiteOrCampanyOverview] = useState<{
-    TotolPayments: number;
-    PendingPayments: number;
-    ApprovedPayments: number;
-    RejectedPayments: number;
-    PaidPayments: number;
-    ReviewPayments: number;
+    TotolPayments: { count: number; amount: number };
+    PendingPayments: { count: number; amount: number };
+    ApprovedPayments: { count: number; amount: number };
+    RejectedPayments: { count: number; amount: number };
+    PaidPayments: { count: number; amount: number };
+    ReviewPayments: { count: number; amount: number };
+    TotalNumberOfSites: number;
     TotalWorkers: number;
+    TotalHours: number;
   }>({
-    TotolPayments: 0,
-    PendingPayments: 0,
-    ApprovedPayments: 0,
-    RejectedPayments: 0,
-    PaidPayments: 0,
-    ReviewPayments: 0,
+    TotolPayments: { count: 0, amount: 0 },
+    PendingPayments: { count: 0, amount: 0 },
+    ApprovedPayments: { count: 0, amount: 0 },
+    RejectedPayments: { count: 0, amount: 0 },
+    PaidPayments: { count: 0, amount: 0 },
+    ReviewPayments: { count: 0, amount: 0 },
+    TotalNumberOfSites: 0,
     TotalWorkers: 0,
+    TotalHours: 0,
   });
 
   const login = (u: User, tokens: Tokens) => {
@@ -110,6 +118,17 @@ export const Providers = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.getItem("token") ? localStorage.removeItem("token") : null;
+    setSiteOrCampanyOverview({
+      TotolPayments: { count: 0, amount: 0 },
+      PendingPayments: { count: 0, amount: 0 },
+      ApprovedPayments: { count: 0, amount: 0 },
+      RejectedPayments: { count: 0, amount: 0 },
+      PaidPayments: { count: 0, amount: 0 },
+      ReviewPayments: { count: 0, amount: 0 },
+      TotalNumberOfSites: 0,
+      TotalWorkers: 0,
+      TotalHours: 0,
+    });
   };
 
   const isAuthenticated = !!user;
