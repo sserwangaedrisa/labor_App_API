@@ -189,7 +189,7 @@ const Login: React.FC = () => {
         <div className="text-center">
           <img
             src="../../assets/logo.png"
-            alt="logo"
+            alt="AILAMA LABOR SUPPLY"
             className="mx-auto h-20 w-auto rounded-full shadow-md"
           />
 

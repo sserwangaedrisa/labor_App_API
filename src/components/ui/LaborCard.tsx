@@ -45,8 +45,8 @@ import ConfirmationModal from "./Confirmation";
 import Loading from "./Loading";
 
 interface LaborCardProps {
-  siteId?: string | null;
-  workerId?: string | null;
+  siteID?: string | null;
+  workerID?: string | null;
   isOpen: boolean;
   paymentID?: string;
   workerPaymentInfo?: WorkerPaymentData | null;
@@ -66,8 +66,9 @@ const LaborCard: React.FC<LaborCardProps> = ({
   paymentID,
   workerPaymentInfo,
   onClose,
-  siteId,
-  workerId,
+
+  siteID,
+  workerID,
 }) => {
   // Auth context
   const { user } = useAuth();
@@ -77,6 +78,9 @@ const LaborCard: React.FC<LaborCardProps> = ({
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<WorkEntry | null>(null);
+
+  const [siteId, setSiteId] = useState<string | null>("");
+  const [workerId, setWorkerId] = useState<string | null>("");
 
   // Payment states - FIXED: Use state for selected entries
   const [selectedLaborCardPayments, setSelectedLaborCardPayments] = useState<
@@ -160,6 +164,13 @@ const LaborCard: React.FC<LaborCardProps> = ({
   useEffect(() => {
     if (workerPaymentInfo) {
       setWorkerData(workerPaymentInfo);
+      setWorkerId(workerPaymentInfo.worker.id);
+      setSiteId(workerPaymentInfo.site.id);
+    }
+
+    if (siteID && workerID) {
+      setSiteId(siteID);
+      setWorkerId(workerID);
     }
   }, [workerPaymentInfo]);
 
@@ -172,9 +183,9 @@ const LaborCard: React.FC<LaborCardProps> = ({
 
   useEffect(() => {
     setSearchQuery({
-      siteId: siteId || "",
+      siteId: siteId || siteID || "",
       paymentId: PAYMENTID || "",
-      workerId: workerId || "",
+      workerId: workerId || workerID || "",
       startDate: new Date(
         currentMonth.getFullYear(),
         currentMonth.getMonth(),
@@ -190,7 +201,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
         999,
       ),
     });
-  }, [currentMonth, siteId, workerId, PAYMENTID]);
+  }, [currentMonth, siteId, siteID, workerId, PAYMENTID]);
 
   // Getting the work Entries for the current selected month or paymentId
   useEffect(() => {

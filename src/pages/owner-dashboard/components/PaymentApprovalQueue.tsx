@@ -1344,8 +1344,8 @@ const PaymentApprovalQueue: React.FC = () => {
 
       {displayPaymentDetails && selectedPaymentForDetails && (
         <LaborCard
-          siteId={siteId || null}
-          workerId={selectedWorkerId || null}
+          siteID={siteId || null}
+          workerID={selectedWorkerId || null}
           paymentID={selectedPaymentForDetails.id}
           isOpen={displayPaymentDetails}
           onClose={() => closePaymentDetails()}

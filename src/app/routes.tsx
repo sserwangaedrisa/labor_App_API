@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./providers";
 
+import LandingPage from "../pages/LandingPage";
 import LoginPage from "../pages/auth/LoginPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import LaborerDashboard from "../pages/laborer/Dashboard";
@@ -19,6 +20,10 @@ export const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Landing page */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/home" element={<LandingPage />} />
+
       {/* Auth routes */}
       <Route path="/auth/login" element={<LoginPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
@@ -129,7 +134,7 @@ export const AppRoutes = () => {
       />
 
       {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/auth/login" />} />
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 };
