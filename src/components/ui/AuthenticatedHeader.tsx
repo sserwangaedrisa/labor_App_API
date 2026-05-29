@@ -12,6 +12,8 @@ const AuthenticatedHeader = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  const [userClicked, setUserClicked] = useState<boolean>(false);
+
   const getRoleDisplay = () => {
     if (!user) {
       return "no user";
@@ -28,6 +30,12 @@ const AuthenticatedHeader = () => {
     return pathMap?.[role] || "/login";
   };
 
+  // logic for showing the logout button
+  const handleShowLogOut = () => {
+    if (userClicked) setUserClicked(false);
+    if (!userClicked) setUserClicked(true);
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -41,9 +49,9 @@ const AuthenticatedHeader = () => {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-100 
-  bg-gradient-to-r from-slate-900 via-slate-800 to-orange-400
-  text-white backdrop-blur-md transition-all duration-300
+      className="relative w-full
+  bg-gradient-to-r from-white-900/10 via-slate-800/10 to-orange-400/20
+  text-white backdrop-blur-3xl transition-all duration-300
   shadow-[0_8px_20px_rgba(0,0,0,0.35)]"
     >
       <div className="h-[100px] px-5 flex items-center justify-between lg:px-8">
@@ -62,16 +70,23 @@ const AuthenticatedHeader = () => {
                 LaborTrack
               </h1>
               <p className="text-xs text-white/70 mt-0">
-                Construction Management
+                Payment and attendance management
               </p>
             </div>
           </button>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10">
+          <div
+            onClick={handleShowLogOut}
+            className="hidden md:flex items-center gap-3 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10 cursor-pointer hover:bg-white/20 "
+          >
             <div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
-              <Icon key="user" name="User" size={16} color="#fb923c" />
+              {user?.imageUrl ? (
+                <img style={{}} src="user.imageUrl" />
+              ) : (
+                <Icon key="user" name="User" size={16} color="#fb923c" />
+              )}
             </div>
 
             <div className="text-sm">
@@ -94,14 +109,15 @@ const AuthenticatedHeader = () => {
                 color="white"
               />
             </button>
-
-            <Button
-              type="submit"
-              onClick={handleLogout}
-              className="hidden md:flex bg-orange-500 hover:bg-orange-600 text-white border-none shadow-md"
-            >
-              Logout
-            </Button>
+            {userClicked && (
+              <Button
+                type="submit"
+                onClick={handleLogout}
+                className="hidden md:flex bg-orange-500 hover:bg-orange-600 text-white border-none shadow-md"
+              >
+                Logout
+              </Button>
+            )}
 
             {isMenuOpen && (
               <>

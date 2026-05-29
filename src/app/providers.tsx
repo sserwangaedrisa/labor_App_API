@@ -16,6 +16,7 @@ export interface User {
   name: string;
   phone?: string;
   role: Role;
+  imageUrl?: string;
   status?: string;
   siteId?: string;
   assignedSite?: string;

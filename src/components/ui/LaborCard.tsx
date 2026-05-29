@@ -1119,11 +1119,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
             </div>
             {/* Loading Overlay */}
             {isLoading && (
-              <Loading
-                transparent
-                message="Making payment request..."
-                overlay={true}
-              />
+              <Loading transparent message="Processing..." overlay={true} />
             )}
           </div>
 

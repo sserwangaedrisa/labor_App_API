@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -314,28 +314,21 @@ const ForemanDashboard: React.FC = () => {
     setCurrentDate(date);
   };
 
-  const syncWorkerAttendance = (
-    workerId: string,
-    workEntry: SharedTypes.WorkEntry | null,
-  ) => {
-    const updateWorker = (worker: Worker) => {
-      if (String(worker.id) !== workerId) {
-        return worker;
-      }
+  const [activeTab, setActiveTab] = useState<
+    "siteWorker" | "payments" | "analytics" | "userManagement"
+  >("siteWorker");
 
-      return {
-        ...worker,
-        workEntry: workEntry ?? undefined,
-        currentWorkEntryId: workEntry?.id ?? "",
-        todayStatus: workEntry ? "present" : "absent",
-        hoursToday: (workEntry?.hours ?? 0) + (workEntry?.overtime ?? 0),
-        lastUpdated: new Date().toISOString(),
-      };
-    };
-
-    setWorkersDetatil((prevWorkers) => prevWorkers.map(updateWorker));
-    setFilteredWorkers((prevWorkers) => prevWorkers.map(updateWorker));
-  };
+  // Tab configuration
+  const tabs = [
+    {
+      id: "siteWorker",
+      label: "Attendace Management",
+      icon: "LayoutDashboard",
+    },
+    { id: "payments", label: "Payments", icon: "DollarSign" },
+    { id: "analytics", label: "Analytics", icon: "TrendingUp" },
+    { id: "userManagement", label: "User Management", icon: "Users" },
+  ];
 
   const handleSettingsUpdate = (settings: SharedTypes.SiteSettings) => {
     setCurrentSettings(settings);
@@ -477,9 +470,14 @@ const ForemanDashboard: React.FC = () => {
     setShowReports((current) => !current);
   };
 
-  const handleSiteSettings = (): void => {
-    console.log("Open site settings");
-  };
+  const handleViewReportsWithTab = useCallback(() => {
+    handleViewReports(); // Call existing handler
+    setActiveTab("analytics");
+  }, [handleViewReports]);
+
+  const handleSiteSettingsWithTab = useCallback(() => {
+    setActiveTab("siteWorker");
+  }, []);
 
   const handleCreateUser = async (userData: FormData): Promise<boolean> => {
     try {
@@ -872,338 +870,390 @@ const ForemanDashboard: React.FC = () => {
                   siteInfo={siteInfo}
                 />
               </div>
-
-              {/* payment proccessing section */}
-              <div className="bg-card rounded-lg shadow-md shadow-gray-700 bg-slate-300 overflow-hidden mb-5">
-                <div className="px-5 py-4 flex items-center justify-between  hover:bg-muted/20 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Icon
-                        name="DollarSign"
-                        size={18}
-                        color="var(--color-primary)"
-                      />
-                    </div>
-                    <div>
-                      <h1 className="text-base text-slate-100 font-semibold text-slate-500">
-                        Payments
-                      </h1>
-                      <div
-                        // onClick={() => navigate('/payments?tab=batch')}
-                        className="group mb-2 flex items-center justify-between p-3 rounded-lg bg-slate-500/50 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer border border-transparent hover:border-primary/30"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                            <Icon name="Users" size={14} color="white" />
-                          </div>
-                          <span className="text-sm text-muted-foreground group-hover:text-slate-200 transition-colors">
-                            Batch Payments
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {siteInfo?.batchpayments?.length &&
-                          siteInfo?.batchpayments?.length > 0 ? (
-                            <>
-                              <span className="text-2xl font-semibold text-primary group-hover:text-primary/80 transition-colors">
-                                {siteInfo?.batchpayments.length}
-                              </span>
-                              <span className="text-xs text-muted-foreground group-hover:text-slate-300">
-                                pending
-                              </span>
-                              <Icon
-                                name="ChevronRight"
-                                size={16}
-                                color="var(--color-primary)"
-                                className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"
-                              />
-                            </>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              No pending requests
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div
-                        // onClick={() => navigate('/payments?tab=individual')}
-                        className="group flex items-center justify-between gap-2 p-3 rounded-lg bg-slate-500/50 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer border border-transparent hover:border-primary/30"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-lg bg-success/10 group-hover:bg-success/20 transition-colors">
-                            <Icon name="User" size={14} color="white" />
-                          </div>
-                          <span className="text-sm text-muted-foreground group-hover:text-slate-200 transition-colors">
-                            Individual Payments
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {siteInfo?.singleworkerpayments?.length &&
-                          siteInfo?.singleworkerpayments?.length > 0 ? (
-                            <>
-                              <span className="text-2xl font-semibold text-success group-hover:text-success/80 transition-colors">
-                                {siteInfo?.singleworkerpayments.length}
-                              </span>
-                              <span className=" text-muted-foreground group-hover:text-slate-300">
-                                pending
-                              </span>
-                              <Icon
-                                name="ChevronRight"
-                                size={16}
-                                color="var(--color-success)"
-                                className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"
-                              />
-                            </>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              No pending requests
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-1 bg-orange-300"
-                      onClick={() => {
-                        setShowPaymentRequestCard(!showPaymentRequestCard);
-                      }}
-                    >
-                      <Icon
-                        name={
-                          showPaymentRequestCard ? "ChevronUp" : "ChevronDown"
-                        }
-                        size={20}
-                      />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Content */}
-                {showPaymentRequestCard && (
-                  <div className="px-5 pb-5 animate-in slide-in-from-top-2 fade-in duration-200">
-                    <div className="border-t border-border pt-4">
-                      <PaymentRequestCard
-                        pendingRequests={siteOverview?.pendingPayments}
-                        onViewHistory={handleViewPaymentHistory}
-                        siteId={siteId}
-                        onPaymentSuccess={() => {
-                          setShowPaymentRequestCard(false);
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
               <div className="z-0">
                 <QuickActionsPanel
                   onBulkAttendance={handleBulkAttendance}
-                  onViewReports={handleViewReports}
-                  onSiteSettings={handleSiteSettings}
+                  onViewReports={handleViewReportsWithTab}
+                  onSiteSettings={handleSiteSettingsWithTab}
                 />
               </div>
-
-              {showReports && (
-                <div className="mt-8">
-                  <AnalyticsDashboard
-                    initialSiteId={siteId}
-                    getSiteReport={getSiteReport}
-                  />
-                </div>
-              )}
-
-              {/* site settings  */}
-              <div className="container mx-auto px-4 py-8">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                  Site Configuration
-                </h1>
-                {siteInfo && (
-                  <SiteSettingsComponent
-                    handleSettingsUpdate={handleSettingsUpdate}
-                    siteID={siteId}
-                    initialDate={currentDate}
-                    setCurrentDate={handleDateChange}
-                  />
-                )}
+              {/* Horizontal Tab Navigation */}
+              <div className="mt-6 mb-4 border border-border rounded-md">
+                <nav className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide w-full">
+                  {tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`
+    group relative flex-1 justify-center px-3 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base
+    transition-all duration-200 ease-out text-center
+    flex items-center gap-2
+    ${
+      isActive
+        ? "bg-gray-500/20 text-blue-300 font-semibold" // 👈 Distinctive active background
+        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+    }
+  `}
+                      >
+                        <Icon
+                          name={tab.icon}
+                          size={16}
+                          className={`transition-colors ${
+                            isActive
+                              ? "text-blue-300"
+                              : "text-muted-foreground group-hover:text-foreground"
+                          }`}
+                        />
+                        <span>{tab.label}</span>
+                        {isActive && (
+                          <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full animate-in slide-in-from-left-2" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
               </div>
-
-              {/* worker management */}
-
-              <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden ">
-                <div className="p-4  md:p-6">
-                  <div>
-                    <h1 className="text-4xl font-semibold text-foreground md:text-4xl">
-                      Worker Management
-                    </h1>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex justify-start gap-4">
-                      <div>
-                        <p className="caption text-muted-foreground text-lg">
-                          {workers?.length} - Active workers
-                        </p>
-                      </div>
-                      <div>
-                        <p className="caption text-muted-foreground text-lg">
-                          {PresentWorkers} - Present Workers
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-4">
-                      <Button
-                        onClick={handleBulkAttendance}
-                        className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-blue-300 hover:from-blue-200 hover:to-blue-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
-                      >
-                        Record Bulk Attendance
-                      </Button>
-                      <Button
-                        onClick={handleExportPDF}
-                        className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-200 hover:to-orange-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
-                      >
-                        Export pdf file
-                      </Button>
-                      <Button
-                        onClick={handleExportExcel}
-                        className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-green-400 to-orange-300 hover:from-orange-200 hover:to-orange-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
-                      >
-                        Export Excel file
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex-1 relative">
-                      <Icon
-                        key="search"
-                        name="Search"
-                        size={18}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Search workers..."
-                        className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Button>Filter</Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Worker table */}
-
-                <div className="overflow-x-auto bg-slate-300 border border-gray-500  rounded-lg md:mx-4 md:mx-10 ">
-                  <table className="w-full">
-                    <thead className="bg-muted/50 border-b border-border">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-lg font-bold text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
-                          WORKER
-                        </th>
-                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
-                          JOB
-                        </th>
-                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
-                          STATUS
-                        </th>
-                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
-                          TIME WORKED
-                        </th>
-                        <th className="px-4 py-3 text-left text-lg font-bold  text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
-                          RATE
-                        </th>
-                        <th className="px-4 py-3 text-right text-lg font-bold  text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
-                          ACTIONS
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-card divide-y divide-border ">
-                      {filteredWorkers.length > 0 ? (
-                        filteredWorkers.map((worker) => {
-                          if (
-                            !worker?.id ||
-                            (worker.id as string).length === 0
-                          ) {
-                            return null; // Return null, not undefined
-                          }
-
-                          const userForWorker = siteActiveWorkers.find(
-                            (w) => w.worker.id === worker.id, // worker.id is already a string
-                          )?.worker;
-
-                          return (
-                            <WorkerTableRow
-                              deleteAttendance={deleteAttendance}
-                              siteSettings={
-                                currentSettings || {
-                                  id: "1",
-                                  siteId: "",
-                                  createdAt: currentDate,
-                                  updatedAt: currentDate,
-                                  baseHourlyRate: 0,
-                                  maxDailyHours: 0,
-                                  overtimeRate: 0,
-                                }
-                              }
-                              currentDate={currentDate}
-                              recordAttendance={handleRecordAttendance}
-                              currentyWorkEntryId={worker.currentWorkEntryId}
-                              key={worker.id}
-                              user={userForWorker as User}
-                              worker={worker}
-                              onRecordAttendance={handleRecordAttendanced}
-                              onViewUserDetails={handleViewUserDetails}
-                            />
-                          );
-                        })
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={6}
-                            className="text-center py-8 text-muted-foreground"
-                          >
-                            No workers found
-                          </td>
-                        </tr>
+              {/* Tab Content Containers */}
+              <div className="mt-4 animate-in fade-in duration-300">
+                {/* Tab 1: Site Settings & Worker Management */}
+                {activeTab === "siteWorker" && (
+                  <div className="space-y-6">
+                    {/* site settings section */}
+                    <div className="container mx-auto px-4 py-8 bg-card rounded-xl shadow-elevation-1">
+                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                        Site Configuration
+                      </h1>
+                      {siteInfo && (
+                        <SiteSettingsComponent
+                          handleSettingsUpdate={handleSettingsUpdate}
+                          siteID={siteId}
+                          initialDate={currentDate}
+                          setCurrentDate={handleDateChange}
+                        />
                       )}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
 
-                <div className="p-4  flex items-center justify-between md:p-6">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {workers?.length} of {workers?.length} workers
-                  </p>
-                  <div className="flex gap-2">
-                    <Button disabled>
-                      <Icon key="cheveronLeft" name="ChevronLeft" size={16} />
-                    </Button>
-                    <Button variant="outline" size="sm" disabled>
-                      <Icon key="chevronRight" name="ChevronRight" size={16} />
-                    </Button>
+                    {/* worker management section */}
+                    <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
+                      <div className="p-4 md:p-6">
+                        <div>
+                          <h1 className="text-4xl font-semibold text-foreground md:text-4xl">
+                            Worker Management
+                          </h1>
+                        </div>
+
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex justify-start gap-4">
+                            <div>
+                              <p className="caption text-muted-foreground text-lg">
+                                {workers?.length} - Active workers
+                              </p>
+                            </div>
+                            <div>
+                              <p className="caption text-muted-foreground text-lg">
+                                {PresentWorkers} - Present Workers
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-4">
+                            <Button
+                              onClick={handleBulkAttendance}
+                              className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-blue-400 to-blue-300 hover:from-blue-200 hover:to-blue-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+                            >
+                              Record Bulk Attendance
+                            </Button>
+                            <Button
+                              onClick={handleExportPDF}
+                              className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-200 hover:to-orange-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+                            >
+                              Export pdf file
+                            </Button>
+                            <Button
+                              onClick={handleExportExcel}
+                              className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-green-400 to-orange-300 hover:from-orange-200 hover:to-orange-300 text-white font-medium px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+                            >
+                              Export Excel file
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex-1 relative">
+                            <Icon
+                              key="search"
+                              name="Search"
+                              size={18}
+                              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Search workers..."
+                              className="w-full pl-10 pr-4 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-smooth"
+                              onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <Button>Filter</Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Worker table */}
+                      <div className="overflow-x-auto bg-slate-300 border border-gray-500 rounded-lg md:mx-4">
+                        <table className="w-full">
+                          <thead className="bg-muted/50 border-b border-border">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-lg font-bold text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
+                                WORKER
+                              </th>
+                              <th className="px-4 py-3 text-left text-lg font-bold text-muted-foreground uppercase tracking-wider hidden md:table-cell md:px-6 md:py-4">
+                                JOB
+                              </th>
+                              <th className="px-4 py-3 text-left text-lg font-bold text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
+                                STATUS
+                              </th>
+                              <th className="px-4 py-3 text-left text-lg font-bold text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
+                                TIME WORKED
+                              </th>
+                              <th className="px-4 py-3 text-left text-lg font-bold text-muted-foreground uppercase tracking-wider hidden lg:table-cell md:px-6 md:py-4">
+                                RATE
+                              </th>
+                              <th className="px-4 py-3 text-right text-lg font-bold text-muted-foreground uppercase tracking-wider md:px-6 md:py-4">
+                                ACTIONS
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-card divide-y divide-border">
+                            {filteredWorkers.length > 0 ? (
+                              filteredWorkers.map((worker) => {
+                                if (
+                                  !worker?.id ||
+                                  (worker.id as string).length === 0
+                                ) {
+                                  return null;
+                                }
+                                const userForWorker = siteActiveWorkers.find(
+                                  (w) => w.worker.id === worker.id,
+                                )?.worker;
+                                return (
+                                  <WorkerTableRow
+                                    deleteAttendance={deleteAttendance}
+                                    siteSettings={
+                                      currentSettings || {
+                                        id: "1",
+                                        siteId: "",
+                                        createdAt: currentDate,
+                                        updatedAt: currentDate,
+                                        baseHourlyRate: 0,
+                                        maxDailyHours: 0,
+                                        overtimeRate: 0,
+                                      }
+                                    }
+                                    currentDate={currentDate}
+                                    recordAttendance={handleRecordAttendance}
+                                    currentyWorkEntryId={
+                                      worker.currentWorkEntryId
+                                    }
+                                    key={worker.id}
+                                    user={userForWorker as User}
+                                    worker={worker}
+                                    onRecordAttendance={handleRecordAttendanced}
+                                    onViewUserDetails={handleViewUserDetails}
+                                  />
+                                );
+                              })
+                            ) : (
+                              <tr>
+                                <td
+                                  colSpan={6}
+                                  className="text-center py-8 text-muted-foreground"
+                                >
+                                  No workers found
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="p-4 flex items-center justify-between md:p-6">
+                        <p className="text-sm text-muted-foreground">
+                          Showing {workers?.length} of {workers?.length} workers
+                        </p>
+                        <div className="flex gap-2">
+                          <Button disabled>
+                            <Icon
+                              key="cheveronLeft"
+                              name="ChevronLeft"
+                              size={16}
+                            />
+                          </Button>
+                          <Button variant="outline" size="sm" disabled>
+                            <Icon
+                              key="chevronRight"
+                              name="ChevronRight"
+                              size={16}
+                            />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
 
-              <Button
-                variant="default"
-                size="lg"
-                iconName="Plus"
-                onClick={() => handleRecordAttendanced(workers?.[0])}
-                className="fixed bottom-6 right-6 sm:hidden shadow-elevation-4 rounded-full w-14 h-14 p-0"
-              >
-                <span className="sr-only">Record Attendance</span>
-              </Button>
+                {/* Tab 2: Payment Processing Section */}
+                {activeTab === "payments" && (
+                  <div className="bg-card rounded-lg shadow-md shadow-gray-700 bg-slate-300 overflow-hidden">
+                    <div className="px-5 py-4 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Icon
+                            name="DollarSign"
+                            size={18}
+                            color="var(--color-primary)"
+                          />
+                        </div>
+                        <div>
+                          <h1 className="text-base text-slate-100 font-semibold text-slate-500">
+                            Payments
+                          </h1>
+                          <div className="group mb-2 flex items-center justify-between p-3 rounded-lg bg-slate-500/50 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer border border-transparent hover:border-primary/30">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                <Icon name="Users" size={14} color="white" />
+                              </div>
+                              <span className="text-sm text-muted-foreground group-hover:text-slate-200 transition-colors">
+                                Batch Payments
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {siteInfo?.batchpayments?.length &&
+                              siteInfo?.batchpayments?.length > 0 ? (
+                                <>
+                                  <span className="text-2xl font-semibold text-primary group-hover:text-primary/80 transition-colors">
+                                    {siteInfo?.batchpayments.length}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground group-hover:text-slate-300">
+                                    pending
+                                  </span>
+                                  <Icon
+                                    name="ChevronRight"
+                                    size={16}
+                                    color="var(--color-primary)"
+                                    className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"
+                                  />
+                                </>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  No pending requests
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="group flex items-center justify-between gap-2 p-3 rounded-lg bg-slate-500/50 hover:bg-slate-700/50 transition-all duration-200 cursor-pointer border border-transparent hover:border-primary/30">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-lg bg-success/10 group-hover:bg-success/20 transition-colors">
+                                <Icon name="User" size={14} color="white" />
+                              </div>
+                              <span className="text-sm text-muted-foreground group-hover:text-slate-200 transition-colors">
+                                Individual Payments
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {siteInfo?.singleworkerpayments?.length &&
+                              siteInfo?.singleworkerpayments?.length > 0 ? (
+                                <>
+                                  <span className="text-2xl font-semibold text-success group-hover:text-success/80 transition-colors">
+                                    {siteInfo?.singleworkerpayments.length}
+                                  </span>
+                                  <span className="text-muted-foreground group-hover:text-slate-300">
+                                    pending
+                                  </span>
+                                  <Icon
+                                    name="ChevronRight"
+                                    size={16}
+                                    color="var(--color-success)"
+                                    className="opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1"
+                                  />
+                                </>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  No pending requests
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-1 bg-orange-300"
+                          onClick={() => {
+                            setShowPaymentRequestCard(!showPaymentRequestCard);
+                          }}
+                        >
+                          <Icon
+                            name={
+                              showPaymentRequestCard
+                                ? "ChevronUp"
+                                : "ChevronDown"
+                            }
+                            size={20}
+                          />
+                        </Button>
+                      </div>
+                    </div>
+                    {showPaymentRequestCard && (
+                      <div className="px-5 pb-5 animate-in slide-in-from-top-2 fade-in duration-200">
+                        <div className="border-t border-border pt-4">
+                          <PaymentRequestCard
+                            pendingRequests={siteOverview?.pendingPayments}
+                            onViewHistory={handleViewPaymentHistory}
+                            siteId={siteId}
+                            onPaymentSuccess={() => {
+                              setShowPaymentRequestCard(false);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab 3: Analytics Section */}
+                {activeTab === "analytics" && (
+                  <div className="mt-4">
+                    <AnalyticsDashboard
+                      initialSiteId={siteId}
+                      getSiteReport={getSiteReport}
+                    />
+                  </div>
+                )}
+
+                {/* Tab 4: User Management Section */}
+                {activeTab === "userManagement" && (
+                  <div className="mt-4">
+                    <UserManagementPanel
+                      propsUsers={siteActiveWorkers}
+                      verificationData={verificationData}
+                      resendOtp={resendOtp}
+                      verificationResponse={verificationResponse}
+                      onVerifyEmail={handleEmailVerification}
+                      onResendOtp={handleResendOtp}
+                      onCreateUser={handleCreateUser}
+                      onBlockUser={handleBlockUser}
+                      onUnblockUser={handleUnblockUser}
+                      onSetResendOtp={setResendOtp}
+                    />
+                  </div>
+                )}
+              </div>{" "}
             </div>
           </main>
 
@@ -1245,29 +1295,6 @@ const ForemanDashboard: React.FC = () => {
             />
           )}
         </div>
-
-        <div>
-          <UserManagementPanel
-            propsUsers={siteActiveWorkers}
-            verificationData={verificationData}
-            resendOtp={resendOtp}
-            verificationResponse={verificationResponse}
-            onVerifyEmail={handleEmailVerification}
-            onResendOtp={handleResendOtp}
-            onCreateUser={handleCreateUser}
-            onBlockUser={handleBlockUser}
-            onUnblockUser={handleUnblockUser}
-            onSetResendOtp={setResendOtp}
-          />
-        </div>
-
-        {/* {showUserModal && selectedUser && (
-          <WorkerModal
-            worker={selectedUser}
-            isOpen={showUserModal}
-            onClose={() => setShowUserModal(false)}
-          />
-        )} */}
       </LoadingBoundary>
     </RoleGuard>
   );

@@ -116,8 +116,6 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
     return () => controller.abort();
   }, [siteId, page, searchTerm, isOpen, mode, date]);
 
-  console.log("searchDate:", searchDate);
-
   const isSelected = (worker: ActiveWorker) =>
     selectedWorkers.some((item) => item.worker.id === worker.worker.id);
 
@@ -223,7 +221,7 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
           </h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => (setMode("add"), onClose())}
             style={closeButtonStyle}
             aria-label="Close modal"
           >
@@ -235,7 +233,10 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
         <div style={modeToggleStyle}>
           <button
             type="button"
-            onClick={() => setMode("add")}
+            onClick={() => {
+              setSelectedWorkers([]);
+              setMode("add");
+            }}
             style={{
               ...modeButtonStyle,
               backgroundColor: mode === "add" ? "#2563eb" : "#e5e7eb",
@@ -246,7 +247,11 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => setMode("delete")}
+            onClick={() => {
+              setSelectedWorkers([]);
+
+              setMode("delete");
+            }}
             style={{
               ...modeButtonStyle,
               backgroundColor: mode === "delete" ? "#dc2626" : "#e5e7eb",

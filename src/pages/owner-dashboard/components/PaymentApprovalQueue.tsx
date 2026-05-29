@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useCallback,
   startTransition,
+  useRef,
 } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import Icon from "../../../components/ui/AppIconl";
@@ -289,6 +290,9 @@ const PaymentApprovalQueue: React.FC = () => {
   const [siteId, setSiteId] = useState<string | null>(null);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
 
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   // Pagination
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -383,6 +387,17 @@ const PaymentApprovalQueue: React.FC = () => {
       fetchBatches();
     }
   }, [viewMode, fetchPayments, fetchBatches]);
+
+  // use effect to handle the view payment actions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const debouncedSearch = useDebouncedCallback(
     (value: string) => handleFilterChange("search", value),
@@ -911,62 +926,98 @@ const PaymentApprovalQueue: React.FC = () => {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {(payment.status === "PENDING" ||
-                              payment.status === "REJECTED" ||
-                              payment.status === "REVIEW") && (
-                              <Button
-                                onClick={() => handleApproveSingle(payment)}
-                                disabled={actionLoading === payment.id}
-                                size="sm"
-                                variant="primary"
-                              >
-                                Approve
-                              </Button>
-                            )}
-                            {(payment.status === "PENDING" ||
-                              payment.status === "APPROVED" ||
-                              payment.status === "REJECTED") && (
-                              <Button
-                                onClick={() => handleMarkPaidSingle(payment)}
-                                disabled={actionLoading === payment.id}
-                                size="sm"
-                                variant="success"
-                              >
-                                Pay
-                              </Button>
-                            )}
-                            {(payment.status === "PENDING" ||
-                              payment.status === "REVIEW") && (
-                              <>
-                                <Button
-                                  onClick={() => handleRejectSingle(payment)}
-                                  disabled={actionLoading === payment.id}
-                                  size="sm"
-                                  variant="danger"
-                                >
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                            {payment.status !== "PAID" && (
-                              <div
-                                className="w-fit cursor-pointer text-red-600 flex items-center"
-                                onClick={() =>
-                                  handleDeleteSingleConfirmation(payment)
-                                }
-                              >
-                                <Icon name="Delete" size={32} />
-                              </div>
-                            )}
+                          <div className="flex items-center justify-center gap-2">
+                            {/* Eye icon - always visible */}
                             <div
-                              className="w-fit cursor-pointer text-green-500 flex items-center"
+                              className="cursor-pointer text-green-500 flex items-center"
                               onClick={() => showPaymentDetails(payment)}
                             >
-                              <Icon name="Eye" key="eye" />
+                              <Icon name="Eye" key="eye" size={24} />
+                            </div>
+
+                            {/* Three-dot menu button */}
+                            <div
+                              className="relative"
+                              ref={openMenuId === payment.id ? menuRef : null}
+                            >
+                              <button
+                                onClick={() =>
+                                  setOpenMenuId(
+                                    openMenuId === payment.id
+                                      ? null
+                                      : payment.id,
+                                  )
+                                }
+                                className="p-1 rounded hover:bg-gray-100 transition"
+                                aria-label="More actions"
+                              >
+                                <Icon name="MoreVertical" size={24} />
+                              </button>
+
+                              {/* Dropdown menu */}
+                              {openMenuId === payment.id && (
+                                <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                  <div className="py-1">
+                                    {(payment.status === "PENDING" ||
+                                      payment.status === "REJECTED" ||
+                                      payment.status === "REVIEW") && (
+                                      <button
+                                        onClick={() => {
+                                          handleApproveSingle(payment);
+                                          setOpenMenuId(null);
+                                        }}
+                                        disabled={actionLoading === payment.id}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                      >
+                                        Approve
+                                      </button>
+                                    )}
+                                    {(payment.status === "PENDING" ||
+                                      payment.status === "APPROVED" ||
+                                      payment.status === "REJECTED") && (
+                                      <button
+                                        onClick={() => {
+                                          handleMarkPaidSingle(payment);
+                                          setOpenMenuId(null);
+                                        }}
+                                        disabled={actionLoading === payment.id}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                      >
+                                        Pay
+                                      </button>
+                                    )}
+                                    {(payment.status === "PENDING" ||
+                                      payment.status === "REVIEW") && (
+                                      <button
+                                        onClick={() => {
+                                          handleRejectSingle(payment);
+                                          setOpenMenuId(null);
+                                        }}
+                                        disabled={actionLoading === payment.id}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                      >
+                                        Reject
+                                      </button>
+                                    )}
+                                    {payment.status !== "PAID" && (
+                                      <button
+                                        onClick={() => {
+                                          handleDeleteSingleConfirmation(
+                                            payment,
+                                          );
+                                          setOpenMenuId(null);
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </td>
+                        </td>{" "}
                       </tr>
                     ))
                   )}
