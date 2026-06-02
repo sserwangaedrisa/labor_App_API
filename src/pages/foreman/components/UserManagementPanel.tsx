@@ -359,7 +359,7 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
       <div className="bg-card rounded-xl shadow-elevation-2 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
-            <h1 className="text-lg md:text-xl font-semibold text-foreground mb-1">
+            <h1 className="text-lg md:text-xl font-semibold text-foreground text-orange-500 mb-1">
               User Management
             </h1>
             <p className="text-lg text-muted-foreground">

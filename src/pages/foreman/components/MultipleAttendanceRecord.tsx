@@ -219,6 +219,7 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
               ? "Record Multiple Attendance"
               : "Delete Multiple Attendance"}
           </h2>
+
           <button
             type="button"
             onClick={() => (setMode("add"), onClose())}

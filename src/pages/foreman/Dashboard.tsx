@@ -935,12 +935,12 @@ const ForemanDashboard: React.FC = () => {
                       )}
                     </div>
 
-                    {/* worker management section */}
+                    {/* attendance management section */}
                     <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
                       <div className="p-4 md:p-6">
                         <div>
-                          <h1 className="text-4xl font-semibold text-foreground md:text-4xl">
-                            Worker Management
+                          <h1 className="text-4xl font-semibold text-foreground text-purple-500 md:text-4xl">
+                            Attendance Management
                           </h1>
                         </div>
 

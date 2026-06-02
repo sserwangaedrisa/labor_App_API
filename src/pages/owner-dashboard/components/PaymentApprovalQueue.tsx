@@ -640,7 +640,7 @@ const PaymentApprovalQueue: React.FC = () => {
           <div className="flex flex-col space-y-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h3 className="text-lg md:text-xl font-semibold text-foreground mb-1">
+                <h3 className="text-lg md:text-xl font-semibold text-foreground text-orange-500 mb-1">
                   Payment Approval Queue
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -808,7 +808,7 @@ const PaymentApprovalQueue: React.FC = () => {
             </div>
             {/* Table */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full border border-black/20 rounded-lg">
                 <thead className="bg-muted/50">
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left w-12">

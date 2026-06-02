@@ -759,9 +759,9 @@ export const UserManagementPanel = () => {
       <div className="bg-card rounded-xl shadow-elevation-2 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div>
-            <h1 className="text-lg md:text-xl font-semibold text-foreground mb-1">
+            <h3 className="text-6xl md:text-xl font-semibold  text-orange-500 mb-1">
               User Management
-            </h1>
+            </h3>
             <p className="text-lg text-muted-foreground">
               {pagination.totalItems} user
               {pagination.totalItems !== 1 ? "s" : ""} found
@@ -926,8 +926,8 @@ export const UserManagementPanel = () => {
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
                               user.status !== "ACTIVE"
-                                ? "bg-destructive"
-                                : "bg-success"
+                                ? "bg-purple-700"
+                                : "bg-purple-700/20"
                             }`}
                           ></span>
                           {user.status !== "ACTIVE" ? "Blocked" : "Active"}

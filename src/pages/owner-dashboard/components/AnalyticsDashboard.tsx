@@ -448,7 +448,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           summary.totalApprovedAmount.amount +
           summary.totalRejectedAmount.amount +
           summary.totalReviewAmount.amount,
-        totalHours: summary.totalHours,
+        totalHours: summary.totalHours + summary.totalOvertime,
         avgDailyCost: summary.totalPaidAmount / 30,
         activeWorkers: summary.uniqueWorkers,
       };
@@ -462,7 +462,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       );
       return {
         totalCost: totalAmount,
-        totalHours: summary.totalHours,
+        totalHours: summary.totalHours + summary.totalOvertime,
         avgDailyCost: totalAmount / 30,
         activeWorkers: summary.uniqueWorkers,
       };
@@ -502,9 +502,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-primary" />
-              Analytics & Reports
+            <h1 className="flex items-center gap-3 text-3xl font-semibold text-gray-900 tracking-tight">
+              <span className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                <TrendingUp className="w-6 h-6" />
+              </span>
+              <span className="text-purple-500/80">Analytics & Reports</span>
             </h1>
             {mainLoading && (
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
