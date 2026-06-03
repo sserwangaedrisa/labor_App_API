@@ -164,7 +164,13 @@ export interface SiteWorker {
   worker?: User;
 }
 
-export type EntryStatus = "PAID" | "NOT_PAID" | "PENDING";
+export type EntryStatus =
+  | "PAID"
+  | "NOT_PAID"
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "REVIEW";
 
 export interface WorkEntry {
   id?: string;

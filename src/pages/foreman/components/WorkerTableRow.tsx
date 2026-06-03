@@ -128,7 +128,9 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
   };
 
   return (
-    <tr className="border-b border-border hover:bg-muted/50 transition-smooth">
+    <tr
+      className={`border-b border-border hover:bg-muted/50 transition-smooth ${isToggling ? "opacity-50 cursor-not-allowed" : ""}`}
+    >
       <td className="px-4 py-3 md:px-6 md:py-4">
         <div className="flex items-center gap-3">
           <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 ">
@@ -190,7 +192,10 @@ const WorkerTableRow: React.FC<WorkerTableRowProps> = ({
 
       <td className="px-4 py-3 hidden lg:table-cell md:px-6 md:py-4">
         <span className="data-text text-sm text-foreground font-medium">
-          {currentAttendance ? currentAttendance.hours : 0} h
+          {currentAttendance?.hours && currentAttendance?.overtime
+            ? currentAttendance.hours + currentAttendance.overtime
+            : 0}{" "}
+          h
         </span>
       </td>
 

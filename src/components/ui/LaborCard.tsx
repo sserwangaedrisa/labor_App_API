@@ -94,6 +94,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
     useState<boolean>(false);
   const [PAYMENTID, setPAYMENTID] = useState<string | null>(paymentID || null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [includePending, setIncludePending] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] =
     useState<workerPaymentRequestSearchObject>({
       siteId: siteId || "",
@@ -576,16 +577,27 @@ const LaborCard: React.FC<LaborCardProps> = ({
   // Handle day click
   const handleDayClick = (date: Date) => {
     const entry = getEntryForDate(date);
-
-    if (!workEntrySelection && entry) {
-      setSelectedDate(date);
-      setSelectedEntry(entry);
-    } else if (workEntrySelection && entry?.status === "PAID") {
+    if (workEntrySelection && entry?.status === "PAID") {
       console.log(`Selected entry under ${entry.status}`);
       toast.error(`Selected entry under ${entry.status}`);
       return;
+    } else if (
+      workEntrySelection &&
+      entry?.status === "REVIEW" &&
+      user?.role === "FOREMAN"
+    ) {
+      console.log(`Selected entry under ${entry.status}`);
+      toast.error(`Selected entry under ${entry.status}`);
+      return;
+    }
+    if (!workEntrySelection && entry) {
+      setSelectedDate(date);
+      setSelectedEntry(entry);
     } else if (workEntrySelection && entry) {
       toggleEntrySelection(entry.id as string);
+      if (entry.status !== "NOT_PAID") {
+        setIncludePending(true);
+      }
     }
   };
 
@@ -755,7 +767,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4"
+      className={`fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4 ${isLoading ? "cursor-not-allowed cursor-events-none" : ""}`}
       onClick={onClose}
     >
       <div
@@ -1022,7 +1034,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
           {/* Calendar Grid */}
           <div className="relative">
             <h1 className="text-xl font-semibold text-gray-400 mb-4">
-              Calendar
+              Labor Card
             </h1>{" "}
             <div className="grid grid-cols-7 gap-2 mb-2">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
@@ -1118,9 +1130,9 @@ const LaborCard: React.FC<LaborCardProps> = ({
               })}
             </div>
             {/* Loading Overlay */}
-            {isLoading && (
+            {/* {isLoading && (
               <Loading transparent message="Processing..." overlay={true} />
-            )}
+            )} */}
           </div>
 
           <div className="flex gap-3">
@@ -1144,12 +1156,14 @@ const LaborCard: React.FC<LaborCardProps> = ({
 
                 {selectedLaborCardPayments.length > 0 && (
                   <>
-                    <button
-                      onClick={() => setPaymentRequestConfirmation(true)}
-                      className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                    >
-                      Submit Request ({selectedLaborCardPayments.length})
-                    </button>
+                    {!includePending && (
+                      <button
+                        onClick={() => setPaymentRequestConfirmation(true)}
+                        className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                      >
+                        Submit Request ({selectedLaborCardPayments.length})
+                      </button>
+                    )}
                     <button
                       onClick={() => setShowStatusModal(true)}
                       className="flex-1 bg-gradient-to-r from-yellow-600 to-red-600 hover:from-yellow-700 hover:to-red-700 text-white py-2.5 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
@@ -1266,13 +1280,13 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowStatusModal(false)}
-                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg"
+                    className={`flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg ${isLoading ? "cursor-not-allowed cursor-events-none" : ""}`}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleStatusUpdate}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg"
+                    className={`flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg ${isLoading ? "cursor-not-allowed cursor-events-none" : ""}`}
                   >
                     Update Status
                   </button>

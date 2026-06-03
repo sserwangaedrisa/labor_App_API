@@ -852,10 +852,12 @@ const ForemanDashboard: React.FC = () => {
     }
   };
 
+  const cursorStyle = loading ? "pointer-events-none cursor-not-allowed" : "";
+
   return (
     <RoleGuard allowedRoles={["FOREMAN", "OWNER"]}>
       <LoadingBoundary loading={loading} fullScreen>
-        <div className="min-h-screen bg-background relative">
+        <div className={`min-h-screen bg-background relative ${cursorStyle}`}>
           <div className="z-100">
             <AuthenticatedHeader />
           </div>
@@ -922,7 +924,7 @@ const ForemanDashboard: React.FC = () => {
                   <div className="space-y-6">
                     {/* site settings section */}
                     <div className="container mx-auto px-4 py-8 bg-card rounded-xl shadow-elevation-1">
-                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                      <h1 className="text-2xl font-bold text-slate-500 dark:text-white mb-6 ">
                         Site Configuration
                       </h1>
                       {siteInfo && (
@@ -939,7 +941,7 @@ const ForemanDashboard: React.FC = () => {
                     <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
                       <div className="p-4 md:p-6">
                         <div>
-                          <h1 className="text-4xl font-semibold text-foreground text-purple-500 md:text-4xl">
+                          <h1 className="text-4xl font-semibold text-foreground text-slate-500 md:text-4xl">
                             Attendance Management
                           </h1>
                         </div>
