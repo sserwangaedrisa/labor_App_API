@@ -208,12 +208,10 @@ const OwnerDashboard = () => {
             <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8">
               {/* Page Header */}
               <div className="mb-6 md:mb-8">
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold text-foreground mb-2">
-                  Owner Dashboard
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold text-orange-400/50 mb-2">
+                  Dashboard
                 </h1>
-                <p className="text-sm md:text-base text-muted-foreground">
-                  Comprehensive system administration and company-wide analytics
-                </p>
+                <p className="text-sm md:text-base text-muted-foreground"></p>
               </div>
 
               {/* Executive Summary Cards */}
@@ -288,33 +286,33 @@ const OwnerDashboard = () => {
                 />
               </div>
 
-              {/* Tabs Navigation */}
+              {/* Tabs Navigation - Full width, equal columns */}
               <div className="bg-card rounded-xl shadow-elevation-2 mb-6 md:mb-8 overflow-hidden">
-                <div className="border-b border-border overflow-x-auto">
-                  <div className="flex min-w-max lg:min-w-0">
-                    {tabs?.map((tab) => (
-                      <button
-                        key={tab?.id}
-                        onClick={() => setActiveTab(tab?.id)}
-                        className={`flex items-center gap-2 px-4 md:px-6 py-3 md:py-4 text-sm md:text-base font-medium transition-smooth border-b-2 flex-shrink-0 ${
-                          activeTab === tab?.id
-                            ? "border-primary text-primary bg-primary/5"
-                            : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                        }`}
-                      >
-                        <Icon
-                          key="arrowdown"
-                          name="AArrowDown"
-                          size={18}
-                          className="md:w-5 md:h-5"
-                        />
-                        <span className="whitespace-nowrap">{tab?.label}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-border">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`
+          flex items-center justify-center gap-2 px-4 py-3 md:py-4 text-sm md:text-base font-medium
+          transition-all duration-200
+          ${
+            activeTab === tab.id
+              ? "bg-gray-900/10 text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border-b-2 border-transparent"
+          }
+        `}
+                    >
+                      <Icon
+                        name={tab.icon}
+                        size={18}
+                        className="md:w-5 md:h-5"
+                      />
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-
               {/* Tab Content */}
               <div className="transition-smooth">
                 {activeTab === "analytics" && (

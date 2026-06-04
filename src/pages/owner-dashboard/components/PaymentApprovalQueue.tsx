@@ -137,7 +137,7 @@ const paymentService = {
       batches: BatchSummary[];
     } = await authorizePost(`payments/batches?${params}`, {});
     if (!response.success) {
-      throw new Error(response.message || "Failed to fetch batches");
+      console.log(response.message || "Failed to fetch batches");
       toast.error(response.message || "Failed to load batches");
       return [];
     }
@@ -152,7 +152,7 @@ const paymentService = {
         message: string;
       } = await authorizePost(`payments/${paymentId}/approve`, {});
       if (!response.success) {
-        throw new Error("Failed to approve payment");
+        console.log(response.message || "Failed to approve payment");
         toast.error(response.message || "Failed to approve payment");
         return false;
       }
@@ -173,8 +173,9 @@ const paymentService = {
         message: string;
       } = await authorizePost(`payments/approve-batch`, { paymentIds });
       if (!response.success) {
-        throw new Error("Failed to approve payments");
         toast.error(response.message || "Failed to approve payments");
+        console.log(response.message || "Failed to approve payments");
+        return false;
       }
       toast.success("Payments approved");
       return true;
@@ -193,9 +194,10 @@ const paymentService = {
     } = await authorizePost(`payments/${paymentId}/paid`, {});
     if (!response.success) {
       toast.error(response.message || "Failed to mark payment as paid");
-      throw new Error("Failed to mark payment as paid");
+      console.log(response.message);
       return false;
     }
+    toast.success("Payment marked as paid");
     return true;
   },
 
@@ -208,35 +210,43 @@ const paymentService = {
 
     if (!response.success) {
       toast.error(response.message || "Failed to mark payments as paid");
-      throw new Error("Failed to mark payments as paid");
+      return false;
     }
     if (response.success) {
+      toast.success("Payments marked as paid");
       return true;
     }
-    return false;
+    return true;
   },
 
   // Send payment back for review
   reviewPayment: async (
     paymentId: string,
     reviewNotes?: string,
-  ): Promise<void> => {
+  ): Promise<boolean> => {
     const response = await authorizePost(`/payments/${paymentId}/review`, {
       reviewNotes,
     });
-    if (!response.ok) throw new Error("Failed to send payment for review");
+    if (!response.success) {
+      console.log("Failed to send payment for review:", response.message);
+      return false;
+    }
+    return true;
   },
 
   // Reject payment "sending the payment back to the foreman for review"
-  rejectPayment: async (paymentId: string, reason?: string): Promise<void> => {
+  rejectPayment: async (
+    paymentId: string,
+    reason?: string,
+  ): Promise<boolean> => {
     const response = await authorizePost(`payments/${paymentId}/reject`, {
       reason,
     });
     if (!response.success) {
-      toast.error(response.message || "Failed to reject payment");
       console.log("Failed to reject payment:", response.message);
-      throw new Error("Failed to reject payment");
+      return false;
     }
+    return true;
   },
 
   // Delete a payment
@@ -245,8 +255,9 @@ const paymentService = {
     if (!response.success) {
       toast.error(response.message || "Failed to delete payment");
       console.log("Failed to delete payment:", response.message);
-      throw new Error("Failed to delete payment");
+      return false;
     }
+    toast.success("Payment deleted");
     return true;
   },
 
@@ -292,6 +303,8 @@ const PaymentApprovalQueue: React.FC = () => {
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const [processing, setProcessing] = useState(false);
 
   // Pagination
   const [pagination, setPagination] = useState<PaginationInfo>({
@@ -427,10 +440,11 @@ const PaymentApprovalQueue: React.FC = () => {
       return;
     }
 
+    setProcessing(true);
     setActionLoading("batch-approve");
     try {
       await paymentService.approveBatch(selectedPayments);
-      toast.success(`Approved ${selectedPayments.length} payments`);
+
       setSelectedPayments([]);
       fetchPayments();
     } catch (error) {
@@ -438,6 +452,7 @@ const PaymentApprovalQueue: React.FC = () => {
       toast.error("Failed to approve payments");
     } finally {
       setActionLoading(null);
+      setProcessing(false);
     }
   };
 
@@ -447,12 +462,11 @@ const PaymentApprovalQueue: React.FC = () => {
       return;
     }
 
+    setProcessing(true);
     setActionLoading("Approving a Batch");
     try {
-      const results = await paymentService.markMultipleAsPaid(selectedPayments);
-      if (results) {
-        toast.success(`Marked ${selectedPayments.length} payments as paid`);
-      }
+      await paymentService.markMultipleAsPaid(selectedPayments);
+
       setSelectedPayments([]);
       fetchPayments();
     } catch (error) {
@@ -460,38 +474,39 @@ const PaymentApprovalQueue: React.FC = () => {
       toast.error("Failed to mark payments as paid");
     } finally {
       setActionLoading(null);
+      setProcessing(false);
     }
   };
 
   const handleApproveSingle = async (payment: PaymentData) => {
     setActionLoading(payment.id);
+    setProcessing(true);
     try {
-      const response = await paymentService.approvePayment(payment.id);
-      if (response) {
-        toast.success(`Approved payment for ${payment.workerName}`);
-      }
+      await paymentService.approvePayment(payment.id);
+
       fetchPayments();
     } catch (error) {
       console.error("Error approving payment:", error);
       toast.error("Failed to approve payment");
     } finally {
       setActionLoading(null);
+      setProcessing(false);
     }
   };
 
   const handleMarkPaidSingle = async (payment: PaymentData) => {
     setActionLoading(payment.id);
+    setProcessing(true);
     try {
-      const response = await paymentService.markAsPaid(payment.id);
-      if (response) {
-        toast.success(`Marked payment for ${payment.workerName} as paid`);
-        fetchPayments();
-      }
+      await paymentService.markAsPaid(payment.id);
+
+      fetchPayments();
     } catch (error) {
       console.error("Error marking payment as paid:", error);
       toast.error("Failed to mark payment as paid");
     } finally {
       setActionLoading(null);
+      setProcessing(false);
     }
   };
 
@@ -499,14 +514,20 @@ const PaymentApprovalQueue: React.FC = () => {
     if (!selectedPaymentForReview) return;
 
     setActionLoading(selectedPaymentForReview.id);
+    setProcessing(true);
     try {
-      await paymentService.reviewPayment(
+      const results = await paymentService.reviewPayment(
         selectedPaymentForReview.id,
         reviewNotes,
       );
-      toast.success(
-        `Sent payment for ${selectedPaymentForReview.workerName} back for review`,
-      );
+      if (results) {
+        toast.success(
+          `Sent payment for ${selectedPaymentForReview.workerName} back for review`,
+        );
+      } else {
+        toast.error("Failed to send payment for review");
+      }
+      setProcessing(false);
       setShowReviewModal(false);
       setReviewNotes("");
       setSelectedPaymentForReview(null);
@@ -522,15 +543,24 @@ const PaymentApprovalQueue: React.FC = () => {
   const handleRejectSingle = async (payment: PaymentData) => {
     const reason = prompt("Enter rejection reason (optional):");
     setActionLoading(payment.id);
+    setProcessing(true);
     try {
-      await paymentService.rejectPayment(payment.id, reason || undefined);
-      toast.success(`Rejected payment for ${payment.workerName}`);
+      const results = await paymentService.rejectPayment(
+        payment.id,
+        reason || undefined,
+      );
+      if (results) {
+        toast.success(`Rejected payment for ${payment.workerName}`);
+      } else {
+        toast.error("Failed to reject payment");
+      }
       fetchPayments();
     } catch (error) {
       console.error("Error rejecting payment:", error);
       toast.error("Failed to reject payment");
     } finally {
       setActionLoading(null);
+      setProcessing(false);
     }
   };
 
@@ -634,15 +664,17 @@ const PaymentApprovalQueue: React.FC = () => {
 
   return (
     <>
-      <div className="bg-card rounded-xl shadow-elevation-2 overflow-hidden">
+      <div
+        className={`bg-card rounded-xl shadow-elevation-2 overflow-hidden ${processing ? "cursor-not-allowed cursor-events-none opacity-70" : ""}`}
+      >
         {/* Header */}
         <div className="p-4 md:p-6 border-b border-border">
           <div className="flex flex-col space-y-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h3 className="text-lg md:text-xl font-semibold text-foreground text-orange-500 mb-1">
+                <h1 className="text-lg md:text-xl font-semibold text-foreground text-orange-400/50 mb-1">
                   Payment Approval Queue
-                </h3>
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   {viewMode === "payments"
                     ? `${pagination.total} payment${pagination.total !== 1 ? "s" : ""} found`
@@ -808,221 +840,245 @@ const PaymentApprovalQueue: React.FC = () => {
             </div>
             {/* Table */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full border border-black/20 rounded-lg">
-                <thead className="bg-muted/50">
-                  <tr className="border-b border-border">
-                    <th className="px-4 py-3 text-left w-12">
-                      <Checkbox
-                        checked={
-                          selectedPayments.length === payments.length &&
-                          payments.length > 0
-                        }
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          handleSelectAll(e.target.checked)
-                        }
-                        indeterminate={
-                          selectedPayments.length > 0 &&
-                          selectedPayments.length < payments.length
-                        }
-                      />
-                    </th>
-                    <th className="">Pic</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Worker
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Site
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      CreatedAt
-                    </th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">
-                      Hours
-                    </th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">
-                      Amount
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
-                      Batch ID
-                    </th>
-                    <th className="px-4 py-3 text-center text-sm font-medium">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
+              <div className="w-full overflow-x-auto">
+                <table className="w-full border border-black/20 rounded-lg">
+                  <thead className="bg-primary/10 border-b-2 border-primary/30">
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center">
-                        Loading...
-                      </td>
+                      <th className="px-4 py-3 text-left w-12">
+                        <Checkbox
+                          checked={
+                            selectedPayments.length === payments.length &&
+                            payments.length > 0
+                          }
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            handleSelectAll(e.target.checked)
+                          }
+                          indeterminate={
+                            selectedPayments.length > 0 &&
+                            selectedPayments.length < payments.length
+                          }
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left"></th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        Worker
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        Site
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        Created At
+                      </th>
+                      <th className="px-4 py-3 text-right font-semibold">
+                        Hours
+                      </th>
+                      <th className="px-4 py-3 text-right font-semibold">
+                        Amount
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        Batch ID
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold">
+                        Paid At
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        Actions
+                      </th>
                     </tr>
-                  ) : payments.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={9}
-                        className="px-4 py-8 text-center text-muted-foreground"
-                      >
-                        No payments found
-                      </td>
-                    </tr>
-                  ) : (
-                    payments.map((payment) => (
-                      <tr
-                        key={payment.id}
-                        className="border-b border-border hover:bg-muted/30"
-                      >
-                        <td className="px-4 py-3">
-                          <Checkbox
-                            checked={selectedPayments.includes(payment.id)}
-                            onChange={(
-                              e: React.ChangeEvent<HTMLInputElement>,
-                            ) =>
-                              handleSelectPayment(payment.id, e.target.checked)
-                            }
-                          />
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td colSpan={11} className="px-4 py-8 text-center">
+                          Loading...
                         </td>
-                        <td className="px-4 py-3 ">
-                          <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0">
-                            <Image
-                              src={
-                                payment.workerImage ||
-                                "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                      </tr>
+                    ) : payments.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={11}
+                          className="px-4 py-8 text-center text-muted-foreground"
+                        >
+                          No payments found
+                        </td>
+                      </tr>
+                    ) : (
+                      payments.map((payment) => (
+                        <tr
+                          key={payment.id}
+                          className="border-b border-border hover:bg-muted/30"
+                        >
+                          <td className="px-4 py-3">
+                            <Checkbox
+                              checked={selectedPayments.includes(payment.id)}
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>,
+                              ) =>
+                                handleSelectPayment(
+                                  payment.id,
+                                  e.target.checked,
+                                )
                               }
                             />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 font-medium">
-                          {payment.workerName}
-                        </td>
-                        <td className="px-4 py-3">{payment.siteName}</td>
-                        <td className="px-4 py-3">{`${payment.createdAt.split("T")[0]}`}</td>
-                        <td className="px-4 py-3 text-right">
-                          {payment.totalHours.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold">
-                          {formatCurrency(payment.totalAmount)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}
-                          >
-                            <Icon name="DollarSign" size={12} />
-                            {payment.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {payment.batch_id ? (
-                            <span className="text-xs font-mono">
-                              {payment.batch_id.slice(0, 8)}...
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              Single
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
-                            {/* Eye icon - always visible */}
-                            <div
-                              className="cursor-pointer text-green-500 flex items-center"
-                              onClick={() => showPaymentDetails(payment)}
-                            >
-                              <Icon name="Eye" key="eye" size={24} />
-                            </div>
-
-                            {/* Three-dot menu button */}
-                            <div
-                              className="relative"
-                              ref={openMenuId === payment.id ? menuRef : null}
-                            >
-                              <button
-                                onClick={() =>
-                                  setOpenMenuId(
-                                    openMenuId === payment.id
-                                      ? null
-                                      : payment.id,
-                                  )
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden flex-shrink-0">
+                              <Image
+                                src={
+                                  payment.workerImage ||
+                                  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
                                 }
-                                className="p-1 rounded hover:bg-gray-100 transition"
-                                aria-label="More actions"
-                              >
-                                <Icon name="MoreVertical" size={24} />
-                              </button>
-
-                              {/* Dropdown menu */}
-                              {openMenuId === payment.id && (
-                                <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200">
-                                  <div className="py-1">
-                                    {(payment.status === "PENDING" ||
-                                      payment.status === "REJECTED" ||
-                                      payment.status === "REVIEW") && (
-                                      <button
-                                        onClick={() => {
-                                          handleApproveSingle(payment);
-                                          setOpenMenuId(null);
-                                        }}
-                                        disabled={actionLoading === payment.id}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-                                      >
-                                        Approve
-                                      </button>
-                                    )}
-                                    {(payment.status === "PENDING" ||
-                                      payment.status === "APPROVED" ||
-                                      payment.status === "REJECTED") && (
-                                      <button
-                                        onClick={() => {
-                                          handleMarkPaidSingle(payment);
-                                          setOpenMenuId(null);
-                                        }}
-                                        disabled={actionLoading === payment.id}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-                                      >
-                                        Pay
-                                      </button>
-                                    )}
-                                    {(payment.status === "PENDING" ||
-                                      payment.status === "REVIEW") && (
-                                      <button
-                                        onClick={() => {
-                                          handleRejectSingle(payment);
-                                          setOpenMenuId(null);
-                                        }}
-                                        disabled={actionLoading === payment.id}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-                                      >
-                                        Reject
-                                      </button>
-                                    )}
-                                    {payment.status !== "PAID" && (
-                                      <button
-                                        onClick={() => {
-                                          handleDeleteSingleConfirmation(
-                                            payment,
-                                          );
-                                          setOpenMenuId(null);
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                      >
-                                        Delete
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
+                                alt="worker"
+                                className="w-full h-full object-cover"
+                              />
                             </div>
-                          </div>
-                        </td>{" "}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                          </td>
+                          <td className="px-4 py-3 font-medium">
+                            {payment.workerName}
+                          </td>
+                          <td className="px-4 py-3">{payment.siteName}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {payment.createdAt.split("T")[0]}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {payment.totalHours.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold">
+                            {formatCurrency(payment.totalAmount)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}
+                            >
+                              <Icon name="DollarSign" size={12} />
+                              {payment.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {payment.batch_id ? (
+                              <span className="text-xs font-mono">
+                                {payment.batch_id.slice(0, 8)}...
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                Single
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {payment.paidAt ? (
+                              new Date(payment.paidAt).toLocaleDateString()
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-2">
+                              {/* Eye icon */}
+                              <div
+                                className="cursor-pointer text-green-500 flex items-center"
+                                onClick={() => showPaymentDetails(payment)}
+                              >
+                                <Icon name="Eye" size={24} />
+                              </div>
+
+                              {/* Three-dot menu */}
+                              <div
+                                className="relative"
+                                ref={openMenuId === payment.id ? menuRef : null}
+                              >
+                                <button
+                                  onClick={() =>
+                                    setOpenMenuId(
+                                      openMenuId === payment.id
+                                        ? null
+                                        : payment.id,
+                                    )
+                                  }
+                                  className="p-1 rounded hover:bg-gray-100 transition"
+                                  aria-label="More actions"
+                                >
+                                  <Icon name="MoreVertical" size={24} />
+                                </button>
+
+                                {openMenuId === payment.id && (
+                                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                    <div className="py-1">
+                                      {(payment.status === "PENDING" ||
+                                        payment.status === "REJECTED" ||
+                                        payment.status === "REVIEW") && (
+                                        <button
+                                          onClick={() => {
+                                            handleApproveSingle(payment);
+                                            setOpenMenuId(null);
+                                          }}
+                                          disabled={
+                                            actionLoading === payment.id
+                                          }
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                        >
+                                          Approve
+                                        </button>
+                                      )}
+                                      {(payment.status === "PENDING" ||
+                                        payment.status === "APPROVED" ||
+                                        payment.status === "REJECTED") && (
+                                        <button
+                                          onClick={() => {
+                                            handleMarkPaidSingle(payment);
+                                            setOpenMenuId(null);
+                                          }}
+                                          disabled={
+                                            actionLoading === payment.id
+                                          }
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                        >
+                                          Pay
+                                        </button>
+                                      )}
+                                      {(payment.status === "PENDING" ||
+                                        payment.status === "REVIEW") && (
+                                        <button
+                                          onClick={() => {
+                                            handleRejectSingle(payment);
+                                            setOpenMenuId(null);
+                                          }}
+                                          disabled={
+                                            actionLoading === payment.id
+                                          }
+                                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                                        >
+                                          Reject
+                                        </button>
+                                      )}
+                                      {payment.status !== "PAID" && (
+                                        <button
+                                          onClick={() => {
+                                            handleDeleteSingleConfirmation(
+                                              payment,
+                                            );
+                                            setOpenMenuId(null);
+                                          }}
+                                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                        >
+                                          Delete
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>{" "}
             </div>
             {/* Mobile Card View */}
             <div className="lg:hidden">
