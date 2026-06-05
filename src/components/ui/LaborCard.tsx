@@ -593,7 +593,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
     if (!workEntrySelection && entry) {
       setSelectedDate(date);
       setSelectedEntry(entry);
-    } else if (workEntrySelection && entry) {
+    } else if (workEntrySelection && entry && entry.status !== "PAID") {
       toggleEntrySelection(entry.id as string);
       if (entry.status !== "NOT_PAID") {
         setIncludePending(true);
