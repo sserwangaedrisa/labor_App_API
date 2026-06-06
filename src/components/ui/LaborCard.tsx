@@ -574,7 +574,6 @@ const LaborCard: React.FC<LaborCardProps> = ({
     setSelectedEntry(null);
   };
 
-  // Handle day click
   const handleDayClick = (date: Date) => {
     const entry = getEntryForDate(date);
     if (workEntrySelection && entry?.status === "PAID") {
