@@ -36,6 +36,7 @@ const OwnerDashboard = () => {
     RejectedPayments: { count: number; amount: number };
     PaidPayments: { count: number; amount: number };
     ReviewPayments: { count: number; amount: number };
+    TotalAmount: number;
     TotalNumberOfSites: number;
     TotalWorkers: number;
     TotalHours: number;
@@ -47,6 +48,7 @@ const OwnerDashboard = () => {
     PaidPayments: { count: 0, amount: 0 },
     ReviewPayments: { count: 0, amount: 0 },
     TotalNumberOfSites: 0,
+    TotalAmount: 0,
     TotalWorkers: 0,
     TotalHours: 0,
   });
@@ -75,6 +77,7 @@ const OwnerDashboard = () => {
           PaidPayments: { count: 0, amount: 0 },
           ReviewPayments: { count: 0, amount: 0 },
           TotalNumberOfSites: 0,
+          TotalAmount: 0,
           TotalWorkers: 0,
           TotalHours: 0,
         });
@@ -88,6 +91,7 @@ const OwnerDashboard = () => {
         RejectedPayments: companyData.summary.totalRejectedAmount,
         ReviewPayments: companyData.summary.totalReviewAmount,
         TotalWorkers: companyData.summary.uniqueWorkers,
+        TotalAmount: companyData.summary.totalAmount,
         TotalNumberOfSites: companyData.summary.uniqueSites,
         TotalHours:
           companyData.summary.totalHours + companyData.summary.totalOvertime,
@@ -117,6 +121,7 @@ const OwnerDashboard = () => {
           PaidPayments: { count: 0, amount: 0 },
           ReviewPayments: { count: 0, amount: 0 },
           TotalNumberOfSites: 0,
+          TotalAmount: 0,
           TotalWorkers: 0,
           TotalHours: 0,
         });
@@ -131,9 +136,11 @@ const OwnerDashboard = () => {
         ApprovedPayments: siteData.summary.paymentBreakdown.approved,
         RejectedPayments: siteData.summary.paymentBreakdown.rejected,
         ReviewPayments: siteData.summary.paymentBreakdown.review,
+
         TotalWorkers: siteData.summary.uniqueWorkers,
         TotalHours:
           siteData.summary.totalHours + siteData.summary.totalOvertime,
+        TotalAmount: siteData.summary.totalAmount,
       }));
 
       return siteData;
@@ -241,7 +248,7 @@ const OwnerDashboard = () => {
                 />
                 <MetricCard
                   title="Total Site Costs"
-                  value="$456,800"
+                  value={`EAD ${siteOrCampanyOverview.TotalAmount.toLocaleString()} `}
                   iconName="DollarSign"
                   trend="up"
                   trendValue="+12.5%"

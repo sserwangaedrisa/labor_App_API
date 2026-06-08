@@ -56,6 +56,7 @@ export interface CompanyReport {
     totalOvertime: number;
     uniqueWorkers: number;
     uniqueSites: number;
+    totalAmount: number;
     totalPaidAmount: {
       count: number;
       amount: number;
@@ -81,6 +82,7 @@ export interface CompanyReport {
     siteId: string;
     siteName: string;
     totalHours: number;
+    totalAmount: number;
     totalOvertime: number;
     uniqueWorkers: number;
   }>;
@@ -95,6 +97,7 @@ export interface SiteReport {
     totalHours: number;
     totalOvertime: number;
     uniqueWorkers: number;
+    totalAmount: number;
     paymentBreakdown: {
       paid: { count: number; amount: number };
       approved: { count: number; amount: number };
@@ -132,6 +135,7 @@ interface WorkersSummaryResponse {
     wageRating: number | null;
     totalHours: number;
     imageUrl: string | null;
+    totalAmount: number;
     totalOvertime: number;
     sitesWorkedCount: number;
     sitesWorked: string[];
@@ -391,7 +395,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         name: site.siteName,
         hours: site.totalHours + site.totalOvertime,
         workers: site.uniqueWorkers,
-        cost: site.totalHours * 10,
+        cost: site.totalAmount,
         TotalHours: site.totalHours + site.totalOvertime,
       }));
     }
@@ -449,22 +453,24 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           summary.totalRejectedAmount.amount +
           summary.totalReviewAmount.amount,
         totalHours: summary.totalHours + summary.totalOvertime,
-        avgDailyCost: summary.totalPaidAmount / 30,
+        avgDailyCost: summary.totalAmount / 30,
+        totalCost: summary.totalAmount,
         activeWorkers: summary.uniqueWorkers,
       };
     }
 
     if (siteReport?.summary) {
       const summary = siteReport.summary;
-      const totalAmount = Object.values(summary.paymentBreakdown).reduce(
+      const totalPaymentsCost = Object.values(summary.paymentBreakdown).reduce(
         (sum, status) => sum + status.amount,
         0,
       );
       return {
-        totalCost: totalAmount,
+        totalCost: siteReport.summary.totalAmount,
         totalHours: summary.totalHours + summary.totalOvertime,
-        avgDailyCost: totalAmount / 30,
+        avgDailyCost: summary.totalAmount / 30,
         activeWorkers: summary.uniqueWorkers,
+        totalPaymentsCost: totalPaymentsCost,
       };
     }
 
@@ -553,13 +559,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             <p className="text-sm font-medium text-gray-500">
               Total Labor Cost
             </p>
-            <DollarSign className="w-5 h-5 text-green-600" />
           </div>
           <h4 className="text-2xl font-bold text-gray-900 mt-2">
             {mainLoading ? (
               <Loader2 className="w-6 h-6 animate-spin text-gray-400 inline" />
             ) : (
-              `$${metrics ? metrics?.totalCost?.toLocaleString() : 0}`
+              `${metrics ? metrics?.totalCost?.toLocaleString() : 0}`
             )}
           </h4>
           <span className="text-xs text-gray-400">this period</span>
@@ -591,7 +596,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
             {mainLoading ? (
               <Loader2 className="w-6 h-6 animate-spin text-gray-400 inline" />
             ) : (
-              `$${metrics.avgDailyCost.toLocaleString()}`
+              `${metrics.avgDailyCost.toLocaleString()}`
             )}
           </h4>
           <span className="text-xs text-gray-400">based on 30 days</span>
@@ -651,7 +656,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               <Tooltip
                 formatter={(value, name) => {
                   if (name === "Count") return [value, name];
-                  return [`$${Number(value).toLocaleString()}`, name];
+                  return [`AED ${Number(value).toLocaleString()}`, name];
                 }}
               />
               <Legend />
@@ -742,10 +747,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           ) : (
             <div className="space-y-3">
               {getTopWorkersByCost().map((worker, idx) => {
-                const totalCost = Object.values(worker.paymentSummary).reduce(
-                  (sum, s) => sum + s.amount,
-                  0,
-                );
+                const totalCost = worker.totalAmount;
                 return (
                   <div
                     key={worker.workerId}
@@ -766,7 +768,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                           {worker.workerName}
                         </p>
                         <p className="text-xs text-gray-500">
-                          ${totalCost.toLocaleString()}
+                          AED {totalCost.toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -826,22 +828,22 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                     Overtime
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Paid
+                    Paid (AED)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Pending
+                    Pending (AED)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Review
+                    Review (AED)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Rejected
+                    Rejected (AED)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Approved
+                    Approved (AED)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Overall Amount
+                    Overall Amount (AED)
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Sites
@@ -850,10 +852,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {workersSummary.workers.map((worker) => {
-                  const totalCost = Object.values(worker.paymentSummary).reduce(
-                    (sum, s) => sum + s.amount,
-                    0,
-                  );
+                  const totalCost = worker.totalAmount;
                   return (
                     <tr key={worker.workerId} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
@@ -880,27 +879,27 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                         {worker.totalOvertime}
                       </td>
                       <td className="px-4 py-3 text-sm text-green-600">
-                        {worker.paymentSummary.PAID.count} / $
+                        {worker.paymentSummary.PAID.count} /
                         {worker.paymentSummary.PAID.amount}
                       </td>
                       <td className="px-4 py-3 text-sm text-yellow-600">
-                        {worker.paymentSummary.PENDING.count} / $
+                        {worker.paymentSummary.PENDING.count} /
                         {worker.paymentSummary.PENDING.amount}
                       </td>
                       <td className="px-4 py-3 text-sm text-blue-600">
-                        {worker.paymentSummary.REVIEW.count} / $
+                        {worker.paymentSummary.REVIEW.count} /
                         {worker.paymentSummary.REVIEW.amount}
                       </td>
                       <td className="px-4 py-3 text-sm text-red-600">
-                        {worker.paymentSummary.REJECTED.count} / $
+                        {worker.paymentSummary.REJECTED.count} /
                         {worker.paymentSummary.REJECTED.amount}
                       </td>
                       <td className="px-4 py-3 text-sm text-blue-600">
-                        {worker.paymentSummary.APPROVED.count} / $
+                        {worker.paymentSummary.APPROVED.count} /
                         {worker.paymentSummary.APPROVED.amount}
                       </td>
-                      <td className="px-4 py-3 text-sm text-blue-600">
-                        ${totalCost.toLocaleString()}
+                      <td className="px-4 py-3  text-lg text-semibold text-blue-600">
+                        {totalCost.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {worker.sitesWorkedCount}
