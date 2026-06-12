@@ -11,6 +11,7 @@ import type {
 import {
   Calendar,
   Clock,
+  Wallet,
   DollarSign,
   TrendingUp,
   CheckCircle,
@@ -33,6 +34,7 @@ import {
   eachDayOfInterval,
   isSameMonth,
   startOfWeek,
+  isBefore,
   endOfWeek,
   isSameDay,
   isAfter,
@@ -854,7 +856,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
               <div>
                 <p className="text-xs text-gray-500">Rate per Hour</p>
                 <p className="text-sm font-medium">
-                  ${workerData.calculation.ratePerHour}/hr
+                  {workerData.calculation.ratePerHour}/hr
                 </p>
               </div>
             </div>
@@ -930,10 +932,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
 
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center">
               <div className="flex justify-center mb-2">
-                <DollarSign className="w-6 h-6 text-purple-600" />
+                <Wallet className="w-6 h-6 text-purple-600" />
               </div>
               <p className="text-2xl font-bold text-purple-900">
-                ${monthSummary.totalEarnings.toFixed(2)}
+                {monthSummary.totalEarnings.toFixed(2)}
               </p>
               <p className="text-xs text-purple-700 font-medium">Earnings</p>
             </div>
@@ -1018,7 +1020,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
                                 Amount:
                               </span>
                               <span className="text-lg font-bold text-green-600">
-                                ${(data.amount || 0).toFixed(2)}
+                                {(data.amount || 0).toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -1031,107 +1033,113 @@ const LaborCard: React.FC<LaborCardProps> = ({
             )}
 
           {/* Calendar Grid */}
+
           <div className="relative">
             <h1 className="text-xl font-semibold text-gray-400 mb-4">
               Labor Card
-            </h1>{" "}
-            <div className="grid grid-cols-7 gap-2 mb-2">
+            </h1>
+
+            {/* Day headers – responsive text size */}
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-2">
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
                 <div
                   key={day}
-                  className="text-center text-sm font-semibold text-gray-600 py-2"
+                  className="text-center text-xs sm:text-sm font-semibold text-gray-600 py-2"
                 >
                   {day}
                 </div>
               ))}
             </div>
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-2">
+
+            {/* Calendar Days Grid */}
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
               {calendarDays.map((day, index) => {
                 const entry = getEntryForDate(day);
                 const isFutureDate = isAfter(
                   startOfDay(day),
                   startOfDay(new Date()),
                 );
-                const status = getDayStatus(day); // now returns FUTURE for future absent days
+                const status = getDayStatus(day);
                 const statusStyle = getStatusStyle(status);
                 const isCurrentMonth = isSameMonth(day, currentMonth);
                 const isSelected = selectedDate && isSameDay(day, selectedDate);
+                const isPastDay = isBefore(
+                  startOfDay(day),
+                  startOfDay(new Date()),
+                );
 
                 return (
                   <div
                     key={index}
                     onClick={() => isCurrentMonth && handleDayClick(day)}
                     className={`
-        min-h-[100px] p-2 rounded-lg border transition-all cursor-pointer
-        ${!isCurrentMonth && "opacity-30"}
-        ${isSelected && !workEntrySelection ? "ring-2 ring-blue-500 shadow-lg" : ""}
-        ${statusStyle.bgColor}
-        ${workEntrySelection && isCurrentMonth && entry ? "hover:scale-105 hover:shadow-md" : ""}
-      `}
+            min-h-[60px] sm:min-h-[80px] md:min-h-[100px]
+            p-0.5 sm:p-1 md:p-2
+            rounded-lg border transition-all cursor-pointer
+            ${!isCurrentMonth && "opacity-30"}
+            ${isSelected && !workEntrySelection ? "ring-2 ring-blue-500 shadow-lg" : ""}
+            ${statusStyle.bgColor}
+            ${workEntrySelection && isCurrentMonth && entry ? "hover:scale-105 hover:shadow-md" : ""}
+          `}
                   >
+                    {/* Top row: day number + status icon (hidden on mobile) + payment dot */}
                     <div className="flex justify-between items-start mb-1">
                       <span
                         className={`text-sm font-semibold ${!isCurrentMonth ? "text-gray-400" : statusStyle.textColor}`}
                       >
                         {format(day, "dd")}
                       </span>
-                      {isCurrentMonth && entry && (
-                        <div className="print:hidden">{statusStyle.icon}</div>
-                      )}
-                      {entry && isCurrentMonth && (
-                        <div className="mt-1">
+                      <div className="flex items-center gap-1">
+                        {isCurrentMonth && entry && (
+                          <div className="hidden sm:block print:hidden">
+                            {statusStyle.icon}
+                          </div>
+                        )}
+                        {entry && isCurrentMonth && (
                           <div
-                            className={`w-3 h-3 rounded-full ${getPaymentStatusColor(entry.status)}`}
+                            className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${getPaymentStatusColor(entry.status)}`}
                             title={entry.status || "Unknown"}
                           />
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
-                    {entry && isCurrentMonth && (
-                      <div className="mt-1 space-y-0.5 text-xs">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Hours:</span>
+                    {/* Main content: work info or absent marker */}
+                    <div className="mt-1 text-xs sm:text-sm">
+                      {isCurrentMonth && entry ? (
+                        // Present day – show hours & overtime on one line (color coded)
+                        <div className="flex flex-wrap items-baseline justify-center gap-1 sm:justify-start">
                           <span className="font-medium text-gray-800">
                             {formatHours(entry.hours || 0)}
                           </span>
+                          {entry.overtime ||
+                            (0 > 0 && (
+                              <span className="font-medium text-orange-600">
+                                +{formatHours(entry.overtime || 0)}
+                              </span>
+                            ))}
                         </div>
-                        {entry?.overtime && entry?.overtime > 0 && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-orange-600">OT:</span>
-                            <span className="font-medium text-orange-700">
-                              {formatHours(entry?.overtime || 0)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {!entry && isCurrentMonth && (
-                      <>
-                        {isAfter(startOfDay(day), startOfDay(new Date())) ? (
-                          <div className="mt-2 text-xs text-gray-400 text-center"></div>
-                        ) : (
-                          <div className="mt-2 text-xs text-red-600 text-center">
-                            Absent
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {!isCurrentMonth && (
-                      <div className="mt-2 text-xs text-gray-400 text-center">
-                        {format(day, "MMM")}
-                      </div>
-                    )}
+                      ) : isCurrentMonth && !entry && isPastDay ? (
+                        // Absent day (past, no entry) – simple "X"
+                        <div className="flex justify-center items-center h-8 sm:h-10">
+                          <span className="text-red-500 font-bold text-base sm:text-lg">
+                            X
+                          </span>
+                        </div>
+                      ) : isCurrentMonth && !entry && !isPastDay ? (
+                        // Future day (no entry yet) – empty placeholder
+                        <div className="h-8 sm:h-10"></div>
+                      ) : (
+                        // Not current month – show month abbreviation
+                        <div className="text-xs text-gray-400 text-center">
+                          {format(day, "MMM")}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
-            {/* Loading Overlay */}
-            {/* {isLoading && (
-              <Loading transparent message="Processing..." overlay={true} />
-            )} */}
           </div>
 
           <div className="flex gap-3">
@@ -1197,7 +1205,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
                 <div>
                   <p className="text-xs text-gray-600">Total Hours</p>
                   <p className="text-lg font-bold text-gray-800">
-                    {formatHours(selectedEntry.totalHours || 0)}
+                    {formatHours(
+                      (selectedEntry.hours || 0) +
+                        (selectedEntry.overtime || 0),
+                    )}
                   </p>
                 </div>
               </div>
