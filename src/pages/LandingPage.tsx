@@ -1,6 +1,4 @@
-// LandingPage.tsx
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import Header from "../components/ui/LandingPageNav";
 import {
   Phone,
@@ -20,7 +18,6 @@ import {
 } from "lucide-react";
 
 const LandingPage: React.FC = () => {
-  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("home");
   const [formData, setFormData] = useState({
     name: "",
@@ -40,10 +37,6 @@ const LandingPage: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleLogin = () => {
-    navigate("/auth/login");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,6 +66,8 @@ const LandingPage: React.FC = () => {
             entries.forEach((entry) => {
               if (entry.isIntersecting) {
                 setActiveSection(sectionId);
+              } else if (activeSection === sectionId) {
+                setActiveSection(activeSection);
               }
             });
           },

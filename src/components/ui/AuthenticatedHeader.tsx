@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Icon from "./AppIconl";
 import Button from "./Button";
 import { useAuth } from "../../app/providers";
-import type { User, Role } from "../../app/providers";
+import type { Role } from "../../app/providers";
 
 const AuthenticatedHeader = () => {
   const navigate = useNavigate();

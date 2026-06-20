@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState } from "react";
 import type { WorkerPaymentData } from "../types/SharedTypes";
 
 import type { ReactNode } from "react";
-import { number } from "framer-motion";
 
 // Define types for your user object
 export type Role = "LABORER" | "FOREMAN" | "OWNER";

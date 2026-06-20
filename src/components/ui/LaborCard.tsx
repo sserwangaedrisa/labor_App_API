@@ -12,7 +12,6 @@ import {
   Calendar,
   Clock,
   Wallet,
-  DollarSign,
   TrendingUp,
   CheckCircle,
   XCircle,
@@ -719,7 +718,7 @@ const LaborCard: React.FC<LaborCardProps> = ({
       toast.error("No work entries selected");
       return;
     }
-    setStatusToUpdate(selectedNewStatus);
+    setStatusToUpdate(selectedNewStatus || statusToUpdate);
     await updateEntryStatus();
     setShowStatusModal(false);
     setSelectedNewStatus("");
@@ -1055,10 +1054,10 @@ const LaborCard: React.FC<LaborCardProps> = ({
             <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
               {calendarDays.map((day, index) => {
                 const entry = getEntryForDate(day);
-                const isFutureDate = isAfter(
-                  startOfDay(day),
-                  startOfDay(new Date()),
-                );
+                // const isFutureDate = isAfter(
+                //   startOfDay(day),
+                //   startOfDay(new Date()),
+                // );
                 const status = getDayStatus(day);
                 const statusStyle = getStatusStyle(status);
                 const isCurrentMonth = isSameMonth(day, currentMonth);

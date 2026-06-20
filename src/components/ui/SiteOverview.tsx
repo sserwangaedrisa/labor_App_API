@@ -1,5 +1,5 @@
 import React from "react";
-import { Users, UserCheck, Clock, DollarSign } from "lucide-react";
+import { Users, UserCheck, DollarSign } from "lucide-react";
 import * as SharedTypes from "../../types/SharedTypes";
 
 interface SiteOverviewProps {
