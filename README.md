@@ -1,5 +1,5 @@
 # Attendance & Payroll Management Web Application
-[Live project] ```https://labor-app-api.vercel.app/```
+[Live project]  [https://labor-app-api.vercel.app/]
 
 ## Overview
 
