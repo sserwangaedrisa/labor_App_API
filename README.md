@@ -1,4 +1,5 @@
 # Attendance & Payroll Management Web Application
+[Live project] ```https://labor-app-api.vercel.app/```
 
 ## Overview
 
@@ -176,13 +177,13 @@ These measures ensure that users only access information relevant to their assig
 
 **Live Project URL:**
 
-[Insert Live Application URL Here]
+[https://labor-app-api.vercel.app/]
 
 ### Video Demonstration
 
 **Project Walkthrough Video:**
 
-[Insert YouTube Demo Link Here]
+[https://labor-app-api.vercel.app/]
 
 ---
 
