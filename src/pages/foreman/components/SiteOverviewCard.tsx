@@ -20,7 +20,6 @@ const SiteOverviewCard: React.FC<SiteOverviewCardProps> = ({
   title,
   value,
   subtitle,
-  iconName,
   iconColor,
   trend,
 }) => {

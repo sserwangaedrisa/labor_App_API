@@ -1,4 +1,3 @@
-import Sidebar from "../../components/layout/Slidebar";
 import Header from "../../components/layout/Header";
 import WorkersTable from "../../components/ui/WorkersTable";
 import { useAuth } from "../../app/providers";
@@ -14,7 +13,6 @@ const WorkersPage = () => {
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
         <main className="p-6 bg-gray-100 flex-1 overflow-auto">

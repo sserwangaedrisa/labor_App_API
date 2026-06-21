@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import authorizeCreate from "../../../api/authorizeCreate";
 import authorizeGetRequest from "../../../api/authorizeGetRequest";
@@ -9,12 +9,10 @@ import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Image from "../../../components/ui/AppImage";
-import type { ActiveWorker, UserRole, User } from "../../../types/SharedTypes";
+import type { UserRole, User } from "../../../types/SharedTypes";
 import Loading from "../../../components/ui/Loading";
 
 /* ================= TYPES ================= */
-
-type RoleFilter = UserRole | "all";
 
 interface NewUser {
   name: string;
@@ -128,9 +126,10 @@ export const UserManagementPanel = () => {
     useState<string>("");
 
   const [sites, setSites] = useState<{ id: string; name: string }[]>([]);
-  const [availableJobs, setAvailableJobs] = useState<
-    { value: string; label: string }[]
-  >([]);
+
+  if (!activeWorkers || activeWorkers.length === 0) {
+    console.log("No active workers found");
+  }
 
   useEffect(() => {
     const fetchSites = async () => {
