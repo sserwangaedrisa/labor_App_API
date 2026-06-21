@@ -6,7 +6,6 @@ import WorkerStatusBadge from "./WorkerStatusBadge";
 import { useState, useEffect } from "react";
 import type {
   Worker,
-  WorkerStatus,
   WorkEntry,
   SiteInfoResponse,
   User,

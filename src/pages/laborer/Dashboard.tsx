@@ -6,12 +6,9 @@ import PaymentHistory from "./components/PaymentHistory";
 import RoleGuard from "../../components/ui/RoleGuard";
 import LoadingBoundary from "../../components/ui/LoadingBoundary";
 import { useState, useEffect } from "react";
-import { useAuth } from "../../app/providers";
 
 const LaborerDashboard = () => {
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const currentUser = user;
 
   const workerData = {
     id: "LAB001",
@@ -198,10 +195,6 @@ const LaborerDashboard = () => {
 
     return () => clearTimeout(timer);
   }, []);
-
-  const handleLogout = () => {
-    console.log("Logging out...");
-  };
 
   return (
     <RoleGuard allowedRoles={["LABORER"]} fallbackRoute="/login">

@@ -5,9 +5,8 @@ import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
 import Image from "../../../components/ui/AppImage";
-import type { ActiveWorker, User, UserRole } from "../../../types/SharedTypes";
+import type { ActiveWorker, UserRole } from "../../../types/SharedTypes";
 import Loading from "../../../components/ui/Loading";
-import type { RoleOption } from "../../../types/auth.types";
 
 /* ================= TYPES ================= */
 
@@ -126,13 +125,6 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     { value: "ELECTRICIAN", label: "Electrician" },
     { value: "SITE_ADMIN", label: "Site Admin" },
     { value: "ADMIN", label: "Admin" },
-  ];
-
-  const siteOptions = [
-    { value: "downtown-plaza", label: "Downtown Plaza Construction" },
-    { value: "riverside-towers", label: "Riverside Towers Project" },
-    { value: "industrial-park", label: "Industrial Park Development" },
-    { value: "suburban-complex", label: "Suburban Housing Complex" },
   ];
 
   const filteredUsers = users?.filter((user) => {
@@ -334,23 +326,6 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({
     };
 
     return colors[job] || "bg-gray-100 text-gray-600";
-  };
-
-  const getRoleIcon = (job: string): string => {
-    const icons: Record<string, string> = {
-      USER: "User",
-      HELPER: "UserPlus",
-      LABORER: "HardHat",
-      MASON: "Hammer",
-      STEEL_FIXER: "Wrench",
-      PAINTER: "Paintbrush",
-      ELECTRICIAN: "Zap",
-      FOREMAN: "ClipboardList",
-      SITE_ADMIN: "Settings",
-      ADMIN: "ShieldCheck",
-    };
-
-    return icons[job] || "User";
   };
 
   return (

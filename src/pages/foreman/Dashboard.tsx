@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../src/app/providers";
 import SiteHeader from "../../components/ui/SiteHeader";
 import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
@@ -14,27 +13,18 @@ import Button from "../../components/ui/Button";
 import AnalyticsDashboard, {
   type SiteReport,
 } from "../owner-dashboard/components/AnalyticsDashboard";
-import SiteOverviewCard from "./components/SiteOverviewCard";
 import WorkerTableRow from "./components/WorkerTableRow";
 import AttendanceModal from "./components/AttendanceModal";
 import WorkerModal from "./components/UserModal";
 import PaymentRequestCard from "./components/PaymentRequest";
 import { UserManagementPanel } from "./components/UserManagementPanel";
 import QuickActionsPanel from "./components/QuickActions";
-import NotificationBanner from "./components/NotificatonBanner";
 import authorizeCreate from "../../api/authorizeCreate";
 import SiteSettingsComponent from "./components/siteSettings";
-import type {
-  Worker,
-  Notification,
-  User,
-  verificationData,
-} from "../../types/SharedTypes";
+import type { Worker, User, verificationData } from "../../types/SharedTypes";
 import * as SharedTypes from "../../types/SharedTypes";
 import authorizePostRequest from "../../api/authorizePostRequest";
 import SiteOverviewStats from "../../components/ui/SiteOverview";
-import { div, s } from "framer-motion/client";
-import { Settings } from "lucide-react";
 
 // TYPES
 interface VerifyAccountResponse {
@@ -108,23 +98,6 @@ const ForemanDashboard: React.FC = () => {
   const [siteInfo, setSiteInfo] = useState<SharedTypes.SiteDetails>();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      type: "warning",
-      title: "Late Submission Alert",
-      message:
-        "You have 3 attendance entries from yesterday that need to be submitted. Late entries will be flagged for owner review.",
-    },
-    {
-      id: 2,
-      type: "success",
-      title: "Payment Request Approved",
-      message:
-        "Your payment request for 15 workers has been approved by the site owner. Payments will be processed within 24 hours.",
-    },
-  ]);
-
   // const [attendanceDate, setcurrentDate] = useState<Date>(new Date());
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
@@ -138,6 +111,10 @@ const ForemanDashboard: React.FC = () => {
     totalHoursToday: 168,
     pendingPayments: 8,
   };
+
+  if (msg && !isErr && currentUserWorkEntry && showReports) {
+    setLoading(loading);
+  }
 
   useEffect(() => {
     const fetchSiteInfo =
@@ -887,7 +864,15 @@ const ForemanDashboard: React.FC = () => {
                     return (
                       <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() =>
+                          setActiveTab(
+                            tab.id as
+                              | "siteWorker"
+                              | "payments"
+                              | "analytics"
+                              | "userManagement",
+                          )
+                        }
                         className={`
     group relative flex-1 justify-center px-3 sm:px-5 py-2.5 sm:py-3 text-sm sm:text-base
     transition-all duration-200 ease-out text-center
@@ -900,7 +885,7 @@ const ForemanDashboard: React.FC = () => {
   `}
                       >
                         <Icon
-                          name={tab.icon}
+                          name={tab.icon as keyof typeof Icon}
                           size={16}
                           className={`transition-colors ${
                             isActive

@@ -42,9 +42,6 @@ const SiteSettingsComponent: React.FC<SiteSettingsProps> = ({
   const [deletingSettingId, setDeletingSettingId] = useState<string | null>(
     null,
   );
-  const [updatingSettingId, setUpdatingSettingId] = useState<string | null>(
-    null,
-  );
 
   // State for history date range
   const [historyStartDate, setHistoryStartDate] = useState<string>(

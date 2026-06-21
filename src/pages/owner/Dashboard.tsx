@@ -1,4 +1,3 @@
-import Sidebar from "../../components/layout/Slidebar";
 import Header from "../../components/layout/Header";
 import Card from "../../components/ui/Card";
 import MonthlyExpenseChart from "../../components/charts/MonthlyExpenseChart";
@@ -15,7 +14,6 @@ const OwnerDashboard = () => {
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
 
@@ -25,7 +23,7 @@ const OwnerDashboard = () => {
           {/* Summary Cards */}
           <div className="grid grid-cols-4 gap-4 mb-6">
             <Link to="/owner/sites">
-              <Card >Total Sites: {summary.totalSites}</Card>
+              <Card>Total Sites: {summary.totalSites}</Card>
             </Link>
             <Card>Total Workers: {summary.totalWorkers}</Card>
             <Card>Monthly Cost: ${summary.totalMonthlyCost}</Card>

@@ -15,7 +15,6 @@ import {
   Calendar,
   Users,
   Clock,
-  DollarSign,
   TrendingUp,
   Search,
   ChevronLeft,
@@ -175,7 +174,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   getCompanyReport,
   getSiteReport,
 }) => {
-  const { user, setSiteOrCampanyOverview, siteOrCampanyOverview } = useAuth();
+  const { user } = useAuth();
   const role = user?.role as Role;
   const userSiteId = user?.siteId || initialSiteId;
 

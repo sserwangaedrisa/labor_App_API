@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "../../../components/ui/AppImage";
-import { format, set } from "date-fns";
+import { format } from "date-fns";
 import LaborCard from "../../../components/ui/LaborCard";
 import { useAuth } from "../../../app/providers";
 
@@ -11,19 +11,12 @@ import {
   Clock,
   Briefcase,
   Mail,
-  Phone,
-  MapPin,
   TrendingUp,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
 } from "lucide-react";
-import Icon from "../../../components/ui/AppIconl";
 import ConfirmationModal from "../../../components/ui/Confirmation";
 import type {
   SiteInfoResponse,
   workerPaymentRequestSearchObject,
-  WorkEntry,
   WorkerPaymentData,
 } from "../../../types/SharedTypes";
 import toast from "react-hot-toast";
@@ -247,17 +240,6 @@ const WorkerModal: React.FC<WorkerModalProps> = ({
 
   const formatHours = useCallback((hours: number) => {
     return `${hours.toFixed(2)} hrs`;
-  }, []);
-
-  const getStatusIcon = useCallback((status?: string) => {
-    switch (status?.toLowerCase()) {
-      case "approved":
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case "rejected":
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
-    }
   }, []);
 
   if (!isOpen) return null;

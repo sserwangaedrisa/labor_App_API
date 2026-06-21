@@ -1,4 +1,3 @@
-import Sidebar from "../../components/layout/Slidebar";
 import Header from "../../components/layout/Header";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
@@ -35,7 +34,6 @@ const AddDailyRecord = () => {
 
   return (
     <div className="flex h-screen">
-      <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header />
         <main className="p-6 bg-gray-100 flex-1 overflow-auto">
@@ -55,7 +53,9 @@ const AddDailyRecord = () => {
               onChange={(e) => setDate(e.target.value)}
             />
 
-            <label className="block mb-2 mt-4 font-semibold">Hours Worked</label>
+            <label className="block mb-2 mt-4 font-semibold">
+              Hours Worked
+            </label>
             <Input
               type="number"
               value={hours}
@@ -68,7 +68,9 @@ const AddDailyRecord = () => {
             <select
               className="w-full border rounded px-3 py-2 mb-4"
               value={wageType}
-              onChange={(e) => setWageType(e.target.value as "daily" | "hourly")}
+              onChange={(e) =>
+                setWageType(e.target.value as "daily" | "hourly")
+              }
             >
               <option value="daily">Daily</option>
               <option value="hourly">Hourly</option>

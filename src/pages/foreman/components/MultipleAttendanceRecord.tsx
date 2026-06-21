@@ -54,7 +54,7 @@ const MultipleAttendanceRecord: React.FC<MultipleAttendanceRecordProps> = ({
     if (currentDate && isOpen && mode === "delete") {
       setSearchDate(new Date(currentDate));
     } else {
-      setSearchDate(null);
+      searchDate ? setSearchDate(null) : setSearchDate(null);
     }
   }, [currentDate, isOpen, mode]);
 

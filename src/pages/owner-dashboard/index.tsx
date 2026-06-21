@@ -1,28 +1,22 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import AuthenticatedHeader from "../../components/ui/AuthenticatedHeader";
 import RoleGuard from "../../components/ui/RoleGuard";
 import LoadingBoundary from "../../components/ui/LoadingBoundary";
 import MetricCard from "./components/MetricCard";
 import SiteModal from "./components/CreateSite";
-import SiteOverviewTable from "./components/SiteOverviewTable";
 import PaymentApprovalQueue from "./components/PaymentApprovalQueue";
 import UserManagementPanel from "./components/UserManagementPanel";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import Icon from "../../components/ui/AppIconl";
 import Button from "../../components/ui/Button";
-import { useAuth } from "../../app/providers";
 import authorizePost from "../../api/authorizePost";
 import type {
   SiteReport,
   CompanyReport,
 } from "./components/AnalyticsDashboard";
-import type { Payment, Site, User, NewUser } from "../../types/SharedTypes";
 import toast from "react-hot-toast";
 
 const OwnerDashboard = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("analytics");
   // create site modal state
   const [isSiteModalOpen, setIsSiteModalOpen] = useState(false);
@@ -159,47 +153,6 @@ const OwnerDashboard = () => {
     setIsSiteModalOpen(true);
   };
 
-  const handleEditSite = (site) => {
-    setEditingSite(site);
-    setIsSiteModalOpen(true);
-  };
-
-  const handleViewSiteDetails = (site: Site) => {
-    console.log("Viewing site details:", site);
-  };
-
-  const handleManageWorkers = (site: Site) => {
-    console.log("Managing workers for site:", site);
-  };
-
-  const handleApprovePayment = (payment: Payment) => {
-    console.log("Approving payment:", payment);
-  };
-
-  const handleRejectPayment = (payment: Payment) => {
-    console.log("Rejecting payment:", payment);
-  };
-
-  const handleCreateUser = (userData: NewUser) => {
-    console.log("Creating user:", userData);
-  };
-
-  const handleBlockUser = (user: User) => {
-    console.log("Blocking user:", user);
-  };
-
-  const handleUnblockUser = (user: User) => {
-    console.log("Unblocking user:", user);
-  };
-
-  const handleExportPDF = () => {
-    console.log("Exporting analytics as PDF");
-  };
-
-  const handleExportExcel = () => {
-    console.log("Exporting analytics as Excel");
-  };
-
   const tabs = [
     { id: "analytics", label: "Analytics & Reports", icon: "BarChart3" },
     { id: "payments", label: "Payment Processing", icon: "DollarSign" },
@@ -207,7 +160,7 @@ const OwnerDashboard = () => {
   ];
   return (
     <RoleGuard allowedRoles={["OWNER"]}>
-      <LoadingBoundary loading={loading} fullScreen>
+      <LoadingBoundary loading={false} fullScreen>
         <div className="min-h-screen bg-background">
           <AuthenticatedHeader />
 
@@ -311,7 +264,7 @@ const OwnerDashboard = () => {
         `}
                     >
                       <Icon
-                        name={tab.icon}
+                        name={tab.icon as keyof typeof Icon}
                         size={18}
                         className="md:w-5 md:h-5"
                       />

@@ -78,7 +78,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
           `}
         >
           <Icon
-            name={iconName}
+            name={iconName as keyof typeof Icon}
             size={24}
             color={iconColor}
             className="md:w-7 md:h-7 transition-transform group-hover:scale-105 duration-200"

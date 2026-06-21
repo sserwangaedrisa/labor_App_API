@@ -1,6 +1,4 @@
-import React from 'react';
-import Icon from '../../../components/ui/AppIconl';
-import type { Wallet } from 'lucide-react';
+import Icon from "../../../components/ui/AppIconl";
 
 interface PaymentHistoryProps {
   payments: {
@@ -14,27 +12,16 @@ interface PaymentHistoryProps {
   }[];
 }
 
-
 const PaymentHistory = ({ payments }: PaymentHistoryProps) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date?.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date?.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
-  };
-
-  const getPaymentMethodIcon = (method: string) => {
-    const icons: Record<string, string> = {
-      'Bank Transfer': 'Building2',
-      'Cash': 'Wallet',
-      'Check': 'FileText',
-      'Digital Wallet': 'Smartphone'
-    };
-    return icons[method] || 'DollarSign';
   };
 
   return (
@@ -59,7 +46,12 @@ const PaymentHistory = ({ payments }: PaymentHistoryProps) => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
                 <div className="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Icon key={payment?.method} name = "Wallet2Icon" size={24} color="var(--color-success)" />
+                  <Icon
+                    key={payment?.method}
+                    name="Wallet2Icon"
+                    size={24}
+                    color="var(--color-success)"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -85,7 +77,9 @@ const PaymentHistory = ({ payments }: PaymentHistoryProps) => {
                     {payment?.transactionId && (
                       <div className="flex items-center gap-1.5">
                         <Icon key="hash" name="Hash" size={14} />
-                        <span className="font-mono">{payment?.transactionId}</span>
+                        <span className="font-mono">
+                          {payment?.transactionId}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -110,7 +104,12 @@ const PaymentHistory = ({ payments }: PaymentHistoryProps) => {
       {payments?.length === 0 && (
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-            <Icon key="inbox" name="Inbox" size={32} className="text-muted-foreground" />
+            <Icon
+              key="inbox"
+              name="Inbox"
+              size={32}
+              className="text-muted-foreground"
+            />
           </div>
           <p className="text-muted-foreground">No payment history available</p>
         </div>

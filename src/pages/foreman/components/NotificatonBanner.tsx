@@ -3,7 +3,6 @@ import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import type {
   NotificationType,
-  Notification,
   NotificationBannerProps,
   NotificationStyle,
 } from "../../../types/SharedTypes";

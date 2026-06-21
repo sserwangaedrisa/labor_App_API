@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast"; // or your preferred toast library
 import Loading from "../../../components/ui/Loading"; // A simple loading spinner component
-import authorizeCreate from "../../../api/authorizeCreate";
 import authorizeGetRequest from "../../../api/authorizeGetRequest";
 import authorizePostRequest from "../../../api/authorizePostRequest";
 

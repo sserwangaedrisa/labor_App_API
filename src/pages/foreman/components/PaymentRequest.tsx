@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Icon from "../../../components/ui/AppIconl";
 import Button from "../../../components/ui/Button";
 import Loading from "../../../components/ui/Loading";
@@ -65,9 +65,7 @@ interface PaymentRequestCardProps {
 
 const PaymentRequestCard: React.FC<PaymentRequestCardProps> = ({
   siteId,
-  pendingRequests = 0,
   onViewHistory,
-  onPaymentSuccess,
 }) => {
   const [startDate, setStartDate] = useState<string>(() => {
     const date = new Date();
@@ -89,8 +87,10 @@ const PaymentRequestCard: React.FC<PaymentRequestCardProps> = ({
   const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
   const [dateError, setDateError] = useState<string | null>(null);
   const [isCustomRange, setIsCustomRange] = useState<boolean>(false);
-  const [hasLoadedInitialData, setHasLoadedInitialData] =
-    useState<boolean>(false);
+
+  if (initiatingPayment && paymentSuccess && dateError) {
+    setDateError(null);
+  }
 
   const getFirstDayOfCurrentMonth = (): string => {
     const date = new Date();

@@ -41,7 +41,6 @@ const Login: React.FC = () => {
   const { login } = useAuth();
 
   const [loading, setLoading] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<boolean>(false);
   const [msg, setMsg] = useState<string>("");

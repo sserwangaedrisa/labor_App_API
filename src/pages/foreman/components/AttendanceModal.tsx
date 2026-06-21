@@ -1,18 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Icon from "../../../components/ui/AppIconl";
 import Image from "../../../components/ui/AppImage";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
-import Select from "../../../components/ui/Select";
 import * as sharedTypes from "../../../types/SharedTypes";
-
-interface Worker {
-  id: number | string;
-  name: string;
-  avatar?: string;
-  avatarAlt?: string;
-  wageRate: number;
-}
 
 interface Errors {
   date?: string;
@@ -51,13 +42,6 @@ const AttendanceModal: React.FC<AttendanceModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Errors>({});
-
-  const statusOptions = [
-    { value: "present", label: "Present" },
-    { value: "absent", label: "Absent" },
-    { value: "halfday", label: "Half Day" },
-    { value: "overtime", label: "Overtime" },
-  ];
 
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
