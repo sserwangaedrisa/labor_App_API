@@ -1,5 +1,6 @@
 # Attendance & Payroll Management Web Application
 [Live project]  [https://labor-app-api.vercel.app/]
+[Action video]  [https://www.youtube.com/watch?v=f8yZm6c4PpA]
 
 ## Overview
 
