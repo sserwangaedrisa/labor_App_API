@@ -5,6 +5,12 @@ import LandingPage from "../pages/LandingPage";
 import LoginPage from "../pages/auth/LoginPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import LaborerDashboard from "../pages/laborer/Dashboard";
+import Home from "../pages/landingPages/Home";
+import About from "../pages/landingPages/About";
+import Services from "../pages/landingPages/Services";
+import WhyChooseUs from "../pages/landingPages/WhyChooseUs";
+import Projects from "../pages/landingPages/Project";
+import Contact from "../pages/landingPages/Contacts";
 
 import ForemanDashboard from "../pages/foreman/Dashboard";
 import WorkersPage from "../pages/foreman/Workers";
@@ -20,6 +26,14 @@ export const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Portifolio routes */}
+      <Route path="/home" element={<Home />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/services" element={<Services />} />
+      <Route path="/why-choose-us" element={<WhyChooseUs />} />
+      <Route path="/projects" element={<Projects />} />
+      <Route path="/contact" element={<Contact />} />
+
       {/* Landing page */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/home" element={<LandingPage />} />
