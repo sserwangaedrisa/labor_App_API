@@ -7,10 +7,13 @@ import HowItWorksSection from "../../components/portfolio-componets/home/HowItWo
 import StatsSection from "../../components/portfolio-componets/home/StatsSection";
 import TestimonialsSection from "../../components/portfolio-componets/home/TestmonialSection";
 import CTASection from "../../components/portfolio-componets/home/CTAsection";
+import Navbar from "../../components/portfolio-componets/site/Navbar";
+import Footer from "../../components/portfolio-componets/site/Footer";
 
 export default function Home() {
   return (
     <>
+      <Navbar />
       <HeroSection />
       <IntroSection />
       <ServicesOverview />
@@ -20,6 +23,7 @@ export default function Home() {
       <StatsSection />
       <TestimonialsSection />
       <CTASection />
+      <Footer />
     </>
   );
 }
