@@ -5,6 +5,8 @@ import { IMAGES } from "../../lib/siteData";
 import PageHero from "../../components/portfolio-componets/site/PageHero";
 import SectionHeading from "../../components/portfolio-componets/site/SectionHeading";
 import CTAStrip from "../../components/portfolio-componets/site/CTAStrip";
+import Footer from "../../components/portfolio-componets/site/Footer";
+import Navbar from "../../components/portfolio-componets/site/Navbar";
 
 interface Project {
   img: string;
@@ -95,6 +97,7 @@ const STORIES: Story[] = [
 export default function Projects(): React.JSX.Element {
   return (
     <>
+      <Navbar />
       <PageHero
         index="05"
         kicker="Projects & Partners"
@@ -220,6 +223,7 @@ export default function Projects(): React.JSX.Element {
         title="Your Project Next?"
         subtitle="Let's add your deployment to this list."
       />
+      <Footer />
     </>
   );
 }
