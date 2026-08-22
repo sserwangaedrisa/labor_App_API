@@ -21,17 +21,21 @@ import SettingsPage from "../pages/owner/Settings";
 import ReportsPage from "../pages/owner/Reports";
 import OwnerPayments from "../pages/owner/Payments";
 import SitesPage from "../pages/owner/sites";
+import Layout from "../components/portfolio-componets/site/Layout";
 export const AppRoutes = () => {
   const { user } = useAuth();
 
   return (
     <Routes>
-      {/* Portifolio routes */}
-      <Route path="/home" element={<Home />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/services" element={<Services />} />
-      <Route path="/why-choose-us" element={<WhyChooseUs />} />
-      <Route path="/projects" element={<Projects />} />
+      <Route element={<Layout />}>
+        {/* Portifolio routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/why-choose-us" element={<WhyChooseUs />} />
+        <Route path="/projects" element={<Projects />} />
+      </Route>
       <Route path="/contact" element={<Contact />} />
 
       {/* Landing page */}

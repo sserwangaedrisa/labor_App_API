@@ -8,7 +8,7 @@ import Button, { RequestButton } from "../site/Button";
 
 const HeroSection: React.FC = (): JSX.Element => {
   return (
-    <section className="relative min-h-[100svh] overflow-hidden bg-onyx text-titanium">
+    <section className="relative min-h-[100svh] overflow-hidden bg-slate-900 text-slate-100">
       <div className="absolute inset-0">
         <Image
           src={IMAGES.hero}
@@ -17,7 +17,7 @@ const HeroSection: React.FC = (): JSX.Element => {
           className="h-full w-full object-cover opacity-50"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-r from-onyx via-onyx/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/70 to-transparent" />
 
         <div className="absolute inset-0 girder-lines" />
       </div>
@@ -30,11 +30,11 @@ const HeroSection: React.FC = (): JSX.Element => {
             transition={{ duration: 0.5 }}
             className="flex items-center gap-3"
           >
-            <span className="font-mono text-xs text-amber">UAE</span>
+            <span className="font-mono text-xs text-cyan-300">UAE</span>
 
-            <span className="h-px w-10 bg-amber" />
+            <span className="h-px w-10 bg-cyan-300" />
 
-            <span className="font-mono text-xs uppercase tracking-[0.2em] text-titanium/60">
+            <span className="font-mono text-xs uppercase tracking-[0.2em] text-slate-400">
               Manpower Supply · {COMPANY.fullName}
             </span>
           </motion.div>
@@ -52,7 +52,7 @@ const HeroSection: React.FC = (): JSX.Element => {
             <br />
             Supply Across
             <br />
-            <span className="text-amber">the UAE</span>
+            <span className="text-cyan-300">the UAE</span>
           </motion.h1>
 
           <motion.p
@@ -62,7 +62,7 @@ const HeroSection: React.FC = (): JSX.Element => {
               duration: 0.6,
               delay: 0.25,
             }}
-            className="mt-7 max-w-xl text-lg text-titanium/75"
+            className="mt-7 max-w-xl text-lg text-slate-300"
           >
             {COMPANY.fullName} provides skilled and unskilled manpower for
             construction, warehouses, cleaning, facility management, logistics
@@ -89,7 +89,7 @@ const HeroSection: React.FC = (): JSX.Element => {
       </div>
 
       <div className="absolute bottom-0 right-5 hidden items-end gap-4 pb-8 md:flex lg:right-10">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-titanium/40 [writing-mode:vertical-rl] rotate-180">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-slate-500 [writing-mode:vertical-rl] rotate-180">
           Scroll to explore
         </span>
       </div>

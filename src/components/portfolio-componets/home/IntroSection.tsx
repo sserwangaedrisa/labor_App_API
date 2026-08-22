@@ -28,7 +28,7 @@ const STATS: Stat[] = [
 
 const IntroSection: React.FC = (): JSX.Element => {
   return (
-    <section className="relative bg-titanium text-onyx">
+    <section className="relative bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-[120rem] px-5 py-20 lg:px-10 lg:py-32">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
           {/* Text Content */}
@@ -47,7 +47,7 @@ const IntroSection: React.FC = (): JSX.Element => {
                 duration: 0.5,
                 delay: 0.1,
               }}
-              className="mt-6 text-lg text-steel"
+              className="mt-6 text-lg text-slate-600"
             >
               {COMPANY.fullName} is a UAE-based manpower supply company
               committed to helping contractors and businesses meet project
@@ -58,14 +58,14 @@ const IntroSection: React.FC = (): JSX.Element => {
             </motion.p>
 
             {/* Statistics */}
-            <dl className="mt-8 grid grid-cols-3 gap-px bg-onyx/10">
+            <dl className="mt-8 grid grid-cols-3 gap-px bg-slate-200">
               {STATS.map((stat: Stat) => (
-                <div key={stat.label} className="bg-titanium p-4">
-                  <dt className="font-display text-3xl text-onyx">
+                <div key={stat.label} className="bg-slate-50 p-4">
+                  <dt className="font-display text-3xl text-slate-900">
                     {stat.value}
                   </dt>
 
-                  <dd className="font-mono text-[11px] uppercase tracking-wider text-steel">
+                  <dd className="font-mono text-[11px] uppercase tracking-wider text-slate-500">
                     {stat.label}
                   </dd>
                 </div>
@@ -85,12 +85,12 @@ const IntroSection: React.FC = (): JSX.Element => {
             </div>
 
             {/* Image Label */}
-            <div className="absolute -bottom-5 -left-5 hidden max-w-[14rem] bg-amber p-5 text-onyx sm:block">
+            <div className="absolute -bottom-5 -left-5 hidden max-w-[14rem] bg-blue-600 p-5 text-white sm:block">
               <p className="font-display text-sm uppercase leading-tight">
                 The Human Infrastructure
               </p>
 
-              <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-onyx/70">
+              <p className="mt-2 font-mono text-[11px] uppercase tracking-wider text-white/80">
                 Workforce = kinetic energy
               </p>
             </div>
