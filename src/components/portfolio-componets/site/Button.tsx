@@ -4,7 +4,7 @@ import { openRequestModal } from "../../../lib/requestModal";
 
 const VARIANTS = {
   primary:
-    "bg-amber text-onyx hover:bg-amber/90 border border-onyx/10 shadow-[4px_4px_0_0_hsl(var(--onyx))]",
+    "bg-amber text-onyx hover:bg-amber/90 border-2 border-white rounded-full shadow-[4px_4px_0_0_hsl(var(--onyx))]",
   dark: "bg-onyx text-titanium hover:bg-onyx/90 border border-onyx",
   outline:
     "bg-transparent text-onyx border border-onyx hover:bg-onyx hover:text-titanium",
@@ -70,7 +70,7 @@ interface RequestButtonProps {
 export const RequestButton: React.FC<RequestButtonProps> = ({
   label = "Request Manpower",
   variant = "primary",
-  className = "",
+  className = "bg-orange-500/50 hover:bg-orange-300",
 }): JSX.Element => {
   return (
     <Button variant={variant} onClick={openRequestModal} className={className}>

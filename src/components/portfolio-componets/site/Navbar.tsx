@@ -40,13 +40,7 @@ export default function Navbar(): JSX.Element {
 
   return (
     <>
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
-          scrolled || open
-            ? "bg-slate-900 text-slate-200 border-b border-slate-700/50"
-            : "bg-transparent text-slate-100"
-        }`}
-      >
+      <header className="fixed top-0 left-0 right-0 z-50 transition-colors duration-300 bg-slate-900 text-slate-200 border-b border-slate-700/50">
         <div className="mx-auto max-w-[120rem] px-5 lg:px-10">
           <div className="flex h-20 items-center justify-between">
             {/* Logo */}

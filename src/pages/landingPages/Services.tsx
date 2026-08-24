@@ -94,57 +94,156 @@ export default function Services(): React.JSX.Element {
         kicker="Services"
         title="Manpower, Engineered"
         subtitle="A full-spectrum workforce inventory — from certified tradesmen to warehouse operators — deployed with speed and supervision."
-        tone="light"
+        tone="dark"
       />
 
-      <section className="bg-titanium text-onyx">
-        <div className="mx-auto max-w-[120rem] px-5 lg:px-10 py-20 lg:py-28 space-y-16 lg:space-y-24">
-          {SERVICES.map((s, i) => (
-            <div
-              key={s.code}
-              id={s.code}
-              className="grid gap-8 lg:grid-cols-12 lg:gap-12"
-            >
-              <div className="lg:col-span-4">
-                <SectionHeading
-                  index={s.code}
-                  kicker={`0${i + 1} / 0${SERVICES.length}`}
-                  title={s.title}
+      <section className="bg-onyx text-titanium">
+        <div className="mx-auto max-w-[120rem] px-5 py-20 lg:px-10 lg:py-28">
+          {/* Section intro */}
+          <div className="mb-16 max-w-3xl lg:mb-24">
+            <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-amber">
+              Workforce Capabilities
+            </p>
+
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
+              The right people for
+              <span className="text-steel"> every operation.</span>
+            </h2>
+
+            <p className="mt-6 max-w-2xl text-base leading-7 text-steel sm:text-lg">
+              From skilled tradesmen to general labour and warehouse operators,
+              we provide dependable manpower solutions built around your project
+              requirements.
+            </p>
+          </div>
+
+          {/* Services */}
+          <div className="space-y-5 lg:space-y-6">
+            {SERVICES.map((s, i) => (
+              <motion.div
+                key={s.code}
+                id={s.code}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.5, delay: i * 0.05 }}
+                className="
+            group
+            relative
+            overflow-hidden
+            rounded-2xl
+            border border-white/[0.08]
+            bg-white/30
+            p-6
+            transition-all
+            duration-300
+            hover:-translate-y-1
+            hover:border-amber/30
+            hover:bg-white/2
+            hover:shadow-2xl
+            hover:shadow-black/20
+            lg:p-10
+          "
+              >
+                {/* Amber accent line */}
+                <div
+                  className="
+              absolute
+              left-0
+              top-0
+              h-full
+              w-1
+              bg-amber/30
+              transition-all
+              duration-300
+              group-hover:bg-amber
+            "
                 />
-              </div>
 
-              <div className="lg:col-span-8">
-                <motion.p
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  className="text-lg text-steel"
-                >
-                  {s.desc}
-                </motion.p>
+                <div className="grid gap-8 lg:grid-cols-12 lg:gap-12">
+                  {/* Left */}
+                  <div className="lg:col-span-4">
+                    <div className="mb-6 flex items-center gap-3">
+                      <span className="h-px w-8 bg-amber/60" />
 
-                <div className="mt-8 grid sm:grid-cols-2 gap-x-8 gap-y-2.5">
-                  {s.roles.map((r) => (
-                    <div
-                      key={r}
-                      className="flex items-center gap-3 border-b border-onyx/10 py-2"
-                    >
-                      <Check className="h-4 w-4 text-amber shrink-0" />
-                      <span className="text-sm font-medium">{r}</span>
+                      <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-amber">
+                        {s.code}
+                      </span>
                     </div>
-                  ))}
-                </div>
 
-                <p className="mt-6 font-mono text-xs uppercase tracking-wider text-steel">
-                  <span className="text-amber">Ideal projects:</span>{" "}
-                  {s.projects}
-                </p>
-              </div>
-            </div>
-          ))}
+                    <h3 className="text-2xl font-semibold tracking-tight text-slate-500 sm:text-3xl">
+                      {s.title}
+                    </h3>
+
+                    <p className="mt-4 text-sm leading-6 text-steel">
+                      {s.desc}
+                    </p>
+
+                    <div className="mt-6 hidden lg:block">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-steel/60">
+                        0{i + 1} / 0{SERVICES.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right */}
+                  <div className="lg:col-span-8 bg-white/50 rounded-xl p-6 lg:p-8">
+                    <div className="grid gap-x-8 sm:grid-cols-2">
+                      {s.roles.map((r) => (
+                        <div
+                          key={r}
+                          className="
+                      flex
+                      items-center
+                      gap-3
+                      border-b
+                      border-white/[0.06]
+                      py-3
+                      text-sm
+                      text-titanium/90
+                      transition-colors
+                      hover:text-white
+                    "
+                        >
+                          <span
+                            className="
+                        flex
+                        h-5
+                        w-5
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        border
+                        border-amber/30
+                        bg-amber/5
+                      "
+                          >
+                            <Check className="h-3 w-3 text-amber" />
+                          </span>
+
+                          <span>{r}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Projects */}
+                    <div className="mt-8 rounded-xl border border-white/[0.06] bg-black/10 p-4">
+                      <p className="font-mono text-[11px] uppercase tracking-wider text-steel">
+                        <span className="text-amber">Ideal projects</span>
+
+                        <span className="mx-2 text-steel/30">/</span>
+
+                        {s.projects}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
-
       <CTAStrip
         title="Need a Specific Trade?"
         subtitle="Tell us the role and we'll deploy the right people."

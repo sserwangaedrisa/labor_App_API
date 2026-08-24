@@ -5,10 +5,8 @@ import IndustriesSection from "../../components/portfolio-componets/home/Industr
 import WhyChooseUsSection from "../../components/portfolio-componets/home/WhyChooseUsSection";
 import HowItWorksSection from "../../components/portfolio-componets/home/HowItWorksSection";
 import StatsSection from "../../components/portfolio-componets/home/StatsSection";
-import TestimonialsSection from "../../components/portfolio-componets/home/TestmonialSection";
 import CTASection from "../../components/portfolio-componets/home/CTAsection";
 import Navbar from "../../components/portfolio-componets/site/Navbar";
-import Footer from "../../components/portfolio-componets/site/Footer";
 
 export default function Home() {
   return (
@@ -21,9 +19,8 @@ export default function Home() {
       <WhyChooseUsSection />
       <HowItWorksSection />
       <StatsSection />
-      <TestimonialsSection />
+      {/* <TestimonialsSection /> */}
       <CTASection />
-      <Footer />
     </>
   );
 }

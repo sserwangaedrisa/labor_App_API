@@ -9,13 +9,9 @@ const IndustriesSection: React.FC = (): JSX.Element => {
   return (
     <section className="bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-[120rem] px-5 py-20 lg:px-10 lg:py-32">
-        <SectionHeading
-          index="03"
-          kicker="Sectors"
-          title="Industries We Serve"
-        />
+        <SectionHeading kicker="Sectors" title="Industries We Serve" />
 
-        <div className="mt-12 grid grid-cols-2 gap-px bg-slate-200 md:grid-cols-3">
+        <div className="mt-12 grid grid-cols-2 gap-px bg-slate-200 rounded-lg md:grid-cols-3">
           {INDUSTRIES.map((industry, index) => (
             <motion.div
               key={industry.name}
@@ -26,7 +22,7 @@ const IndustriesSection: React.FC = (): JSX.Element => {
                 duration: 0.35,
                 delay: index * 0.06,
               }}
-              className="group border-t-2 border-transparent bg-white p-7 transition-colors hover:border-sky-500"
+              className="group border-t-2 border-transparent bg-white/30 rounded-lg p-7 transition-colors hover:border-sky-500"
             >
               <div className="text-4xl">{industry.icon}</div>
 
