@@ -22,18 +22,17 @@ export default function PageHero({
 
   // Default image: place your image in the public/images folder
   // e.g., public/images/services-bg.png
-  const defaultImage = "/images/services-bg.png";
+  const defaultImage = "src/assets/servicesBg.png";
   const backgroundImage = bgImage || defaultImage;
 
   return (
     <section
       className={`
-        relative overflow-hidden border-b
-        ${
-          isDark
-            ? "border-white/[0.08] bg-onyx text-titanium"
-            : "border-onyx/[0.08] bg-titanium text-onyx"
-        }
+        relative overflow-hidden border-b mt-20 shadow-md shadow-orange-500/30 
+        isDark
+          ? "border-white/[0.08] bg-onyx text-titanium"
+          : "border-onyx/[0.08] bg-titanium text-onyx"
+      }
       `}
     >
       {/* ─── Background Image ─── */}
