@@ -135,6 +135,12 @@ const Footer: React.FC = (): JSX.Element => {
             <Link to="/contact" className="hover:text-cyan-300">
               Terms
             </Link>
+            <a
+              href="https://portifolio-three-smoky.vercel.app/"
+              className="hover:text-cyan-300 text-sm"
+            >
+              Design & Developed by: Sserwanga Edirisa
+            </a>
           </div>
         </div>
       </div>

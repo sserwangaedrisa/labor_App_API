@@ -52,7 +52,7 @@ const CARDS: ContactCard[] = [
   {
     icon: Mail,
     label: "Email",
-    value: COMPANY.email,
+    value: "Tap here to send us an email",
     href: `mailto:${COMPANY.email}`,
   },
   {

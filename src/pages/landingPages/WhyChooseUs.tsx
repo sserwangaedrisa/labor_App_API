@@ -88,9 +88,39 @@ export default function WhyChooseUs(): React.JSX.Element {
         tone="light"
       />
 
-      <section className="bg-titanium text-onyx">
-        <div className="mx-auto max-w-[120rem] px-5 lg:px-10 py-20 lg:py-28">
-          <div className="grid gap-px bg-onyx/10 sm:grid-cols-2 lg:grid-cols-4">
+      {/* =========================================================
+          ADVANTAGES
+      ========================================================= */}
+      <section className="relative overflow-visible border-y border-slate-200 bg-slate-50 text-slate-900 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.35)]">
+        {/* Background grid */}
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(15,23,42,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.035)_1px,transparent_1px)] [background-size:40px_40px]" />
+
+        {/* Ambient background */}
+        <div className="pointer-events-none absolute -left-40 top-20 h-96 w-96 rounded-full bg-slate-200/60 blur-3xl" />
+
+        <div className="pointer-events-none absolute -right-40 bottom-10 h-96 w-96 rounded-full bg-slate-200/50 blur-3xl" />
+
+        <div className="relative mx-auto max-w-[120rem] px-5 py-20 lg:px-10 lg:py-28">
+          {/* Section introduction */}
+          <div className="mb-12 max-w-2xl">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-amber-600">
+              Our Advantages
+            </p>
+
+            <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+              Why Businesses Choose Us
+            </h2>
+
+            <div className="mt-5 h-px w-20 bg-amber-500" />
+
+            <p className="mt-5 max-w-xl text-sm leading-7 text-slate-500">
+              We combine speed, reliability and professional workforce
+              management to help contractors keep their operations moving.
+            </p>
+          </div>
+
+          {/* Advantage cards */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {ADVANTAGES.map((a, i) => {
               const Icon = ICONS[a.icon] ?? ShieldCheck;
 
@@ -101,37 +131,70 @@ export default function WhyChooseUs(): React.JSX.Element {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{
-                    duration: 0.4,
+                    duration: 0.45,
                     delay: i * 0.06,
                   }}
-                  className="group bg-titanium p-7 hover:bg-onyx hover:text-titanium transition-colors duration-300"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:bg-slate-900 hover:text-slate-100 hover:shadow-2xl hover:shadow-slate-900/15"
                 >
-                  <div className="flex items-center justify-between">
-                    <Icon className="h-10 w-10 text-amber" />
+                  {/* Hover accent */}
+                  <div className="absolute left-0 top-0 h-1 w-0 bg-amber-500 transition-all duration-300 group-hover:w-full" />
 
-                    <span className="font-mono text-[11px] text-onyx/20 group-hover:text-titanium/30">
-                      0{i + 1}
+                  {/* Large background number */}
+                  <span className="pointer-events-none absolute -right-2 -top-5 font-display text-8xl font-bold text-slate-100 transition-colors duration-300 group-hover:text-slate-800">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+
+                  {/* Icon + number */}
+                  <div className="relative flex items-center justify-between">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 shadow-sm transition-all duration-300 group-hover:border-slate-700 group-hover:bg-slate-800">
+                      <Icon className="h-6 w-6 text-amber-500" />
+                    </div>
+
+                    <span className="font-mono text-[10px] tracking-[0.2em] text-slate-400 group-hover:text-slate-600">
+                      ADVANTAGE
                     </span>
                   </div>
 
-                  <h3 className="mt-5 font-display text-base uppercase leading-tight">
+                  {/* Title */}
+                  <h3 className="relative mt-6 font-display text-base font-bold uppercase leading-tight tracking-wide text-slate-900 transition-colors duration-300 group-hover:text-slate-100">
                     {a.title}
                   </h3>
 
-                  <p className="mt-2 text-sm text-steel group-hover:text-titanium/70">
+                  {/* Description */}
+                  <p className="relative mt-3 text-sm leading-6 text-slate-500 transition-colors duration-300 group-hover:text-slate-400">
                     {a.desc}
                   </p>
+
+                  {/* Bottom separator */}
+                  <div className="relative mt-7 h-px w-full bg-slate-100 transition-colors duration-300 group-hover:bg-slate-800" />
+
+                  {/* Bottom label */}
+                  <div className="relative mt-4 flex items-center justify-between">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-slate-400 group-hover:text-slate-500">
+                      AFRIC TECH SOLUTIONS
+                    </span>
+
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shadow-lg shadow-amber-500/30" />
+                  </div>
                 </motion.div>
               );
             })}
           </div>
         </div>
+
+        {/* Bottom shadow extension */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 translate-y-full bg-slate-950/20 blur-xl" />
       </section>
 
-      <CTAStrip
-        title="Experience the Difference"
-        subtitle="Deploy a workforce that's vetted, supervised, and ready."
-      />
+      {/* =========================================================
+          CTA
+      ========================================================= */}
+      <div className="border-t border-slate-800 bg-slate-950">
+        <CTAStrip
+          title="Experience the Difference"
+          subtitle="Deploy a workforce that's vetted, supervised, and ready."
+        />
+      </div>
     </>
   );
 }
