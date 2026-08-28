@@ -212,7 +212,6 @@ Email: `admin@example.com`
 
 Password: `********`
 
-> Replace the above credentials with your demo account details before publishing.
 
 ---
 
